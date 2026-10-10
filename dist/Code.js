@@ -25,7 +25,8 @@ var GuestOps = (() => {
     doPost: () => doPost,
     processQueue: () => processQueue,
     setupAutomation: () => setupAutomation,
-    stopAutomation: () => stopAutomation
+    stopAutomation: () => stopAutomation,
+    webhookCapabilities: () => webhookCapabilities
   });
 
   // src/Config.ts
@@ -106,7 +107,8 @@ var GuestOps = (() => {
     "SQUARE_MERCHANT_ID",
     "SPREADSHEET_ID",
     "ADMIN_EMAIL",
-    "RELAY_SHARED_SECRET",
+    "WEBHOOK_URL_SECRET",
+    "WEBHOOK_VERIFICATION_MODE",
     "SQUARE_WEBHOOK_SIGNATURE_KEY",
     "SQUARE_WEBHOOK_NOTIFICATION_URL",
     "BUYER_EMAIL_ENABLED",
@@ -123,7 +125,7 @@ var GuestOps = (() => {
     const environment = required("SQUARE_ENVIRONMENT");
     if (!["sandbox", "production"].includes(environment))
       throw new Error("ENVIRONMENT_INVALID");
-    const secret = required("RELAY_SHARED_SECRET");
+    const secret = required("WEBHOOK_URL_SECRET");
     if (!/^[A-Za-z0-9_-]{43,}$/.test(secret)) throw new Error("SECRET_TOO_SHORT");
     const version = required("SQUARE_API_VERSION");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(version))
@@ -133,7 +135,10 @@ var GuestOps = (() => {
       throw new Error("ADMIN_EMAIL_INVALID");
     if (!["true", "false"].includes(required("AUTOMATION_ENABLED")))
       throw new Error("ENABLED_INVALID");
-    const signatureKey = required("SQUARE_WEBHOOK_SIGNATURE_KEY");
+    const mode = required("WEBHOOK_VERIFICATION_MODE");
+    if (!["REQUIRE_SIGNATURE", "API_RECHECK"].includes(mode))
+      throw new Error("VERIFICATION_MODE_INVALID");
+    const signatureKey = mode === "REQUIRE_SIGNATURE" ? required("SQUARE_WEBHOOK_SIGNATURE_KEY") : read("SQUARE_WEBHOOK_SIGNATURE_KEY")?.trim() ?? "";
     const notificationUrl = required("SQUARE_WEBHOOK_NOTIFICATION_URL");
     if (!/^https:\/\/[^\s]+$/.test(notificationUrl))
       throw new Error("NOTIFICATION_URL_INVALID");
@@ -141,6 +146,7 @@ var GuestOps = (() => {
     if (!["true", "false"].includes(buyerEmail))
       throw new Error("BUYER_EMAIL_ENABLED_INVALID");
     return {
+      verificationMode: mode,
       signatureKey,
       notificationUrl,
       buyerEmail: buyerEmail === "true",
@@ -396,55 +402,40 @@ var GuestOps = (() => {
     return id;
   }
 
-  // src/RelayProtocol.ts
-  function envelopeText(e) {
-    return `${e.timestamp}
-${e.nonce}
-${e.squareSignature}
-${e.rawBody}`;
-  }
-  function receiptText(nonce, result) {
-    return nonce + "\n" + result;
-  }
-  function equalSignature(actual, expected) {
-    if (!/^[A-Za-z0-9+/]{43}=$/.test(actual) || actual.length !== expected.length)
-      return false;
+  // src/SquareSignature.ts
+  function verifySquareSignature(rawBody, signature, key, notificationUrl) {
+    if (!signature || !/^[A-Za-z0-9+/]{43}=$/.test(signature)) return false;
+    const expected = Utilities.base64Encode(
+      Utilities.computeHmacSha256Signature(
+        notificationUrl + rawBody,
+        key,
+        Utilities.Charset.UTF_8
+      )
+    );
+    if (signature.length !== expected.length) return false;
     let difference = 0;
     for (let i = 0; i < expected.length; i++)
-      difference |= actual.charCodeAt(i) ^ expected.charCodeAt(i);
+      difference |= signature.charCodeAt(i) ^ expected.charCodeAt(i);
     return difference === 0;
   }
-
-  // src/RelayService.ts
-  function hmac(text, key) {
-    return Utilities.base64Encode(
-      Utilities.computeHmacSha256Signature(text, key, Utilities.Charset.UTF_8)
-    );
+  function directSquareSignature() {
+    return null;
   }
-  function verifyEnvelope(raw, relayKey, squareKey, notificationUrl, now = Date.now()) {
-    if (raw.length > 7e4) throw new BusinessError("RELAY_BODY_TOO_LARGE");
-    let data;
-    try {
-      data = JSON.parse(raw);
-    } catch {
-      throw new BusinessError("RELAY_JSON_INVALID");
-    }
-    if (!data || typeof data !== "object")
-      throw new BusinessError("RELAY_INVALID");
-    const e = data;
-    if (!Number.isSafeInteger(e.timestamp) || Math.abs(now - e.timestamp) > 3e5 || typeof e.nonce !== "string" || !/^[a-f0-9]{32}$/.test(e.nonce) || typeof e.rawBody !== "string" || e.rawBody.length > 32768 || typeof e.squareSignature !== "string" || typeof e.mac !== "string")
-      throw new BusinessError("RELAY_INVALID");
-    if (!equalSignature(e.mac, hmac(envelopeText(e), relayKey)))
-      throw new BusinessError("RELAY_SIGNATURE_INVALID");
-    if (!equalSignature(
-      e.squareSignature,
-      hmac(notificationUrl + e.rawBody, squareKey)
-    ))
-      throw new BusinessError("SQUARE_SIGNATURE_INVALID");
-    return e;
+  function webhookCapabilities() {
+    return {
+      rawBodyAccessible: true,
+      standardSignatureHeaderAccessible: false,
+      hmacComputationAvailable: true,
+      standardSquareVerificationAvailable: false,
+      basis: "DOCUMENTED_GAS_WEB_APP_EVENT"
+    };
   }
-  function makeReceipt(nonce, result, key) {
-    return { nonce, result, mac: hmac(receiptText(nonce, result), key) };
+  function verifySquareSignatureFromProperties(rawBody, signature) {
+    const properties2 = PropertiesService.getScriptProperties();
+    const key = properties2.getProperty("SQUARE_WEBHOOK_SIGNATURE_KEY");
+    const url = properties2.getProperty("SQUARE_WEBHOOK_NOTIFICATION_URL");
+    if (!key || !url) throw new Error("SQUARE_SIGNATURE_SETTINGS_MISSING");
+    return verifySquareSignature(rawBody, signature, key, url);
   }
 
   // src/EmailService.ts
@@ -549,24 +540,24 @@ ${e.rawBody}`;
   function sheets(id) {
     return new SheetService(SpreadsheetApp.openById(id));
   }
-  function response(nonce, result, secret) {
-    return ContentService.createTextOutput(
-      JSON.stringify(makeReceipt(nonce, result, secret))
-    ).setMimeType(ContentService.MimeType.JSON);
+  function response(result) {
+    return HtmlService.createHtmlOutput(result);
   }
   function doPost(e) {
     if (properties().getProperty("AUTOMATION_ENABLED") !== "true")
       throw new Error("AUTOMATION_DISABLED");
     const config = settings();
-    const envelope = verifyEnvelope(
-      e.postData?.contents ?? "",
-      config.secret,
-      config.signatureKey,
-      config.notificationUrl
-    );
+    if (e.parameter?.key !== config.secret) return response("ignored");
+    const raw = e.postData?.contents ?? "";
+    if (config.verificationMode === "REQUIRE_SIGNATURE") {
+      const signature = directSquareSignature();
+      if (!signature) throw new Error("SQUARE_SIGNATURE_HEADER_UNAVAILABLE");
+      if (!verifySquareSignatureFromProperties(raw, signature))
+        throw new Error("SQUARE_SIGNATURE_INVALID");
+    }
     let id;
     try {
-      id = paymentHint(envelope.rawBody, config.merchant);
+      id = paymentHint(raw, config.merchant);
     } catch (error) {
       if (!(error instanceof BusinessError)) throw error;
       locked(
@@ -576,20 +567,26 @@ ${e.rawBody}`;
           error.message
         )
       );
-      return response(envelope.nonce, "ignored", config.secret);
+      return response("ignored");
     }
-    if (!id) return response(envelope.nonce, "ignored", config.secret);
-    return locked(
-      () => response(
-        envelope.nonce,
-        sheets(config.spreadsheet).enqueue(id) ? "queued" : "duplicate",
-        config.secret
-      )
-    );
+    if (!id) return response("ignored");
+    return locked(() => {
+      const store = sheets(config.spreadsheet);
+      const queued = store.enqueue(id);
+      if (queued)
+        new Logger(store).log(
+          "WARN",
+          "WEBHOOK_SECURITY",
+          "SIGNATURE_UNVERIFIED_API_RECHECK"
+        );
+      return response(queued ? "queued" : "duplicate");
+    });
   }
   function processQueue() {
     if (properties().getProperty("AUTOMATION_ENABLED") !== "true") return;
     const config = settings(), started = Date.now();
+    if (config.verificationMode === "REQUIRE_SIGNATURE")
+      throw new Error("SQUARE_SIGNATURE_HEADER_UNAVAILABLE");
     return locked(() => {
       const store = sheets(config.spreadsheet), logger = new Logger(store), api = new SquareService(config.token, config.version, config.environment);
       let processed = 0;

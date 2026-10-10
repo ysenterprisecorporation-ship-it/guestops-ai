@@ -1,34 +1,23 @@
-# 実環境接続・受入記録
+# GAS直接受信・署名検証の確認結果
 
 2026-10-10（Asia/Tokyo）
 
-## ローカル確認済み
+- 構成：Square → GAS Web Appを維持。Cloud Run資産の追加・デプロイなし。
+- GASでHMAC-SHA256/base64計算は可能。Square公式署名ベクトルに一致。
+- Script Propertiesから署名鍵と通知URLを読む関数を実装。
+- GAS公開doPostイベントには任意HTTPヘッダー取得APIがない。標準Square署名の比較対象を直接取得できない。
+- 初期REQUIRE_SIGNATUREでは受信と既存QUEUEを処理せず停止。API_RECHECKは署名なし代替であり、検証成功とは扱わない。
+- 77件のローカルテスト成功。型検査・ESLint・GASビルド成功。
+- Cloud案はproposal/cloud-run-signature-relayへ提案として分離。未採用。
 
-- 87件のモックテスト成功（失敗0/スキップ0）。8テストファイル。
-- 受信口の実HTTP /health応答200をローカル確認。
-- TypeScript strict、ESLint、GAS/Node受信口ビルド成功。
-- Square公式署名ベクトル、raw本文/URL/鍵改変の拒否。
-- 署名受信→GAS署名検証・永続保存→API商品照合→Drive案内メールのモック統合。
-- GASのHTML200・不正保存応答・通信失敗は受信口が503。
-- 5商品メール、A差額リンク、注文重複と二重送信防止。
-- 送信結果不明は自動再送しない。秘密値はScript Properties/環境値から取得。
-
-## 実環境は未確認
-
-|項目|結果|
+|実環境確認|結果|
 |---|---|
-|署名検証受信口の設置先合意|確認待ち：Cloud Run追加または既存ホスト|
-|販売URL・Drive ID/URL・variation ID実値|未提供|
-|Squareトークン/署名鍵/商店/店舗/API版|未提供|
-|GAS/Sheets/HTTPSホストの本番認証・設定|未実施|
-|署名不一致の実HTTP403|未確認|
-|正常通知10秒以内2xx、GAS保存と再送|未確認|
-|GAS停止・保存不能・競合時の503と再送|未確認|
-|5商品の実API取得・価格/税/メールの確認|未確認|
-|商品別メールの実受信・返信先|未確認|
-|既存Drive共有範囲での購入者閲覧|未確認|
-|遅延・クォータ・GAS運用監視|未確認|
+|Webhook Signature Keyの実値取得|未実施：Squareの接続・実値未提供|
+|GAS実アカウントへHTTP POSTしてイベントを実測|未実施|
+|本番Webhook受信・応答/失敗再送確認|未実施|
+|既存商品variation・金額・購入者メールの実取得|未実施|
+|購入者メールの実受信・既存Drive閲覧確認|未実施|
 |本番有効化|未実施|
 
-既存Square / Sites / DriveのURL・価格・権限は変更していない。
-人間時間KPI：通常注文の手入力・メール作成0、重複メール0を目標とする。実績は本番後に測定する。
+根拠：Google Web Apps request parameters、Square Webhook signature validation。READMEに原典と比較表あり。
+既存のSquareリンク・価格・Google Sites・Drive URL/ID/共有権限は変更していない。

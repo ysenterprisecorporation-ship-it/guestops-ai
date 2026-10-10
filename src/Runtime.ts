@@ -6,9 +6,12 @@ import { SheetService, ORDER_HEADERS, LOG_HEADERS } from "./SheetService";
 import { SquareService } from "./SquareService";
 import { paymentHint } from "./SquareWebhook";
 import { BusinessError } from "./Types";
-import { verifyEnvelope, makeReceipt } from "./RelayService";
+import {
+  directSquareSignature,
+  verifySquareSignatureFromProperties,
+} from "./SquareSignature";
 import { deliverPurchase } from "./EmailService";
-import type { ReceiptResult } from "./RelayProtocol";
+export { webhookCapabilities } from "./SquareSignature";
 // GASの同期サービスに合わせて入口・時間トリガーはPromiseを返さない。
 function properties() {
   return PropertiesService.getScriptProperties();
@@ -58,25 +61,24 @@ function locked<T>(fn: () => T): T {
 function sheets(id: string) {
   return new SheetService(SpreadsheetApp.openById(id));
 }
-function response(nonce: string, result: ReceiptResult, secret: string) {
-  return ContentService.createTextOutput(
-    JSON.stringify(makeReceipt(nonce, result, secret)),
-  ).setMimeType(ContentService.MimeType.JSON);
+function response(result: string) {
+  return HtmlService.createHtmlOutput(result);
 }
 export function doPost(e: GoogleAppsScript.Events.DoPost) {
   if (properties().getProperty("AUTOMATION_ENABLED") !== "true")
     throw new Error("AUTOMATION_DISABLED");
   const config = settings();
-  // 未署名の直接Square通知と従来の秘密URLは受け付けない。
-  const envelope = verifyEnvelope(
-    e.postData?.contents ?? "",
-    config.secret,
-    config.signatureKey,
-    config.notificationUrl,
-  );
+  if (e.parameter?.key !== config.secret) return response("ignored");
+  const raw = e.postData?.contents ?? "";
+  if (config.verificationMode === "REQUIRE_SIGNATURE") {
+    const signature = directSquareSignature();
+    if (!signature) throw new Error("SQUARE_SIGNATURE_HEADER_UNAVAILABLE");
+    if (!verifySquareSignatureFromProperties(raw, signature))
+      throw new Error("SQUARE_SIGNATURE_INVALID");
+  }
   let id: string | null;
   try {
-    id = paymentHint(envelope.rawBody, config.merchant);
+    id = paymentHint(raw, config.merchant);
   } catch (error) {
     if (!(error instanceof BusinessError)) throw error;
     locked(() =>
@@ -86,21 +88,27 @@ export function doPost(e: GoogleAppsScript.Events.DoPost) {
         error.message,
       ),
     );
-    return response(envelope.nonce, "ignored", config.secret);
+    return response("ignored");
   }
-  if (!id) return response(envelope.nonce, "ignored", config.secret);
-  return locked(() =>
-    response(
-      envelope.nonce,
-      sheets(config.spreadsheet).enqueue(id) ? "queued" : "duplicate",
-      config.secret,
-    ),
-  );
+  if (!id) return response("ignored");
+  return locked(() => {
+    const store = sheets(config.spreadsheet);
+    const queued = store.enqueue(id);
+    if (queued)
+      new Logger(store).log(
+        "WARN",
+        "WEBHOOK_SECURITY",
+        "SIGNATURE_UNVERIFIED_API_RECHECK",
+      );
+    return response(queued ? "queued" : "duplicate");
+  });
 }
 export function processQueue() {
   if (properties().getProperty("AUTOMATION_ENABLED") !== "true") return;
   const config = settings(),
     started = Date.now();
+  if (config.verificationMode === "REQUIRE_SIGNATURE")
+    throw new Error("SQUARE_SIGNATURE_HEADER_UNAVAILABLE");
   return locked(() => {
     const store = sheets(config.spreadsheet),
       logger = new Logger(store),

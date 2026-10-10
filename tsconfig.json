@@ -8,5 +8,5 @@
     "types": ["google-apps-script", "node"],
     "skipLibCheck": true
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts", "receiver/**/*.ts"]
+  "include": ["src/**/*.ts", "tests/**/*.ts"]
 }

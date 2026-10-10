@@ -8,7 +8,8 @@ export const RUNTIME_KEYS = [
   "SQUARE_MERCHANT_ID",
   "SPREADSHEET_ID",
   "ADMIN_EMAIL",
-  "RELAY_SHARED_SECRET",
+  "WEBHOOK_URL_SECRET",
+  "WEBHOOK_VERIFICATION_MODE",
   "SQUARE_WEBHOOK_SIGNATURE_KEY",
   "SQUARE_WEBHOOK_NOTIFICATION_URL",
   "BUYER_EMAIL_ENABLED",
@@ -25,7 +26,7 @@ export function loadSettings(read: (key: string) => string | null | undefined) {
   const environment = required("SQUARE_ENVIRONMENT");
   if (!["sandbox", "production"].includes(environment))
     throw new Error("ENVIRONMENT_INVALID");
-  const secret = required("RELAY_SHARED_SECRET");
+  const secret = required("WEBHOOK_URL_SECRET");
   if (!/^[A-Za-z0-9_-]{43,}$/.test(secret)) throw new Error("SECRET_TOO_SHORT");
   const version = required("SQUARE_API_VERSION");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(version))
@@ -35,7 +36,13 @@ export function loadSettings(read: (key: string) => string | null | undefined) {
     throw new Error("ADMIN_EMAIL_INVALID");
   if (!["true", "false"].includes(required("AUTOMATION_ENABLED")))
     throw new Error("ENABLED_INVALID");
-  const signatureKey = required("SQUARE_WEBHOOK_SIGNATURE_KEY");
+  const mode = required("WEBHOOK_VERIFICATION_MODE");
+  if (!["REQUIRE_SIGNATURE", "API_RECHECK"].includes(mode))
+    throw new Error("VERIFICATION_MODE_INVALID");
+  const signatureKey =
+    mode === "REQUIRE_SIGNATURE"
+      ? required("SQUARE_WEBHOOK_SIGNATURE_KEY")
+      : (read("SQUARE_WEBHOOK_SIGNATURE_KEY")?.trim() ?? "");
   const notificationUrl = required("SQUARE_WEBHOOK_NOTIFICATION_URL");
   if (!/^https:\/\/[^\s]+$/.test(notificationUrl))
     throw new Error("NOTIFICATION_URL_INVALID");
@@ -43,6 +50,7 @@ export function loadSettings(read: (key: string) => string | null | undefined) {
   if (!["true", "false"].includes(buyerEmail))
     throw new Error("BUYER_EMAIL_ENABLED_INVALID");
   return {
+    verificationMode: mode,
     signatureKey,
     notificationUrl,
     buyerEmail: buyerEmail === "true",

@@ -1,8 +1,6 @@
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
-import { hmac } from "../receiver/Signature";
-import { envelopeText } from "../src/RelayProtocol";
 import { CONFIG, products } from "../src/Config";
 import {
   doPost,
@@ -52,8 +50,9 @@ beforeEach(() => {
       SQUARE_WEBHOOK_SIGNATURE_KEY: "square-key",
       SQUARE_WEBHOOK_NOTIFICATION_URL: "https://example.invalid/webhook",
       BUYER_EMAIL_ENABLED: "false",
+      WEBHOOK_VERIFICATION_MODE: "API_RECHECK",
       SQUARE_ENVIRONMENT: "sandbox",
-      RELAY_SHARED_SECRET: "x".repeat(43),
+      WEBHOOK_URL_SECRET: "x".repeat(43),
       SQUARE_API_VERSION: "2026-01-22",
       ADMIN_EMAIL: "admin@example.invalid",
       SQUARE_LOCATION_ID: "loc",
@@ -86,6 +85,7 @@ beforeEach(() => {
       getScriptLock: () => ({ waitLock: () => {}, releaseLock: () => {} }),
     },
     SpreadsheetApp: { openById: () => book, flush: () => {} },
+    HtmlService: { createHtmlOutput: (value: string) => ({ value }) },
     ContentService: {
       MimeType: { JSON: "JSON" },
       createTextOutput: (value: string) => ({
@@ -170,25 +170,15 @@ beforeEach(() => {
   setupAutomation();
 });
 function event(index = 0, key = "x".repeat(43)) {
-  const rawBody = JSON.stringify({
-    merchant_id: "merchant",
-    type: "payment.updated",
-    data: { object: { payment: { id: "pay-" + index, status: "COMPLETED" } } },
-  });
-  const envelope = {
-    timestamp: Date.now(),
-    nonce: "a".repeat(32),
-    squareSignature: hmac(
-      "https://example.invalid/webhook" + rawBody,
-      "square-key",
-    ),
-    rawBody,
-  };
   return {
+    parameter: { key },
     postData: {
       contents: JSON.stringify({
-        ...envelope,
-        mac: hmac(envelopeText(envelope), key),
+        merchant_id: "merchant",
+        type: "payment.updated",
+        data: {
+          object: { payment: { id: "pay-" + index, status: "COMPLETED" } },
+        },
       }),
     },
   } as unknown as GoogleAppsScript.Events.DoPost;
@@ -214,7 +204,7 @@ test("Webhook重複と再処理でも注文1行", () => {
 });
 test("秘密不一致でAPI・QUEUEにアクセスしない", () => {
   const count = sheets.get("Logs")!.rows.length;
-  assert.throws(() => doPost(event(0, "wrong")), /SIGNATURE_INVALID/);
+  doPost(event(0, "wrong"));
   processQueue();
   assert.equal(requests, 0);
   assert.equal(sheets.get("Logs")!.rows.length, count);
@@ -285,55 +275,28 @@ test("商品別Drive案内を購入者へ送信、重複再送なし", () => {
   );
   assert.ok(mail[0].body.includes(CONFIG.UPGRADE_P3_URL));
 });
-test("署名付き永続保存応答は受信nonceに一致", () => {
-  const output = doPost(event()) as unknown as { value: string };
-  const receipt = JSON.parse(output.value);
-  assert.equal(receipt.nonce, "a".repeat(32));
-  assert.equal(receipt.result, "queued");
-});
-test("旧直接通知は受け付けない", () => {
-  assert.throws(
-    () =>
-      doPost({
-        postData: { contents: "{}" },
-      } as GoogleAppsScript.Events.DoPost),
-    /RELAY_INVALID/,
+test("署名必須モードは直接通知を処理しない", () => {
+  props.set("WEBHOOK_VERIFICATION_MODE", "REQUIRE_SIGNATURE");
+  assert.throws(() => doPost(event()), /SQUARE_SIGNATURE_HEADER_UNAVAILABLE/);
+  assert.equal(sheets.get("Orders")!.rows.length, 1);
+  assert.equal(
+    sheets.get("Logs")!.rows.filter((r) => r[1] === "QUEUE").length,
+    0,
   );
+  assert.equal(mail.length, 0);
+});
+test("body/queryへ署名を付けても標準署名として扱わない", () => {
+  props.set("WEBHOOK_VERIFICATION_MODE", "REQUIRE_SIGNATURE");
+  const e = event();
+  e.parameter.signature = "fake";
+  assert.throws(() => doPost(e), /SQUARE_SIGNATURE_HEADER_UNAVAILABLE/);
 });
 
-test("署名付きSquare通知→受信口→GAS保存→商品メールの統合", async () => {
-  props.set("BUYER_EMAIL_ENABLED", "true");
-  const { handleWebhook } = await import("../receiver/Handler");
-  const raw = JSON.stringify({
-    merchant_id: "merchant",
-    type: "payment.updated",
-    data: { object: { payment: { id: "pay-0", status: "COMPLETED" } } },
-  });
-  const signature = hmac("https://example.invalid/webhook" + raw, "square-key");
-  const transport: typeof fetch = async (_url, options) => {
-    const output = doPost({
-      postData: { contents: String(options?.body) },
-    } as GoogleAppsScript.Events.DoPost) as unknown as { value: string };
-    return new Response(output.value);
-  };
-  const receiver = {
-    enabled: true,
-    signatureKey: "square-key",
-    notificationUrl: "https://example.invalid/webhook",
-    gasUrl: "https://script.google.com/macros/s/script/exec",
-    relayKey: "x".repeat(43),
-  };
-  assert.equal(
-    (await handleWebhook(Buffer.from(raw), signature, receiver, transport))
-      .status,
-    200,
-  );
-  assert.equal(
-    (await handleWebhook(Buffer.from(raw), signature, receiver, transport))
-      .status,
-    200,
-  );
-  processQueue();
-  assert.equal(mail.length, 1);
-  assert.equal(sheets.get("Orders")!.rows.length, 2);
+test("署名必須へ切替後は既存の未検証QUEUEも処理しない", () => {
+  doPost(event());
+  props.set("WEBHOOK_VERIFICATION_MODE", "REQUIRE_SIGNATURE");
+  assert.throws(processQueue, /SQUARE_SIGNATURE_HEADER_UNAVAILABLE/);
+  assert.equal(requests, 0);
+  assert.equal(mail.length, 0);
+  assert.equal(sheets.get("Orders")!.rows.length, 1);
 });
