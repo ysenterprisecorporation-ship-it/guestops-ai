@@ -5,13 +5,15 @@
   "type": "module",
   "scripts": {
     "check": "tsc --noEmit",
-    "lint": "eslint src tests scripts build.mjs",
+    "lint": "eslint src receiver tests scripts build.mjs",
     "test": "node --import tsx --test tests/*.test.ts",
     "build": "node build.mjs",
-    "format": "prettier --write src tests scripts build.mjs eslint.config.js package.json tsconfig.json",
+    "format": "prettier --write src receiver tests scripts build.mjs eslint.config.js package.json tsconfig.json",
     "env:check": "node --env-file=.env --import tsx scripts/environment.mjs check",
     "export:properties": "node --env-file=.env --import tsx scripts/environment.mjs export",
-    "configure:clasp": "node --env-file=.env --import tsx scripts/environment.mjs clasp"
+    "configure:clasp": "node --env-file=.env --import tsx scripts/environment.mjs clasp",
+    "receiver:start": "node --env-file=.env receiver/dist/server.mjs",
+    "export:receiver": "node --env-file=.env --import tsx scripts/environment.mjs receiver"
   },
   "devDependencies": {
     "@types/google-apps-script": "^1.0.100",

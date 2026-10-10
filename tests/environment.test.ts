@@ -22,8 +22,10 @@ function values(): Record<string, string> {
     SQUARE_MERCHANT_ID: "merchant",
     SPREADSHEET_ID: "book",
     ADMIN_EMAIL: "admin@example.invalid",
-    WEBHOOK_URL_SECRET: "x".repeat(43),
-    ACKNOWLEDGE_UNSIGNED_WEBHOOK: "true",
+    RELAY_SHARED_SECRET: "x".repeat(43),
+    SQUARE_WEBHOOK_SIGNATURE_KEY: "square-key",
+    SQUARE_WEBHOOK_NOTIFICATION_URL: "https://example.invalid/webhook",
+    BUYER_EMAIL_ENABLED: "false",
     AUTOMATION_ENABLED: "false",
     GAS_SCRIPT_ID: "new-script",
   };
@@ -40,10 +42,13 @@ test("未設定の既存URLは推測せず失敗", () => {
     /CONFIG_UNCONFIRMED:A_URL/,
   );
 });
-test("署名未検証の同意なしでは停止", () => {
+test("署名鍵なしでは停止", () => {
   const v = values();
-  v.ACKNOWLEDGE_UNSIGNED_WEBHOOK = "false";
-  assert.throws(() => loadSettings((key) => v[key]), /NOT_ACKNOWLEDGED/);
+  v.SQUARE_WEBHOOK_SIGNATURE_KEY = "";
+  assert.throws(
+    () => loadSettings((key) => v[key]),
+    /PROPERTY_UNCONFIRMED:SQUARE_WEBHOOK_SIGNATURE_KEY/,
+  );
 });
 test("無効な環境名では停止", () => {
   const v = values();
@@ -79,6 +84,38 @@ test("プロパティ出力は停止状態、秘密値を標準出力へ出さ�
     assert.equal(data.GAS_SCRIPT_ID, undefined);
     assert.equal(Object.keys(data).length, PROPERTY_KEYS.length);
     assert.equal((await stat(path)).mode & 0o777, 0o600);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("受信口設定出力は秘密値を表示せず停止状態", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "guestops-receiver-"));
+  try {
+    const env = {
+      ...process.env,
+      ...values(),
+      GAS_WEB_APP_URL: "https://script.google.com/macros/s/new-script/exec",
+      RECEIVER_ENABLED: "true",
+    };
+    const result = spawnSync(
+      process.execPath,
+      [
+        "--import",
+        import.meta.resolve("tsx"),
+        new URL("../scripts/environment.mjs", import.meta.url).pathname,
+        "receiver",
+      ],
+      { cwd: dir, env, encoding: "utf8" },
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.ok(!result.stdout.includes("square-key"));
+    const file = join(dir, ".local/receiver-environment.json"),
+      data = JSON.parse(await readFile(file, "utf8"));
+    assert.equal(data.RECEIVER_ENABLED, "false");
+    assert.equal(data.SQUARE_WEBHOOK_SIGNATURE_KEY, "square-key");
+    assert.equal(data.SQUARE_ACCESS_TOKEN, undefined);
+    assert.equal((await stat(file)).mode & 0o777, 0o600);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

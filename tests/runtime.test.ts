@@ -1,5 +1,8 @@
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
+import { createHmac } from "node:crypto";
+import { hmac } from "../receiver/Signature";
+import { envelopeText } from "../src/RelayProtocol";
 import { CONFIG, products } from "../src/Config";
 import {
   doPost,
@@ -46,9 +49,11 @@ beforeEach(() => {
     Object.entries({
       ...CONFIG,
       AUTOMATION_ENABLED: "true",
-      ACKNOWLEDGE_UNSIGNED_WEBHOOK: "true",
+      SQUARE_WEBHOOK_SIGNATURE_KEY: "square-key",
+      SQUARE_WEBHOOK_NOTIFICATION_URL: "https://example.invalid/webhook",
+      BUYER_EMAIL_ENABLED: "false",
       SQUARE_ENVIRONMENT: "sandbox",
-      WEBHOOK_URL_SECRET: "x".repeat(43),
+      RELAY_SHARED_SECRET: "x".repeat(43),
       SQUARE_API_VERSION: "2026-01-22",
       ADMIN_EMAIL: "admin@example.invalid",
       SQUARE_LOCATION_ID: "loc",
@@ -81,7 +86,21 @@ beforeEach(() => {
       getScriptLock: () => ({ waitLock: () => {}, releaseLock: () => {} }),
     },
     SpreadsheetApp: { openById: () => book, flush: () => {} },
-    HtmlService: { createHtmlOutput: (value: string) => ({ value }) },
+    ContentService: {
+      MimeType: { JSON: "JSON" },
+      createTextOutput: (value: string) => ({
+        value,
+        setMimeType() {
+          return this;
+        },
+      }),
+    },
+    Utilities: {
+      Charset: { UTF_8: "UTF_8" },
+      computeHmacSha256Signature: (text: string, key: string) =>
+        Array.from(createHmac("sha256", key).update(text).digest()),
+      base64Encode: (bytes: number[]) => Buffer.from(bytes).toString("base64"),
+    },
     ScriptApp: {
       getProjectTriggers: () =>
         triggers.map((n) => ({ getHandlerFunction: () => n })),
@@ -95,8 +114,17 @@ beforeEach(() => {
       },
     },
     MailApp: {
-      sendEmail: (to: string, _subject: string, body: string) =>
-        mail.push({ to, body }),
+      getRemainingDailyQuota: () => 100,
+      sendEmail: (
+        to: string | { to: string; body: string },
+        _subject?: string,
+        body?: string,
+      ) =>
+        mail.push(
+          typeof to === "string"
+            ? { to, body: body ?? "" }
+            : { to: to.to, body: to.body },
+        ),
     },
     UrlFetchApp: {
       fetch: (url: string) => {
@@ -142,15 +170,25 @@ beforeEach(() => {
   setupAutomation();
 });
 function event(index = 0, key = "x".repeat(43)) {
+  const rawBody = JSON.stringify({
+    merchant_id: "merchant",
+    type: "payment.updated",
+    data: { object: { payment: { id: "pay-" + index, status: "COMPLETED" } } },
+  });
+  const envelope = {
+    timestamp: Date.now(),
+    nonce: "a".repeat(32),
+    squareSignature: hmac(
+      "https://example.invalid/webhook" + rawBody,
+      "square-key",
+    ),
+    rawBody,
+  };
   return {
-    parameter: { key },
     postData: {
       contents: JSON.stringify({
-        merchant_id: "merchant",
-        type: "payment.updated",
-        data: {
-          object: { payment: { id: "pay-" + index, status: "COMPLETED" } },
-        },
+        ...envelope,
+        mac: hmac(envelopeText(envelope), key),
       }),
     },
   } as unknown as GoogleAppsScript.Events.DoPost;
@@ -176,7 +214,7 @@ test("Webhook重複と再処理でも注文1行", () => {
 });
 test("秘密不一致でAPI・QUEUEにアクセスしない", () => {
   const count = sheets.get("Logs")!.rows.length;
-  doPost(event(0, "wrong"));
+  assert.throws(() => doPost(event(0, "wrong")), /SIGNATURE_INVALID/);
   processQueue();
   assert.equal(requests, 0);
   assert.equal(sheets.get("Logs")!.rows.length, count);
@@ -232,4 +270,70 @@ test("不正JSONは既存設定を上書きしない", () => {
   props.set("BOOTSTRAP_CONFIG_JSON", JSON.stringify({ unexpected: "value" }));
   assert.throws(configureAutomation, /KEYS_INVALID/);
   assert.equal(props.get("AUTOMATION_ENABLED"), "true");
+});
+
+test("商品別Drive案内を購入者へ送信、重複再送なし", () => {
+  props.set("BUYER_EMAIL_ENABLED", "true");
+  for (let i = 0; i < 5; i++) doPost(event(i));
+  processQueue();
+  processQueue();
+  assert.equal(mail.length, 5);
+  assert.ok(mail.every((m) => m.to === "buyer@example.invalid"));
+  assert.equal(
+    sheets.get("Orders")!.rows.filter((r) => r[6] === "DELIVERED").length,
+    5,
+  );
+  assert.ok(mail[0].body.includes(CONFIG.UPGRADE_P3_URL));
+});
+test("署名付き永続保存応答は受信nonceに一致", () => {
+  const output = doPost(event()) as unknown as { value: string };
+  const receipt = JSON.parse(output.value);
+  assert.equal(receipt.nonce, "a".repeat(32));
+  assert.equal(receipt.result, "queued");
+});
+test("旧直接通知は受け付けない", () => {
+  assert.throws(
+    () =>
+      doPost({
+        postData: { contents: "{}" },
+      } as GoogleAppsScript.Events.DoPost),
+    /RELAY_INVALID/,
+  );
+});
+
+test("署名付きSquare通知→受信口→GAS保存→商品メールの統合", async () => {
+  props.set("BUYER_EMAIL_ENABLED", "true");
+  const { handleWebhook } = await import("../receiver/Handler");
+  const raw = JSON.stringify({
+    merchant_id: "merchant",
+    type: "payment.updated",
+    data: { object: { payment: { id: "pay-0", status: "COMPLETED" } } },
+  });
+  const signature = hmac("https://example.invalid/webhook" + raw, "square-key");
+  const transport: typeof fetch = async (_url, options) => {
+    const output = doPost({
+      postData: { contents: String(options?.body) },
+    } as GoogleAppsScript.Events.DoPost) as unknown as { value: string };
+    return new Response(output.value);
+  };
+  const receiver = {
+    enabled: true,
+    signatureKey: "square-key",
+    notificationUrl: "https://example.invalid/webhook",
+    gasUrl: "https://script.google.com/macros/s/script/exec",
+    relayKey: "x".repeat(43),
+  };
+  assert.equal(
+    (await handleWebhook(Buffer.from(raw), signature, receiver, transport))
+      .status,
+    200,
+  );
+  assert.equal(
+    (await handleWebhook(Buffer.from(raw), signature, receiver, transport))
+      .status,
+    200,
+  );
+  processQueue();
+  assert.equal(mail.length, 1);
+  assert.equal(sheets.get("Orders")!.rows.length, 2);
 });

@@ -37,3 +37,14 @@ await writeFile(
     2,
   ),
 );
+
+// Node受信口は独立した成果物。秘密情報を埋め込まない。
+await mkdir("receiver/dist", { recursive: true });
+await build({
+  entryPoints: ["receiver/Server.ts"],
+  bundle: true,
+  platform: "node",
+  format: "esm",
+  target: "node24",
+  outfile: "receiver/dist/server.mjs",
+});

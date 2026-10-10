@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { loadSettings, PROPERTY_KEYS } from "../src/Settings.ts";
+import { receiverSettings } from "../receiver/Settings.ts";
 // 環境変数はNode --env-fileで読み込む。値を標準出力へ出さない。
 try {
   loadSettings((key) => process.env[key]);
@@ -20,6 +21,30 @@ try {
     );
     console.log(
       ".local/script-properties.jsonを作成（秘密値を含むためGitへ追加しない）",
+    );
+  } else if (mode === "receiver") {
+    const settings = receiverSettings({
+      ...process.env,
+      RECEIVER_ENABLED: "true",
+    });
+    await mkdir(".local", { recursive: true, mode: 0o700 });
+    await writeFile(
+      ".local/receiver-environment.json",
+      JSON.stringify(
+        {
+          RECEIVER_ENABLED: "false",
+          SQUARE_WEBHOOK_SIGNATURE_KEY: settings.signatureKey,
+          SQUARE_WEBHOOK_NOTIFICATION_URL: settings.notificationUrl,
+          GAS_WEB_APP_URL: settings.gasUrl,
+          RELAY_SHARED_SECRET: settings.relayKey,
+        },
+        null,
+        2,
+      ),
+      { mode: 0o600 },
+    );
+    console.log(
+      ".local/receiver-environment.jsonを作成（秘密値を含むためGitへ追加しない）",
     );
   } else if (mode === "clasp") {
     await writeFile(

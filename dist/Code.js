@@ -106,8 +106,10 @@ var GuestOps = (() => {
     "SQUARE_MERCHANT_ID",
     "SPREADSHEET_ID",
     "ADMIN_EMAIL",
-    "WEBHOOK_URL_SECRET",
-    "ACKNOWLEDGE_UNSIGNED_WEBHOOK",
+    "RELAY_SHARED_SECRET",
+    "SQUARE_WEBHOOK_SIGNATURE_KEY",
+    "SQUARE_WEBHOOK_NOTIFICATION_URL",
+    "BUYER_EMAIL_ENABLED",
     "AUTOMATION_ENABLED"
   ];
   var PROPERTY_KEYS = [...CONFIG_KEYS, ...RUNTIME_KEYS];
@@ -118,12 +120,10 @@ var GuestOps = (() => {
       if (!value) throw new Error("PROPERTY_UNCONFIRMED:" + key);
       return value;
     }
-    if (required("ACKNOWLEDGE_UNSIGNED_WEBHOOK") !== "true")
-      throw new Error("UNSIGNED_WEBHOOK_NOT_ACKNOWLEDGED");
     const environment = required("SQUARE_ENVIRONMENT");
     if (!["sandbox", "production"].includes(environment))
       throw new Error("ENVIRONMENT_INVALID");
-    const secret = required("WEBHOOK_URL_SECRET");
+    const secret = required("RELAY_SHARED_SECRET");
     if (!/^[A-Za-z0-9_-]{43,}$/.test(secret)) throw new Error("SECRET_TOO_SHORT");
     const version = required("SQUARE_API_VERSION");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(version))
@@ -133,7 +133,17 @@ var GuestOps = (() => {
       throw new Error("ADMIN_EMAIL_INVALID");
     if (!["true", "false"].includes(required("AUTOMATION_ENABLED")))
       throw new Error("ENABLED_INVALID");
+    const signatureKey = required("SQUARE_WEBHOOK_SIGNATURE_KEY");
+    const notificationUrl = required("SQUARE_WEBHOOK_NOTIFICATION_URL");
+    if (!/^https:\/\/[^\s]+$/.test(notificationUrl))
+      throw new Error("NOTIFICATION_URL_INVALID");
+    const buyerEmail = required("BUYER_EMAIL_ENABLED");
+    if (!["true", "false"].includes(buyerEmail))
+      throw new Error("BUYER_EMAIL_ENABLED_INVALID");
     return {
+      signatureKey,
+      notificationUrl,
+      buyerEmail: buyerEmail === "true",
       environment,
       secret,
       version,
@@ -279,6 +289,22 @@ var GuestOps = (() => {
       SpreadsheetApp.flush();
       return true;
     }
+    // 注文IDで送信状態を保存し、異なる決済通知から同じ注文へ再送しない。
+    orderRow(id) {
+      if (this.orders.getLastRow() > 1) {
+        const rows = this.orders.getRange(2, 2, this.orders.getLastRow() - 1, 1).getValues();
+        const index = rows.findIndex((row) => row[0] === id);
+        if (index >= 0) return index + 2;
+      }
+      throw new Error("ORDER_RECORD_MISSING");
+    }
+    orderStatus(id) {
+      return String(this.orders.getRange(this.orderRow(id), 7).getValues()[0][0]);
+    }
+    setOrderStatus(id, status) {
+      this.orders.getRange(this.orderRow(id), 7).setValue(status);
+      SpreadsheetApp.flush();
+    }
     jobs() {
       if (this.logs.getLastRow() < 2) return [];
       return this.logs.getRange(2, 1, this.logs.getLastRow() - 1, 4).getValues().flatMap(
@@ -370,6 +396,114 @@ var GuestOps = (() => {
     return id;
   }
 
+  // src/RelayProtocol.ts
+  function envelopeText(e) {
+    return `${e.timestamp}
+${e.nonce}
+${e.squareSignature}
+${e.rawBody}`;
+  }
+  function receiptText(nonce, result) {
+    return nonce + "\n" + result;
+  }
+  function equalSignature(actual, expected) {
+    if (!/^[A-Za-z0-9+/]{43}=$/.test(actual) || actual.length !== expected.length)
+      return false;
+    let difference = 0;
+    for (let i = 0; i < expected.length; i++)
+      difference |= actual.charCodeAt(i) ^ expected.charCodeAt(i);
+    return difference === 0;
+  }
+
+  // src/RelayService.ts
+  function hmac(text, key) {
+    return Utilities.base64Encode(
+      Utilities.computeHmacSha256Signature(text, key, Utilities.Charset.UTF_8)
+    );
+  }
+  function verifyEnvelope(raw, relayKey, squareKey, notificationUrl, now = Date.now()) {
+    if (raw.length > 7e4) throw new BusinessError("RELAY_BODY_TOO_LARGE");
+    let data;
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      throw new BusinessError("RELAY_JSON_INVALID");
+    }
+    if (!data || typeof data !== "object")
+      throw new BusinessError("RELAY_INVALID");
+    const e = data;
+    if (!Number.isSafeInteger(e.timestamp) || Math.abs(now - e.timestamp) > 3e5 || typeof e.nonce !== "string" || !/^[a-f0-9]{32}$/.test(e.nonce) || typeof e.rawBody !== "string" || e.rawBody.length > 32768 || typeof e.squareSignature !== "string" || typeof e.mac !== "string")
+      throw new BusinessError("RELAY_INVALID");
+    if (!equalSignature(e.mac, hmac(envelopeText(e), relayKey)))
+      throw new BusinessError("RELAY_SIGNATURE_INVALID");
+    if (!equalSignature(
+      e.squareSignature,
+      hmac(notificationUrl + e.rawBody, squareKey)
+    ))
+      throw new BusinessError("SQUARE_SIGNATURE_INVALID");
+    return e;
+  }
+  function makeReceipt(nonce, result, key) {
+    return { nonce, result, mac: hmac(receiptText(nonce, result), key) };
+  }
+
+  // src/EmailService.ts
+  function purchaseEmail(record) {
+    const names = {
+      A: "A",
+      P3: "P3",
+      P10: "P10",
+      UPGRADE_P3: "P3\uFF08\u5DEE\u984D\u8CFC\u5165\uFF09",
+      UPGRADE_P10: "P10\uFF08\u5DEE\u984D\u8CFC\u5165\uFF09"
+    };
+    const name = names[record.product];
+    if (!name) throw new BusinessError("EMAIL_PRODUCT_UNKNOWN");
+    const lines = [
+      `GuestOps AI ${name} \u3092\u3054\u8CFC\u5165\u3044\u305F\u3060\u304D\u3042\u308A\u304C\u3068\u3046\u3054\u3056\u3044\u307E\u3059\u3002`,
+      "",
+      `\u6CE8\u6587ID\uFF1A${record.orderId}`,
+      `\u8CFC\u5165\u91D1\u984D\uFF1A${record.amount.toLocaleString("ja-JP")}\u5186`,
+      "",
+      "\u3054\u8CFC\u5165\u5546\u54C1\u306EGoogle Drive\u30D5\u30A9\u30EB\u30C0\uFF1A",
+      record.url
+    ];
+    if (record.product === "A")
+      lines.push(
+        "",
+        "\u30A2\u30C3\u30D7\u30B0\u30EC\u30FC\u30C9\u3092\u3054\u5E0C\u671B\u306E\u5834\u5408\uFF1A",
+        "P3\u5DEE\u984D\u8CFC\u5165\uFF1A" + CONFIG.UPGRADE_P3_URL,
+        "P10\u5DEE\u984D\u8CFC\u5165\uFF1A" + CONFIG.UPGRADE_P10_URL
+      );
+    lines.push("", "\u3054\u4E0D\u660E\u306A\u70B9\u306F\u3053\u306E\u30E1\u30FC\u30EB\u3078\u8FD4\u4FE1\u3057\u3066\u304F\u3060\u3055\u3044\u3002");
+    return {
+      subject: `GuestOps AI ${name}\uFF1A\u3054\u8CFC\u5165\u5546\u54C1\u306E\u3054\u6848\u5185`,
+      body: lines.join("\n")
+    };
+  }
+  function deliverPurchase(store, record, replyTo) {
+    const status = store.orderStatus(record.orderId);
+    if (status === "DELIVERED") return;
+    if (["DELIVERY_SENDING", "DELIVERY_REVIEW"].includes(status))
+      throw new BusinessError("DELIVERY_REVIEW_REQUIRED");
+    if (MailApp.getRemainingDailyQuota() < 1)
+      throw new RetryError("MAIL_QUOTA_EXHAUSTED");
+    const message = purchaseEmail(record);
+    store.setOrderStatus(record.orderId, "DELIVERY_SENDING");
+    try {
+      MailApp.sendEmail({
+        to: record.email,
+        subject: message.subject,
+        body: message.body,
+        replyTo,
+        name: "GuestOps AI"
+      });
+    } catch {
+      store.setOrderStatus(record.orderId, "DELIVERY_REVIEW");
+      throw new BusinessError("DELIVERY_RESULT_UNCERTAIN");
+    }
+    store.setOrderStatus(record.orderId, "DELIVERED");
+  }
+
   // src/Runtime.ts
   function properties() {
     return PropertiesService.getScriptProperties();
@@ -415,17 +549,24 @@ var GuestOps = (() => {
   function sheets(id) {
     return new SheetService(SpreadsheetApp.openById(id));
   }
-  function response(result) {
-    return HtmlService.createHtmlOutput(result);
+  function response(nonce, result, secret) {
+    return ContentService.createTextOutput(
+      JSON.stringify(makeReceipt(nonce, result, secret))
+    ).setMimeType(ContentService.MimeType.JSON);
   }
   function doPost(e) {
     if (properties().getProperty("AUTOMATION_ENABLED") !== "true")
       throw new Error("AUTOMATION_DISABLED");
     const config = settings();
-    if (e.parameter?.key !== config.secret) return response("ignored");
+    const envelope = verifyEnvelope(
+      e.postData?.contents ?? "",
+      config.secret,
+      config.signatureKey,
+      config.notificationUrl
+    );
     let id;
     try {
-      id = paymentHint(e.postData?.contents ?? "", config.merchant);
+      id = paymentHint(envelope.rawBody, config.merchant);
     } catch (error) {
       if (!(error instanceof BusinessError)) throw error;
       locked(
@@ -435,11 +576,15 @@ var GuestOps = (() => {
           error.message
         )
       );
-      return response("ignored");
+      return response(envelope.nonce, "ignored", config.secret);
     }
-    if (!id) return response("ignored");
+    if (!id) return response(envelope.nonce, "ignored", config.secret);
     return locked(
-      () => response(sheets(config.spreadsheet).enqueue(id) ? "queued" : "duplicate")
+      () => response(
+        envelope.nonce,
+        sheets(config.spreadsheet).enqueue(id) ? "queued" : "duplicate",
+        config.secret
+      )
     );
   }
   function processQueue() {
@@ -452,7 +597,9 @@ var GuestOps = (() => {
         if (Date.now() - started > 18e4 || processed >= 10) break;
         if (job.state === "PENDING" && job.nextAt <= Date.now()) {
           const result = runJob(job, Date.now(), () => {
-            store.save(getRecord(api, job.paymentId, config.location));
+            const record = getRecord(api, job.paymentId, config.location);
+            store.save(record);
+            if (config.buyerEmail) deliverPurchase(store, record, config.admin);
           });
           store.update(row, job);
           logger.log(result.level, "PROCESS_PAYMENT", result.code);

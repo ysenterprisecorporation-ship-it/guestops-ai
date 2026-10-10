@@ -58,6 +58,24 @@ export class SheetService {
     SpreadsheetApp.flush();
     return true;
   }
+  // 注文IDで送信状態を保存し、異なる決済通知から同じ注文へ再送しない。
+  private orderRow(id: string): number {
+    if (this.orders.getLastRow() > 1) {
+      const rows = this.orders
+        .getRange(2, 2, this.orders.getLastRow() - 1, 1)
+        .getValues();
+      const index = rows.findIndex((row) => row[0] === id);
+      if (index >= 0) return index + 2;
+    }
+    throw new Error("ORDER_RECORD_MISSING");
+  }
+  orderStatus(id: string): string {
+    return String(this.orders.getRange(this.orderRow(id), 7).getValues()[0][0]);
+  }
+  setOrderStatus(id: string, status: string) {
+    this.orders.getRange(this.orderRow(id), 7).setValue(status);
+    SpreadsheetApp.flush();
+  }
   jobs(): { row: number; job: Job }[] {
     if (this.logs.getLastRow() < 2) return [];
     return this.logs

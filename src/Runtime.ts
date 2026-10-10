@@ -6,6 +6,9 @@ import { SheetService, ORDER_HEADERS, LOG_HEADERS } from "./SheetService";
 import { SquareService } from "./SquareService";
 import { paymentHint } from "./SquareWebhook";
 import { BusinessError } from "./Types";
+import { verifyEnvelope, makeReceipt } from "./RelayService";
+import { deliverPurchase } from "./EmailService";
+import type { ReceiptResult } from "./RelayProtocol";
 // GASの同期サービスに合わせて入口・時間トリガーはPromiseを返さない。
 function properties() {
   return PropertiesService.getScriptProperties();
@@ -55,17 +58,25 @@ function locked<T>(fn: () => T): T {
 function sheets(id: string) {
   return new SheetService(SpreadsheetApp.openById(id));
 }
-function response(result: string) {
-  return HtmlService.createHtmlOutput(result);
+function response(nonce: string, result: ReceiptResult, secret: string) {
+  return ContentService.createTextOutput(
+    JSON.stringify(makeReceipt(nonce, result, secret)),
+  ).setMimeType(ContentService.MimeType.JSON);
 }
 export function doPost(e: GoogleAppsScript.Events.DoPost) {
   if (properties().getProperty("AUTOMATION_ENABLED") !== "true")
     throw new Error("AUTOMATION_DISABLED");
   const config = settings();
-  if (e.parameter?.key !== config.secret) return response("ignored");
+  // 未署名の直接Square通知と従来の秘密URLは受け付けない。
+  const envelope = verifyEnvelope(
+    e.postData?.contents ?? "",
+    config.secret,
+    config.signatureKey,
+    config.notificationUrl,
+  );
   let id: string | null;
   try {
-    id = paymentHint(e.postData?.contents ?? "", config.merchant);
+    id = paymentHint(envelope.rawBody, config.merchant);
   } catch (error) {
     if (!(error instanceof BusinessError)) throw error;
     locked(() =>
@@ -75,11 +86,15 @@ export function doPost(e: GoogleAppsScript.Events.DoPost) {
         error.message,
       ),
     );
-    return response("ignored");
+    return response(envelope.nonce, "ignored", config.secret);
   }
-  if (!id) return response("ignored");
+  if (!id) return response(envelope.nonce, "ignored", config.secret);
   return locked(() =>
-    response(sheets(config.spreadsheet).enqueue(id) ? "queued" : "duplicate"),
+    response(
+      envelope.nonce,
+      sheets(config.spreadsheet).enqueue(id) ? "queued" : "duplicate",
+      config.secret,
+    ),
   );
 }
 export function processQueue() {
@@ -95,7 +110,9 @@ export function processQueue() {
       if (Date.now() - started > 180000 || processed >= 10) break;
       if (job.state === "PENDING" && job.nextAt <= Date.now()) {
         const result = runJob(job, Date.now(), () => {
-          store.save(getRecord(api, job.paymentId, config.location));
+          const record = getRecord(api, job.paymentId, config.location);
+          store.save(record);
+          if (config.buyerEmail) deliverPurchase(store, record, config.admin);
         });
         store.update(row, job);
         logger.log(result.level, "PROCESS_PAYMENT", result.code);
