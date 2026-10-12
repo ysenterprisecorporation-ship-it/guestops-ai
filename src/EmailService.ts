@@ -20,11 +20,15 @@ export function purchaseEmail(record: OrderRecord) {
     "",
     "ご購入商品のGoogle Driveフォルダ：",
     record.url,
+    "フォルダ内の案内PDFからお読みください。",
   ];
   if (record.product === "A")
     lines.push(
       "",
-      "アップグレードをご希望の場合：",
+      "追加購入は任意です。今回の商品の受取に追加購入は必要ありません。",
+      "A購入者向けの差額アップグレード（同じ購入者の利用施設数を拡張）：",
+      "P3は最大3施設、P10は最大10施設です。",
+      "個別開発・設定代行・自動送信を追加する商品ではありません。",
       "P3差額購入：" + CONFIG.UPGRADE_P3_URL,
       "P10差額購入：" + CONFIG.UPGRADE_P10_URL,
     );
