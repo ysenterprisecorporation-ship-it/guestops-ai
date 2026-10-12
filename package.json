@@ -1,0 +1,26 @@
+{
+  "name": "guestops-ai",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "tsc --noEmit",
+    "lint": "eslint src tests scripts build.mjs",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "build": "node build.mjs",
+    "format": "prettier --write src tests scripts build.mjs eslint.config.js package.json tsconfig.json",
+    "env:check": "node --env-file=.env --import tsx scripts/environment.mjs check",
+    "export:properties": "node --env-file=.env --import tsx scripts/environment.mjs export",
+    "configure:clasp": "node --env-file=.env --import tsx scripts/environment.mjs clasp"
+  },
+  "devDependencies": {
+    "@types/google-apps-script": "^1.0.100",
+    "@types/node": "^24.0.0",
+    "esbuild": "^0.25.0",
+    "eslint": "^9.0.0",
+    "prettier": "^3.9.9",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0",
+    "typescript-eslint": "^8.0.0"
+  }
+}
