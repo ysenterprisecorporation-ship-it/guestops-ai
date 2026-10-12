@@ -6,7 +6,7 @@ export class SquareService {
     private version: string,
     private environment: string,
   ) {}
-  private get<T>(path: string, key: string): T {
+  private get<T>(path: string, key?: string): T {
     const host =
       this.environment === "sandbox"
         ? "https://connect.squareupsandbox.com"
@@ -31,6 +31,9 @@ export class SquareService {
     if (status !== 200) throw new BusinessError("SQUARE_HTTP_" + status);
     try {
       const body = JSON.parse(response.getContentText()) as Record<string, T>;
+      if (!body || typeof body !== "object" || Array.isArray(body))
+        throw new Error();
+      if (key === undefined) return body as T;
       if (!body[key]) throw new Error();
       return body[key];
     } catch {
@@ -42,5 +45,25 @@ export class SquareService {
   }
   order(id: string): Order {
     return this.get("/v2/orders/" + encodeURIComponent(id), "order");
+  }
+  listPayments(begin: string, end: string, location: string, cursor?: string) {
+    const query = [
+      ["begin_time", begin],
+      ["end_time", end],
+      ["location_id", location],
+      ["sort_order", "ASC"],
+      ["limit", "100"],
+    ];
+    if (cursor) query.push(["cursor", cursor]);
+    const page = this.get<{ payments?: Payment[]; cursor?: string }>(
+      "/v2/payments?" +
+        query.map(([k, v]) => k + "=" + encodeURIComponent(v)).join("&"),
+    );
+    if (
+      (page.payments !== undefined && !Array.isArray(page.payments)) ||
+      (page.cursor !== undefined && typeof page.cursor !== "string")
+    )
+      throw new RetryError("SQUARE_INVALID_RESPONSE");
+    return { payments: page.payments ?? [], cursor: page.cursor ?? "" };
   }
 }

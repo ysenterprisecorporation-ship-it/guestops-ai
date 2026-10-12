@@ -25,6 +25,7 @@ var GuestOps = (() => {
     doPost: () => doPost,
     processQueue: () => processQueue,
     productionReadiness: () => productionReadiness,
+    reconcilePayments: () => reconcilePayments,
     setupAutomation: () => setupAutomation,
     stopAutomation: () => stopAutomation,
     webhookCapabilities: () => webhookCapabilities
@@ -370,6 +371,9 @@ var GuestOps = (() => {
       if (status !== 200) throw new BusinessError("SQUARE_HTTP_" + status);
       try {
         const body = JSON.parse(response2.getContentText());
+        if (!body || typeof body !== "object" || Array.isArray(body))
+          throw new Error();
+        if (key === void 0) return body;
         if (!body[key]) throw new Error();
         return body[key];
       } catch {
@@ -381,6 +385,22 @@ var GuestOps = (() => {
     }
     order(id) {
       return this.get("/v2/orders/" + encodeURIComponent(id), "order");
+    }
+    listPayments(begin, end, location, cursor) {
+      const query = [
+        ["begin_time", begin],
+        ["end_time", end],
+        ["location_id", location],
+        ["sort_order", "ASC"],
+        ["limit", "100"]
+      ];
+      if (cursor) query.push(["cursor", cursor]);
+      const page = this.get(
+        "/v2/payments?" + query.map(([k, v]) => k + "=" + encodeURIComponent(v)).join("&")
+      );
+      if (page.payments !== void 0 && !Array.isArray(page.payments) || page.cursor !== void 0 && typeof page.cursor !== "string")
+        throw new RetryError("SQUARE_INVALID_RESPONSE");
+      return { payments: page.payments ?? [], cursor: page.cursor ?? "" };
     }
   };
 
@@ -542,6 +562,44 @@ var GuestOps = (() => {
     };
   }
 
+  // src/PaymentReconciliation.ts
+  function validateReconciliationWindow(begin, end) {
+    const a = Date.parse(begin), b = Date.parse(end);
+    const iso = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
+    if (!iso.test(begin) || !iso.test(end) || !Number.isFinite(a) || !Number.isFinite(b) || b <= a || b - a > 864e5 || b > Date.now())
+      throw new BusinessError("RECONCILIATION_WINDOW_INVALID");
+  }
+  function reconcilePaymentPage(page, api, location, enqueue) {
+    if (page.length > 100)
+      throw new BusinessError("RECONCILIATION_PAGE_TOO_LARGE");
+    let queued = 0, duplicates = 0, skipped = 0, review = 0;
+    const seen = /* @__PURE__ */ new Set();
+    for (const hint of page) {
+      if (!hint || typeof hint.id !== "string" || !hint.id || seen.has(hint.id) || hint.status !== "COMPLETED" || hint.location_id !== location) {
+        skipped++;
+        continue;
+      }
+      seen.add(hint.id);
+      try {
+        getRecord(api, hint.id, location);
+      } catch (error) {
+        if (!(error instanceof BusinessError)) throw error;
+        if (error.message === "PRODUCT_UNKNOWN") skipped++;
+        else review++;
+        continue;
+      }
+      if (enqueue(hint.id)) queued++;
+      else duplicates++;
+    }
+    return {
+      queued,
+      duplicates,
+      skipped,
+      review,
+      customerRevenueVerified: false
+    };
+  }
+
   // src/Runtime.ts
   function productionReadiness() {
     const report = inspectProductionSettings(
@@ -549,6 +607,40 @@ var GuestOps = (() => {
     );
     console.log(JSON.stringify(report));
     return report;
+  }
+  function reconcilePayments() {
+    if (properties().getProperty("AUTOMATION_ENABLED") !== "true" || properties().getProperty("RECONCILIATION_ENABLED") !== "true")
+      throw new Error("RECONCILIATION_DISABLED");
+    const config = settings();
+    if (config.verificationMode !== "API_RECHECK")
+      throw new Error("SQUARE_SIGNATURE_HEADER_UNAVAILABLE");
+    return locked(() => {
+      const begin = properties().getProperty("RECONCILE_BEGIN_UTC") ?? "";
+      const end = properties().getProperty("RECONCILE_END_UTC") ?? "";
+      validateReconciliationWindow(begin, end);
+      const cursor = properties().getProperty("RECONCILE_CURSOR") ?? "";
+      const window = begin + "|" + end;
+      if (cursor && properties().getProperty("RECONCILE_CURSOR_WINDOW") !== window)
+        throw new Error("RECONCILIATION_CURSOR_WINDOW_MISMATCH");
+      const api = new SquareService(
+        config.token,
+        config.version,
+        config.environment
+      );
+      const page = api.listPayments(begin, end, config.location, cursor);
+      const store = sheets(config.spreadsheet);
+      const report = reconcilePaymentPage(
+        page.payments,
+        api,
+        config.location,
+        (id) => store.enqueue(id)
+      );
+      properties().setProperty("RECONCILE_CURSOR_WINDOW", window);
+      properties().setProperty("RECONCILE_CURSOR", page.cursor);
+      const result = { ...report, hasMore: !!page.cursor, pageCompleted: true };
+      new Logger(store).log("INFO", "RECONCILIATION", JSON.stringify(result));
+      return result;
+    });
   }
   function properties() {
     return PropertiesService.getScriptProperties();

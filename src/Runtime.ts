@@ -12,6 +12,10 @@ import {
 } from "./SquareSignature";
 import { deliverPurchase } from "./EmailService";
 import { inspectProductionSettings } from "./Readiness";
+import {
+  reconcilePaymentPage,
+  validateReconciliationWindow,
+} from "./PaymentReconciliation";
 export { webhookCapabilities } from "./SquareSignature";
 export function productionReadiness() {
   const report = inspectProductionSettings((key) =>
@@ -19,6 +23,48 @@ export function productionReadiness() {
   );
   console.log(JSON.stringify(report));
   return report;
+}
+// Manual, bounded recovery. Disabled unless both switches are explicitly enabled.
+export function reconcilePayments() {
+  if (
+    properties().getProperty("AUTOMATION_ENABLED") !== "true" ||
+    properties().getProperty("RECONCILIATION_ENABLED") !== "true"
+  )
+    throw new Error("RECONCILIATION_DISABLED");
+  const config = settings();
+  if (config.verificationMode !== "API_RECHECK")
+    throw new Error("SQUARE_SIGNATURE_HEADER_UNAVAILABLE");
+  return locked(() => {
+    const begin = properties().getProperty("RECONCILE_BEGIN_UTC") ?? "";
+    const end = properties().getProperty("RECONCILE_END_UTC") ?? "";
+    validateReconciliationWindow(begin, end);
+    const cursor = properties().getProperty("RECONCILE_CURSOR") ?? "";
+    const window = begin + "|" + end;
+    if (
+      cursor &&
+      properties().getProperty("RECONCILE_CURSOR_WINDOW") !== window
+    )
+      throw new Error("RECONCILIATION_CURSOR_WINDOW_MISMATCH");
+    const api = new SquareService(
+      config.token,
+      config.version,
+      config.environment,
+    );
+    const page = api.listPayments(begin, end, config.location, cursor);
+    const store = sheets(config.spreadsheet);
+    const report = reconcilePaymentPage(
+      page.payments,
+      api,
+      config.location,
+      (id) => store.enqueue(id),
+    );
+    // Persist progress only after the full page succeeded; re-runs deduplicate.
+    properties().setProperty("RECONCILE_CURSOR_WINDOW", window);
+    properties().setProperty("RECONCILE_CURSOR", page.cursor);
+    const result = { ...report, hasMore: !!page.cursor, pageCompleted: true };
+    new Logger(store).log("INFO", "RECONCILIATION", JSON.stringify(result));
+    return result;
+  });
 }
 // GASの同期サービスに合わせて入口・時間トリガーはPromiseを返さない。
 function properties() {
