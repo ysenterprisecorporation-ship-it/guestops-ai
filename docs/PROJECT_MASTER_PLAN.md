@@ -15,9 +15,11 @@ Rebuild Tokyo Designer House operations so that:
    - First technical candidate: Lodgify, only if webhook/public API can be used without a separate high-cost API contract.
    - Fallback: AirHost ONE using reservation-notification-email -> Gmail -> Apps Script parser.
 2. GAS is used only for GTOS operational automation, not OTA calendar synchronization.
-3. Direct-booking traffic should not be forced through Square.
-   - High-intent traffic -> PMS Booking Engine directly.
-   - Square remains brand/FAQ/legal/support content.
+3. Updated user decision (2026-10-12): SNS -> existing Square.
+   - SNS traffic must use the adopted existing Square direct-sales entry point.
+   - Do not substitute an OTA or PMS campaign destination without a new user decision.
+   - Accommodation checkout requires confirmed dates, occupancy, inventory and booking terms before charging; the existing accommodation Square entry point is not yet identified in this workspace.
+   - Existing OTA reservations remain on their original channel. This update does not move existing bookings or duplicate inventory.
 4. Payment: 100% prepayment for direct bookings where supported.
 5. Monthly rental Jan–Mar: fixed-term building lease workflow + GMO Sign free plan, with only the signature request kept manual.
 
@@ -35,7 +37,7 @@ Rebuild Tokyo Designer House operations so that:
 
 ### Direct booking
 - Mobile user reaches availability/booking in <= 2 intentional actions from a high-intent campaign link.
-- High-intent campaign links bypass Square.
+- SNS campaign links use the adopted existing Square entry point; no unapproved bypass.
 - UTM parameters are retained where technically possible.
 
 ### Monthly rental
