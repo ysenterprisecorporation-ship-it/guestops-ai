@@ -10,8 +10,12 @@ function captureAirHostReservationEmails() {
   if (!spreadsheetId) throw new Error('SPREADSHEET_ID is not configured');
 
   const query =
-    PropertiesService.getScriptProperties().getProperty('AIRHOST_GMAIL_QUERY') ||
-    'newer_than:2d -label:GTOS_PROCESSED';
+    PropertiesService.getScriptProperties().getProperty('AIRHOST_GMAIL_QUERY');
+  // No broad inbox fallback. The operator must scope the verified sender.
+  if (!query || !/(?:^|\s|\()from:\S+/.test(query) ||
+      /-label:(?:"?GTOS_PROCESSED"?)/i.test(query)) {
+    throw new Error('AIRHOST_GMAIL_QUERY requires a sender filter and must not exclude processed threads');
+  }
 
   const ss = SpreadsheetApp.openById(spreadsheetId);
   const sheet =
