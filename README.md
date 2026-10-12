@@ -248,3 +248,17 @@ Orders状態を送信前にDELIVERY_SENDING、成功後DELIVEREDとして保存�
 4. 実装コード：verifySquareSignatureFromProperties、directSquareSignature、webhookCapabilities、GAS直接doPost。署名必須は取得不可なら停止。
 5. テスト方法：npm run check/lint/test/build。公式署名ベクトル、秘密URL不一致、署名必須で記録/メールが発生しないこと、API再取得と商品メールを確認。
 6. ロールバック：GASと追加購読を停止し、必要なら直前の直接受信版へ戻す。Cloud案へ無断切替しない。送信状態と注文履歴は保持する。
+
+## 2026-10-13：設定所在を再提出させない本番診断
+
+実設定の保存先は既存GASの「プロジェクトの設定 → スクリプト プロパティ」。GitHubに秘密値は保存しない。
+
+今回追加した `productionReadiness` は設定を読むだけで、不足する項目名、書式検証結果、API_RECHECK/署名必須の別、購入者メールと自動処理の有効・停止状態を実行ログへ出す。トークン、鍵、URL、ID、メールアドレス、例外原文を表示しない。設定・商品・決済・共有・メール送信・トリガーには変更しない。
+
+この関数を使うには、更新されたdist/Code.jsとdist/Entrypoints.jsをGASエディタへ反映する必要がある。既存の認証済みclasp環境がある場合は既存の対象scriptIdを確認してコードを同期し、エディタからproductionReadinessだけを実行する。新規GASや新規サイトをこの診断のために作らない。トリガーに登録しない。
+
+不足一覧が出た場合、既存の管理環境に保存済みの値を再利用する。値をチャットやGitHubへ貼らない。configurationValid=trueでもAPI権限、商品存在、実HTTP、納品・売上の確認済みを意味しない。liveAcceptanceVerifiedは常にfalseとして返し、外部の受入結果と混同しない。
+
+PR本文に記載のとおりAPI_RECHECKは当初承認済みの代替方式。承認済みであることと、GAS本番にその値が保存済みであることは別。初期のREQUIRE_SIGNATUREやAUTOMATION_ENABLED=falseを、この診断は変更しない。
+
+検証：ローカル95テストPASS、型検査・lint・GASビルド成功。実GASへの同期と診断実行は未実施。
