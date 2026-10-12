@@ -11,7 +11,15 @@ import {
   verifySquareSignatureFromProperties,
 } from "./SquareSignature";
 import { deliverPurchase } from "./EmailService";
+import { inspectProductionSettings } from "./Readiness";
 export { webhookCapabilities } from "./SquareSignature";
+export function productionReadiness() {
+  const report = inspectProductionSettings((key) =>
+    PropertiesService.getScriptProperties().getProperty(key),
+  );
+  console.log(JSON.stringify(report));
+  return report;
+}
 // GASの同期サービスに合わせて入口・時間トリガーはPromiseを返さない。
 function properties() {
   return PropertiesService.getScriptProperties();
