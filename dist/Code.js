@@ -31,57 +31,86 @@ var GuestOps = (() => {
     webhookCapabilities: () => webhookCapabilities
   });
 
+  // src/ProductCatalog.ts
+  var PRODUCT_CATALOG = {
+    A: { priceYen: 2980 },
+    P3: { priceYen: 19800 },
+    P10: { priceYen: 49800 },
+    P30: { priceYen: 99800 },
+    UPGRADE_P3_FROM_A: { priceYen: 16820 },
+    UPGRADE_P10_FROM_A: { priceYen: 46820 },
+    UPGRADE_P30_FROM_A: { priceYen: 96820 }
+  };
+
   // src/Config.ts
   var CONFIG = {
     A_URL: "",
     P3_URL: "",
     P10_URL: "",
+    P30_URL: "",
     UPGRADE_P3_URL: "",
     UPGRADE_P10_URL: "",
+    UPGRADE_P30_URL: "",
     SITE_URL: "",
     DRIVE_A: "",
     DRIVE_P3: "",
     DRIVE_P10: "",
+    DRIVE_P30: "",
     DRIVE_A_URL: "",
     DRIVE_P3_URL: "",
     DRIVE_P10_URL: "",
+    DRIVE_P30_URL: "",
     VARIATION_A: "",
     VARIATION_P3: "",
     VARIATION_P10: "",
+    VARIATION_P30: "",
     VARIATION_UPGRADE_P3: "",
-    VARIATION_UPGRADE_P10: ""
+    VARIATION_UPGRADE_P10: "",
+    VARIATION_UPGRADE_P30: ""
   };
   function products() {
     return [
       {
         key: "A",
-        price: 2980,
+        price: PRODUCT_CATALOG.A.priceYen,
         variation: CONFIG.VARIATION_A,
         url: CONFIG.DRIVE_A_URL
       },
       {
         key: "P3",
-        price: 29800,
+        price: PRODUCT_CATALOG.P3.priceYen,
         variation: CONFIG.VARIATION_P3,
         url: CONFIG.DRIVE_P3_URL
       },
       {
         key: "P10",
-        price: 99800,
+        price: PRODUCT_CATALOG.P10.priceYen,
         variation: CONFIG.VARIATION_P10,
         url: CONFIG.DRIVE_P10_URL
       },
       {
+        key: "P30",
+        price: PRODUCT_CATALOG.P30.priceYen,
+        variation: CONFIG.VARIATION_P30,
+        url: CONFIG.DRIVE_P30_URL
+      },
+      {
         key: "UPGRADE_P3",
-        price: 26820,
+        price: PRODUCT_CATALOG.UPGRADE_P3_FROM_A.priceYen,
         variation: CONFIG.VARIATION_UPGRADE_P3,
         url: CONFIG.DRIVE_P3_URL
       },
       {
         key: "UPGRADE_P10",
-        price: 96820,
+        price: PRODUCT_CATALOG.UPGRADE_P10_FROM_A.priceYen,
         variation: CONFIG.VARIATION_UPGRADE_P10,
         url: CONFIG.DRIVE_P10_URL
+      },
+      {
+        key: "UPGRADE_P30",
+        price: PRODUCT_CATALOG.UPGRADE_P30_FROM_A.priceYen,
+        variation: CONFIG.VARIATION_UPGRADE_P30,
+        url: CONFIG.DRIVE_P30_URL
       }
     ];
   }
@@ -91,7 +120,7 @@ var GuestOps = (() => {
       if (key.endsWith("URL") && !/^https:\/\/[^\s]+$/.test(value))
         throw new Error("URL_INVALID:" + key);
     }
-    if (new Set(products().map((p) => p.variation)).size !== 5)
+    if (new Set(products().map((p) => p.variation)).size !== products().length)
       throw new Error("VARIATION_NOT_UNIQUE");
   }
   var CONFIG_KEYS = Object.keys(CONFIG);
@@ -465,8 +494,10 @@ var GuestOps = (() => {
       A: "A",
       P3: "P3",
       P10: "P10",
+      P30: "P30",
       UPGRADE_P3: "P3\uFF08\u5DEE\u984D\u8CFC\u5165\uFF09",
-      UPGRADE_P10: "P10\uFF08\u5DEE\u984D\u8CFC\u5165\uFF09"
+      UPGRADE_P10: "P10\uFF08\u5DEE\u984D\u8CFC\u5165\uFF09",
+      UPGRADE_P30: "P30\uFF08\u5DEE\u984D\u8CFC\u5165\uFF09"
     };
     const name = names[record.product];
     if (!name) throw new BusinessError("EMAIL_PRODUCT_UNKNOWN");
@@ -485,10 +516,11 @@ var GuestOps = (() => {
         "",
         "\u8FFD\u52A0\u8CFC\u5165\u306F\u4EFB\u610F\u3067\u3059\u3002\u4ECA\u56DE\u306E\u5546\u54C1\u306E\u53D7\u53D6\u306B\u8FFD\u52A0\u8CFC\u5165\u306F\u5FC5\u8981\u3042\u308A\u307E\u305B\u3093\u3002",
         "A\u8CFC\u5165\u8005\u5411\u3051\u306E\u5DEE\u984D\u30A2\u30C3\u30D7\u30B0\u30EC\u30FC\u30C9\uFF08\u540C\u3058\u8CFC\u5165\u8005\u306E\u5229\u7528\u65BD\u8A2D\u6570\u3092\u62E1\u5F35\uFF09\uFF1A",
-        "P3\u306F\u6700\u59273\u65BD\u8A2D\u3001P10\u306F\u6700\u592710\u65BD\u8A2D\u3067\u3059\u3002",
+        "P3\u306F\u6700\u59273\u65BD\u8A2D\u3001P10\u306F\u6700\u592710\u65BD\u8A2D\u3001P30\u306F\u6700\u592730\u65BD\u8A2D\u3067\u3059\u3002",
         "\u500B\u5225\u958B\u767A\u30FB\u8A2D\u5B9A\u4EE3\u884C\u30FB\u81EA\u52D5\u9001\u4FE1\u3092\u8FFD\u52A0\u3059\u308B\u5546\u54C1\u3067\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
         "P3\u5DEE\u984D\u8CFC\u5165\uFF1A" + CONFIG.UPGRADE_P3_URL,
-        "P10\u5DEE\u984D\u8CFC\u5165\uFF1A" + CONFIG.UPGRADE_P10_URL
+        "P10\u5DEE\u984D\u8CFC\u5165\uFF1A" + CONFIG.UPGRADE_P10_URL,
+        "P30\u5DEE\u984D\u8CFC\u5165\uFF1A" + CONFIG.UPGRADE_P30_URL
       );
     lines.push("", "\u3054\u4E0D\u660E\u306A\u70B9\u306F\u3053\u306E\u30E1\u30FC\u30EB\u3078\u8FD4\u4FE1\u3057\u3066\u304F\u3060\u3055\u3044\u3002");
     return {
