@@ -10,8 +10,7 @@ export interface AutomationPorts {
   createPaymentLink(record: BookingRecord, key: string): Promise<{ url: string }>;
   getPayment(record: BookingRecord): Promise<{ paid: boolean; paymentId?: string; amountYen?: number; paidAtIso?: string }>;
   confirmReservation(record: BookingRecord, key: string): Promise<{ reservationId: string }>;
-  sendContract(record: BookingRecord, key: string): Promise<{ contractId: string }>;
-  isContractSigned(contractId: string): Promise<boolean>;
+  prepareGmoHandoff(record: BookingRecord): Promise<void>;
   save(record: BookingRecord): Promise<void>;
 }
 
@@ -68,29 +67,15 @@ export async function runBookingStep(
     return next;
   }
 
-  if (action === "SEND_GMO_CONTRACT") {
-    const result = await ports.sendContract(
-      record,
-      idempotencyKey(record.bookingId, "CONTRACT"),
-    );
-    const next = applyBookingEvent(record, {
-      type: "CONTRACT_SENT",
-      contractId: result.contractId,
-    });
+  if (action === "PREPARE_GMO_HANDOFF") {
+    await ports.prepareGmoHandoff(record);
+    const next = applyBookingEvent(record, { type: "CONTRACT_HANDOFF_PREPARED" });
     await ports.save(next);
     return next;
   }
 
-  if (action === "WAIT_GMO_SIGNATURE") {
-    if (!record.contractId) throw new Error("CONTRACT_ID_REQUIRED");
-    const signed = await ports.isContractSigned(record.contractId);
-    if (!signed) return record;
-    const next = applyBookingEvent(record, {
-      type: "CONTRACT_SIGNED",
-      contractId: record.contractId,
-    });
-    await ports.save(next);
-    return next;
+  if (action === "WAIT_MANUAL_GMO_SEND" || action === "WAIT_MANUAL_GMO_SIGNATURE") {
+    return record;
   }
 
   return record;
