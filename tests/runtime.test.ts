@@ -184,14 +184,14 @@ function event(index = 0, key = "x".repeat(43)) {
   } as unknown as GoogleAppsScript.Events.DoPost;
 }
 test("5商品：Webhook→Square再照合→Orders→Logs、購入者メール送信なし", () => {
-  for (let i = 0; i < 5; i++) doPost(event(i));
+  for (let i = 0; i < products().length; i++) doPost(event(i));
   processQueue();
   assert.equal(sheets.get("Orders")!.rows.length, 6);
   assert.equal(requests, 10);
   assert.equal(mail.length, 0);
   assert.equal(
     sheets.get("Logs")!.rows.filter((r) => r[1] === "PROCESS_PAYMENT").length,
-    5,
+    products().length,
   );
 });
 test("Webhook重複と再処理でも注文1行", () => {
@@ -267,7 +267,7 @@ test("商品別Drive案内を購入者へ送信、重複再送なし", () => {
   for (let i = 0; i < 5; i++) doPost(event(i));
   processQueue();
   processQueue();
-  assert.equal(mail.length, 5);
+  assert.equal(mail.length, products().length);
   assert.ok(mail.every((m) => m.to === "buyer@example.invalid"));
   assert.equal(
     sheets.get("Orders")!.rows.filter((r) => r[6] === "DELIVERED").length,
