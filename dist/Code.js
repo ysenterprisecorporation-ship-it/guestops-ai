@@ -409,6 +409,65 @@ var GuestOps = (() => {
         throw new RetryError("SQUARE_INVALID_RESPONSE");
       }
     }
+    post(path, payload, key) {
+      const host = this.environment === "sandbox" ? "https://connect.squareupsandbox.com" : "https://connect.squareup.com";
+      let response2;
+      try {
+        response2 = UrlFetchApp.fetch(host + path, {
+          method: "post",
+          muteHttpExceptions: true,
+          contentType: "application/json",
+          payload: JSON.stringify(payload),
+          headers: {
+            Authorization: "Bearer " + this.token,
+            "Square-Version": this.version,
+            Accept: "application/json"
+          }
+        });
+      } catch {
+        throw new RetryError("SQUARE_NETWORK");
+      }
+      const status = response2.getResponseCode();
+      if (status === 429 || status >= 500)
+        throw new RetryError("SQUARE_HTTP_" + status);
+      if (status < 200 || status >= 300)
+        throw new BusinessError("SQUARE_HTTP_" + status);
+      try {
+        const body = JSON.parse(response2.getContentText());
+        if (!body || typeof body !== "object" || Array.isArray(body))
+          throw new Error();
+        if (key === void 0) return body;
+        if (!body[key]) throw new Error();
+        return body[key];
+      } catch {
+        throw new RetryError("SQUARE_INVALID_RESPONSE");
+      }
+    }
+    createQuickPayLink(input) {
+      if (!input.idempotencyKey || input.idempotencyKey.length > 192)
+        throw new BusinessError("IDEMPOTENCY_KEY_INVALID");
+      if (!input.locationId || !input.name.trim())
+        throw new BusinessError("CHECKOUT_INPUT_INVALID");
+      if (!Number.isSafeInteger(input.amount) || input.amount <= 0)
+        throw new BusinessError("CHECKOUT_AMOUNT_INVALID");
+      if (input.redirectUrl && !/^https:\/\/[^\s]+$/.test(input.redirectUrl))
+        throw new BusinessError("CHECKOUT_REDIRECT_INVALID");
+      const payload = {
+        idempotency_key: input.idempotencyKey,
+        quick_pay: {
+          name: input.name.trim(),
+          price_money: { amount: input.amount, currency: "JPY" },
+          location_id: input.locationId
+        }
+      };
+      if (input.redirectUrl)
+        payload.checkout_options = { redirect_url: input.redirectUrl };
+      if (input.note) payload.payment_note = input.note.slice(0, 500);
+      const link = this.post("/v2/online-checkout/payment-links", payload, "payment_link");
+      if (!link.id || !link.order_id || !/^https:\/\/[^\s]+$/.test(link.url))
+        throw new RetryError("SQUARE_INVALID_RESPONSE");
+      return link;
+    }
     payment(id) {
       return this.get("/v2/payments/" + encodeURIComponent(id), "payment");
     }
