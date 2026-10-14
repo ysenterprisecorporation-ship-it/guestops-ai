@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { nextBestOffer } from '../src/OfferEngine.ts';
+import { nextBestOffer } from '../src/OfferEngine';
 
 test('A upgrades to P3', () => {
   assert.equal(nextBestOffer({ purchased: ['A'] })?.code, 'P3');
