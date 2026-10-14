@@ -12,7 +12,7 @@ import {
   type Job,
 } from "../src/Types";
 import { textCell } from "../src/SheetService";
-// 実資産にアクセスせず、5商品とすべての異常系を確認する。
+// 実資産にアクセスせず、7商品とすべての異常系を確認する。
 beforeEach(() => {
   for (const key of Object.keys(CONFIG) as (keyof typeof CONFIG)[])
     CONFIG[key] = key.endsWith("URL") ? "https://example.invalid/" + key : key;
@@ -48,8 +48,10 @@ for (const [index, name] of [
   "A",
   "P3",
   "P10",
+  "P30",
   "UPGRADE_P3",
   "UPGRADE_P10",
+  "UPGRADE_P30",
 ].entries())
   test("購入正常：" + name, () => {
     const f = fixture(index),
