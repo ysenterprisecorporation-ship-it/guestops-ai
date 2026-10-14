@@ -7,8 +7,10 @@ export function purchaseEmail(record: OrderRecord) {
     A: "A",
     P3: "P3",
     P10: "P10",
+    P30: "P30",
     UPGRADE_P3: "P3（差額購入）",
     UPGRADE_P10: "P10（差額購入）",
+    UPGRADE_P30: "P30（差額購入）",
   };
   const name = names[record.product];
   if (!name) throw new BusinessError("EMAIL_PRODUCT_UNKNOWN");
@@ -27,10 +29,11 @@ export function purchaseEmail(record: OrderRecord) {
       "",
       "追加購入は任意です。今回の商品の受取に追加購入は必要ありません。",
       "A購入者向けの差額アップグレード（同じ購入者の利用施設数を拡張）：",
-      "P3は最大3施設、P10は最大10施設です。",
+      "P3は最大3施設、P10は最大10施設、P30は最大30施設です。",
       "個別開発・設定代行・自動送信を追加する商品ではありません。",
       "P3差額購入：" + CONFIG.UPGRADE_P3_URL,
       "P10差額購入：" + CONFIG.UPGRADE_P10_URL,
+      "P30差額購入：" + CONFIG.UPGRADE_P30_URL,
     );
   lines.push("", "ご不明な点はこのメールへ返信してください。");
   return {
