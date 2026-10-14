@@ -22,8 +22,7 @@ function ports(overrides: Partial<AutomationPorts> = {}): AutomationPorts {
     createPaymentLink: async () => ({ url: "https://example.invalid/pay" }),
     getPayment: async () => ({ paid: true, paymentId: "pay_100", amountYen: 100000, paidAtIso: "2026-10-15T02:00:00+09:00" }),
     confirmReservation: async () => ({ reservationId: "res_100" }),
-    sendContract: async () => ({ contractId: "ctr_100" }),
-    isContractSigned: async () => true,
+    prepareGmoHandoff: async () => {},
     save: async (r) => { saved.push(r); },
     ...overrides,
   };
@@ -48,18 +47,19 @@ test("paid booking confirms reservation on next action", async () => {
   assert.equal(next.reservationId, "res_100");
 });
 
-test("monthly booking sends GMO contract", async () => {
+test("monthly booking prepares GMO manual handoff", async () => {
+  let calls = 0;
   const r = record("BOOKING_CONFIRMED", "MONTHLY");
-  const next = await runBookingStep(r, ports());
-  assert.equal(next.state, "CONTRACT_SENT");
-  assert.equal(next.contractId, "ctr_100");
+  const next = await runBookingStep(r, ports({ prepareGmoHandoff: async () => { calls += 1; } }));
+  assert.equal(next.state, "CONTRACT_READY");
+  assert.equal(calls, 1);
 });
 
-test("short stay never sends contract", async () => {
+test("short stay never prepares GMO handoff", async () => {
   let calls = 0;
   const next = await runBookingStep(
     record("BOOKING_CONFIRMED", "SHORT_STAY"),
-    ports({ sendContract: async () => { calls += 1; return { contractId: "x" }; } }),
+    ports({ prepareGmoHandoff: async () => { calls += 1; } }),
   );
   assert.equal(next.state, "BOOKING_CONFIRMED");
   assert.equal(calls, 0);
