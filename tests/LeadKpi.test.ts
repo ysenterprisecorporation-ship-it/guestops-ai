@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { summarizeLeadKpi } from "../src/LeadKpi.ts";
-import type { LeadRecord } from "../src/LeadPipeline.ts";
+import { summarizeLeadKpi } from "../src/LeadKpi";
+import type { LeadRecord } from "../src/LeadPipeline";
 
 function lead(status: LeadRecord["status"], revenueYen = 0, profitYen = 0): LeadRecord {
   return {
