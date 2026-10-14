@@ -143,8 +143,9 @@ export function nextAction(record: BookingRecord):
   | "CREATE_PAYMENT_LINK"
   | "WAIT_PAYMENT"
   | "CONFIRM_RESERVATION"
-  | "SEND_GMO_CONTRACT"
-  | "WAIT_GMO_SIGNATURE"
+  | "PREPARE_GMO_HANDOFF"
+  | "WAIT_MANUAL_GMO_SEND"
+  | "WAIT_MANUAL_GMO_SIGNATURE"
   | "COMPLETE"
   | "MANUAL_REVIEW"
   | "NONE" {
@@ -155,8 +156,8 @@ export function nextAction(record: BookingRecord):
     case "PAYMENT_LINK_SENT": return "WAIT_PAYMENT";
     case "PAID": return "CONFIRM_RESERVATION";
     case "BOOKING_CONFIRMED":
-      return record.rentalMode === "MONTHLY" ? "SEND_GMO_CONTRACT" : "COMPLETE";
-    case "CONTRACT_SENT": return "WAIT_GMO_SIGNATURE";
+      return record.rentalMode === "MONTHLY" ? "PREPARE_GMO_HANDOFF" : "COMPLETE";
+    case "CONTRACT_SENT": return "WAIT_MANUAL_GMO_SIGNATURE";
     case "CONTRACT_SIGNED": return "COMPLETE";
     case "MANUAL_REVIEW": return "MANUAL_REVIEW";
     case "CANCELLED": return "NONE";
