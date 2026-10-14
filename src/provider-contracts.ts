@@ -26,9 +26,10 @@ export interface ReservationProvider {
   }>;
 }
 
-export interface ContractProvider {
-  send(record: BookingRecord, idempotencyKey: string): Promise<{
-    contractId: string;
+export interface ContractHandoffProvider {
+  prepare(record: BookingRecord): Promise<{
+    contractFileName: string;
+    recipientEmail: string;
+    recipientName: string;
   }>;
-  isSigned(contractId: string): Promise<boolean>;
 }
