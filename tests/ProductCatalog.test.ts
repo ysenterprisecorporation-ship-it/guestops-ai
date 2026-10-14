@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { catalogPrice } from '../src/ProductCatalog.ts';
+import { catalogPrice } from '../src/ProductCatalog';
 
 test('canonical product prices match approved ladder', () => {
   assert.equal(catalogPrice('A'), 2980);
