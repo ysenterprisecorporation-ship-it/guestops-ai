@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { summarizeRevenueByLane, totalProfit } from '../src/RevenueLanes.ts';
+import { summarizeRevenueByLane, totalProfit } from '../src/RevenueLanes';
 
 test('summarizes profit by lane', () => {
   const events = [
