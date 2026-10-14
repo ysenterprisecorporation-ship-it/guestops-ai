@@ -7,6 +7,7 @@ export type BookingState =
   | "PAYMENT_LINK_SENT"
   | "PAID"
   | "BOOKING_CONFIRMED"
+  | "CONTRACT_READY"
   | "CONTRACT_SENT"
   | "CONTRACT_SIGNED"
   | "MANUAL_REVIEW"
@@ -30,6 +31,7 @@ export type BookingEvent =
   | { type: "PAYMENT_LINK_CREATED" }
   | { type: "PAYMENT_CONFIRMED"; paymentId: string; amountYen: number; nowIso: string }
   | { type: "RESERVATION_CONFIRMED"; reservationId: string }
+  | { type: "CONTRACT_HANDOFF_PREPARED" }
   | { type: "CONTRACT_SENT"; contractId: string }
   | { type: "CONTRACT_SIGNED"; contractId: string }
   | { type: "CANCEL" };
@@ -109,8 +111,15 @@ export function applyBookingEvent(
         state: "BOOKING_CONFIRMED",
       };
 
-    case "CONTRACT_SENT":
+    case "CONTRACT_HANDOFF_PREPARED":
       requireState(record, "BOOKING_CONFIRMED");
+      if (record.rentalMode !== "MONTHLY") {
+        throw new Error("CONTRACT_NOT_REQUIRED_FOR_SHORT_STAY");
+      }
+      return { ...record, state: "CONTRACT_READY" };
+
+    case "CONTRACT_SENT":
+      requireState(record, "CONTRACT_READY");
       if (record.rentalMode !== "MONTHLY") {
         throw new Error("CONTRACT_NOT_REQUIRED_FOR_SHORT_STAY");
       }
@@ -157,6 +166,7 @@ export function nextAction(record: BookingRecord):
     case "PAID": return "CONFIRM_RESERVATION";
     case "BOOKING_CONFIRMED":
       return record.rentalMode === "MONTHLY" ? "PREPARE_GMO_HANDOFF" : "COMPLETE";
+    case "CONTRACT_READY": return "WAIT_MANUAL_GMO_SEND";
     case "CONTRACT_SENT": return "WAIT_MANUAL_GMO_SIGNATURE";
     case "CONTRACT_SIGNED": return "COMPLETE";
     case "MANUAL_REVIEW": return "MANUAL_REVIEW";
