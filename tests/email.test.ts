@@ -8,6 +8,7 @@ import type { SheetService } from "../src/SheetService";
 beforeEach(() => {
   CONFIG.UPGRADE_P3_URL = "https://example.invalid/upgrade-p3";
   CONFIG.UPGRADE_P10_URL = "https://example.invalid/upgrade-p10";
+  CONFIG.UPGRADE_P30_URL = "https://example.invalid/upgrade-p30";
 });
 function record(index = 0): OrderRecord {
   const p = products()[index];
@@ -21,7 +22,7 @@ function record(index = 0): OrderRecord {
     status: "RECORDED",
   };
 }
-for (let i = 0; i < 5; i++)
+for (let i = 0; i < products().length; i++)
   test("商品別メール " + i, () => {
     const r = record(i),
       message = purchaseEmail(r);
@@ -29,6 +30,7 @@ for (let i = 0; i < 5; i++)
     assert.ok(message.body.includes(r.orderId));
     assert.equal(message.body.includes(CONFIG.UPGRADE_P3_URL), i === 0);
     assert.equal(message.body.includes(CONFIG.UPGRADE_P10_URL), i === 0);
+    assert.equal(message.body.includes(CONFIG.UPGRADE_P30_URL), i === 0);
   });
 function store(status = "RECORDED") {
   return {
