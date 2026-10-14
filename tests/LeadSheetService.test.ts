@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { leadToRow, rowToLead } from "../src/LeadSheetService.ts";
-import type { LeadRecord } from "../src/LeadPipeline.ts";
+import { leadToRow, rowToLead } from "../src/LeadSheetService";
+import type { LeadRecord } from "../src/LeadPipeline";
 
 const lead: LeadRecord = {
   project: "2",
