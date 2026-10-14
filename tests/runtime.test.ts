@@ -183,11 +183,11 @@ function event(index = 0, key = "x".repeat(43)) {
     },
   } as unknown as GoogleAppsScript.Events.DoPost;
 }
-test("5商品：Webhook→Square再照合→Orders→Logs、購入者メール送信なし", () => {
+test("7商品：Webhook→Square再照合→Orders→Logs、購入者メール送信なし", () => {
   for (let i = 0; i < products().length; i++) doPost(event(i));
   processQueue();
-  assert.equal(sheets.get("Orders")!.rows.length, 6);
-  assert.equal(requests, 10);
+  assert.equal(sheets.get("Orders")!.rows.length, products().length + 1);
+  assert.equal(requests, products().length * 2);
   assert.equal(mail.length, 0);
   assert.equal(
     sheets.get("Logs")!.rows.filter((r) => r[1] === "PROCESS_PAYMENT").length,
@@ -264,14 +264,14 @@ test("不正JSONは既存設定を上書きしない", () => {
 
 test("商品別Drive案内を購入者へ送信、重複再送なし", () => {
   props.set("BUYER_EMAIL_ENABLED", "true");
-  for (let i = 0; i < 5; i++) doPost(event(i));
+  for (let i = 0; i < products().length; i++) doPost(event(i));
   processQueue();
   processQueue();
   assert.equal(mail.length, products().length);
   assert.ok(mail.every((m) => m.to === "buyer@example.invalid"));
   assert.equal(
     sheets.get("Orders")!.rows.filter((r) => r[6] === "DELIVERED").length,
-    5,
+    products().length,
   );
   assert.ok(mail[0].body.includes(CONFIG.UPGRADE_P3_URL));
 });
