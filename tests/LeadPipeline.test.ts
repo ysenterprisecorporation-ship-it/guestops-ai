@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { dedupeLeads, rankLeads, transitionLead, type LeadRecord } from '../src/LeadPipeline.ts';
+import { dedupeLeads, rankLeads, transitionLead, type LeadRecord } from '../src/LeadPipeline';
 
 const base: LeadRecord = {
   project: '1',
