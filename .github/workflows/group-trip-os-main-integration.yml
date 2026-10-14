@@ -1,0 +1,19 @@
+name: GTOS CI
+on:
+  push:
+    branches:
+      - group-trip-os-main-integration-2026-10-15
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: group-trip-os
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install
+      - run: npm run check
+      - run: npm test
