@@ -82,3 +82,79 @@ test("GETのみ、Sandboxホストと指定API版を使う", () => {
     "order/id",
   );
 });
+
+
+test("直販見積をSquareホスト型決済リンクへ変換する", () => {
+  Object.assign(globalThis, {
+    UrlFetchApp: {
+      fetch: (
+        url: string,
+        options: {
+          method: string;
+          headers: Record<string, string>;
+          contentType: string;
+          payload: string;
+        },
+      ) => {
+        assert.equal(
+          url,
+          "https://connect.squareupsandbox.com/v2/online-checkout/payment-links",
+        );
+        assert.equal(options.method, "post");
+        assert.equal(options.contentType, "application/json");
+        const body = JSON.parse(options.payload);
+        assert.equal(body.quick_pay.price_money.amount, 87500);
+        assert.equal(body.quick_pay.price_money.currency, "JPY");
+        assert.equal(body.quick_pay.location_id, "LOC");
+        assert.equal(body.checkout_options.redirect_url, "https://example.com/thanks");
+        return {
+          getResponseCode: () => 200,
+          getContentText: () =>
+            JSON.stringify({
+              payment_link: {
+                id: "PLINK",
+                order_id: "ORDER",
+                url: "https://square.link/u/example",
+              },
+            }),
+        };
+      },
+    },
+  });
+  const link = new SquareService("mock", "confirmed-version", "sandbox")
+    .createQuickPayLink({
+      idempotencyKey: "quote-abc",
+      locationId: "LOC",
+      name: "Tokyo Designer House 2 nights",
+      amount: 87500,
+      redirectUrl: "https://example.com/thanks",
+      note: "direct-booking quote abc",
+    });
+  assert.equal(link.order_id, "ORDER");
+  assert.equal(link.url, "https://square.link/u/example");
+});
+
+test("直販決済リンクの金額・redirectを事前検証する", () => {
+  const service = new SquareService("mock", "confirmed-version", "sandbox");
+  assert.throws(
+    () =>
+      service.createQuickPayLink({
+        idempotencyKey: "x",
+        locationId: "LOC",
+        name: "stay",
+        amount: 0,
+      }),
+    /CHECKOUT_AMOUNT_INVALID/,
+  );
+  assert.throws(
+    () =>
+      service.createQuickPayLink({
+        idempotencyKey: "x",
+        locationId: "LOC",
+        name: "stay",
+        amount: 1000,
+        redirectUrl: "http://unsafe.example",
+      }),
+    /CHECKOUT_REDIRECT_INVALID/,
+  );
+});
