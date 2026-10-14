@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Revenue Lead Record",
+  "type": "object",
+  "required": ["project","company_name","source_url","fit_score","status"],
+  "properties": {
+    "project": {"enum":["1","2","3"]},
+    "company_name": {"type":"string"},
+    "source_url": {"type":"string"},
+    "official_contact": {"type":"string"},
+    "contact_type": {"enum":["email","form","social","other"]},
+    "fit_score": {"type":"integer","minimum":0,"maximum":100},
+    "fit_evidence": {"type":"array","items":{"type":"string"}},
+    "delivery_risk": {"enum":["low","medium","high","unknown"]},
+    "approval": {"enum":["draft","approved","rejected"]},
+    "status": {"enum":["new","qualified","approved","sent","delivered","bounced","auto_reply","human_reply","meeting","order","lost"]},
+    "revenue_yen": {"type":"number","minimum":0},
+    "profit_yen": {"type":"number","minimum":0},
+    "last_event_at": {"type":"string"}
+  }
+}
