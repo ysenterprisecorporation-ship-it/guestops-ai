@@ -49,9 +49,11 @@ test("monthly: reservation confirmed -> GMO contract -> signed", () => {
     type: "RESERVATION_CONFIRMED",
     reservationId: "res_002",
   });
-  assert.equal(nextAction(r), "SEND_GMO_CONTRACT");
+  assert.equal(nextAction(r), "PREPARE_GMO_HANDOFF");
+  r = applyBookingEvent(r, { type: "CONTRACT_HANDOFF_PREPARED" });
+  assert.equal(nextAction(r), "WAIT_MANUAL_GMO_SEND");
   r = applyBookingEvent(r, { type: "CONTRACT_SENT", contractId: "ctr_001" });
-  assert.equal(nextAction(r), "WAIT_GMO_SIGNATURE");
+  assert.equal(nextAction(r), "WAIT_MANUAL_GMO_SIGNATURE");
   r = applyBookingEvent(r, { type: "CONTRACT_SIGNED", contractId: "ctr_001" });
   assert.equal(nextAction(r), "COMPLETE");
 });
@@ -101,7 +103,7 @@ test("short stay cannot enter GMO contract path", () => {
     reservationId: "res_003",
   });
   assert.throws(
-    () => applyBookingEvent(r, { type: "CONTRACT_SENT", contractId: "ctr_x" }),
+    () => applyBookingEvent(r, { type: "CONTRACT_HANDOFF_PREPARED" }),
     /CONTRACT_NOT_REQUIRED/,
   );
 });
