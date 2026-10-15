@@ -131,3 +131,34 @@ test("Square link uses exact JPY amount and idempotency key", async () => {
     globalThis.fetch = original;
   }
 });
+
+
+test("Square payment lookup scopes location and follows cursor", async () => {
+  const booking: BookingRecord = {
+    bookingId: "booking_page",
+    rentalMode: "SHORT_STAY",
+    state: "PAYMENT_LINK_SENT",
+    quoteAmountYen: 120000,
+  };
+  const urls: string[] = [];
+  const original = globalThis.fetch;
+  let call = 0;
+  globalThis.fetch = async (input) => {
+    urls.push(String(input));
+    call++;
+    const body = call === 1
+      ? { payments: [], cursor: "next-page" }
+      : { payments: [{ id: "pay_page", status: "COMPLETED", note: "GTOS:booking_page", order_id: "order_page", amount_money: { amount: 120000 }, created_at: "2026-10-15T04:00:00Z" }] };
+    return new Response(JSON.stringify(body), { status: 200 });
+  };
+  try {
+    const adapter = new SquareAdapter({ accessToken: "test", locationId: "LOC2", environment: "sandbox" });
+    const result = await adapter.listCompletedPaymentForBooking(booking, "2026-10-15T00:00:00Z", "order_page");
+    assert.equal(result.paid, true);
+    assert.equal(urls.length, 2);
+    assert.match(urls[0], /location_id=LOC2/);
+    assert.match(urls[1], /cursor=next-page/);
+  } finally {
+    globalThis.fetch = original;
+  }
+});
