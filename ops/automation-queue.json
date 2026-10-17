@@ -1,21 +1,124 @@
 {
   "version": "2026-10-17",
   "mode": "front_loaded_parallel_execution",
+  "final_deadline_jst": "2026-10-18T23:59:00+09:00",
+  "completion_rule": "all_12_lanes_complete_no_unfinished_items",
   "target_capacity_ratio": 1.3,
   "lanes": [
-    {"id":"1A","status":"active","next":"qualified_lead_refresh_and_personalized_drafts"},
-    {"id":"1B","status":"active","next":"partner_shortlist_and_value_proposition"},
-    {"id":"1C","status":"active","next":"sample_request_and_diagnostic_funnel_review"},
-    {"id":"2A","status":"active","next":"buyer_upgrade_segmentation"},
-    {"id":"2B","status":"active","next":"it_support_partner_shortlist"},
-    {"id":"2C","status":"active","next":"subsidy_entry_diagnostic_design"},
-    {"id":"3A","status":"active","next":"decision_debt_icp_scoring_and_drafts"},
-    {"id":"3B","status":"active","next":"ai_dx_partner_shortlist"},
-    {"id":"3C","status":"active","next":"diagnostic_inbound_funnel_review"},
-    {"id":"4A","status":"active","next":"corporate_group_demand_route_review"},
-    {"id":"4B","status":"active","next":"travel_hospitality_partner_shortlist"},
-    {"id":"4C","status":"active","next":"ota_direct_referral_funnel_review"}
+    {
+      "id": "1A",
+      "status": "in_progress",
+      "evidence": [
+        "gmail_sent_history_deduped",
+        "new_candidates_identified:HINOMI,YORISOI,東京民泊運営代行,Bolte"
+      ],
+      "next": "expand_high_fit_uncontacted_lodging_candidates_and_personalized_drafts"
+    },
+    {
+      "id": "1B",
+      "status": "in_progress",
+      "evidence": [
+        "宿泊DXサポート,Minpaku Resort shortlisted"
+      ],
+      "next": "complete_partner_value_propositions_and_contact_routes"
+    },
+    {
+      "id": "1C",
+      "status": "in_progress",
+      "evidence": [
+        "sample_request_and_diagnostic_funnel_scope_defined"
+      ],
+      "next": "audit_current_site_cta_sample_diagnostic_paths"
+    },
+    {
+      "id": "2A",
+      "status": "in_progress",
+      "evidence": [
+        "existing_buyer_reply_history_available"
+      ],
+      "next": "segment_buyer_upgrade_opportunities"
+    },
+    {
+      "id": "2B",
+      "status": "in_progress",
+      "evidence": [
+        "宿泊DXサポート shortlisted",
+        "digital_ai_subsidy_requires_registered_support_partner"
+      ],
+      "next": "shortlist_registered_it_support_partners_and_define_joint_offer"
+    },
+    {
+      "id": "2C",
+      "status": "in_progress",
+      "evidence": [
+        "2026_digital_ai_subsidy_rules_verified",
+        "no_subsidy_guarantee_rule_fixed"
+      ],
+      "next": "finish_free_eligibility_diagnostic_and_partner_handoff_flow"
+    },
+    {
+      "id": "3A",
+      "status": "in_progress",
+      "evidence": [
+        "gmail_sent_history_deduped",
+        "クレアスバリュー,GAアドバイザリー shortlisted",
+        "third_party_new_outbound_blocked_by_safety_check"
+      ],
+      "next": "finish_high_fit_icp_and_personalized_send_ready_assets"
+    },
+    {
+      "id": "3B",
+      "status": "in_progress",
+      "evidence": [
+        "DXAI,Advanced AI Partners,Shinka AI shortlisted",
+        "日本AI導入支援協会 excluded_as_already_contacted"
+      ],
+      "next": "complete_partner_value_propositions_and_contact_routes"
+    },
+    {
+      "id": "3C",
+      "status": "in_progress",
+      "evidence": [
+        "decision_debt_diagnostic_positioning_fixed"
+      ],
+      "next": "finish_inbound_diagnostic_cta_and_site_gap_review"
+    },
+    {
+      "id": "4A",
+      "status": "in_progress",
+      "evidence": [
+        "corporate_group_and_inbound_group_segments_defined"
+      ],
+      "next": "shortlist_direct_corporate_group_demand_sources"
+    },
+    {
+      "id": "4B",
+      "status": "in_progress",
+      "evidence": [
+        "MEGA DMC JAPAN shortlisted",
+        "group_tours_MICE_FIT_confirmed"
+      ],
+      "next": "expand_DMC_travel_partner_list_and_complete_pitch"
+    },
+    {
+      "id": "4C",
+      "status": "in_progress",
+      "evidence": [
+        "OTA_direct_referral_scope_defined"
+      ],
+      "next": "audit_Booking_Airbnb_direct_referral_flow_and_double_booking_controls"
+    }
   ],
-  "kpi": ["inventory","delivered","reply","sample","meeting","order","revenue","profit"],
-  "blocked_behavior": "switch_lane_immediately"
+  "kpi": [
+    "inventory",
+    "delivered",
+    "reply",
+    "sample",
+    "meeting",
+    "order",
+    "revenue",
+    "profit"
+  ],
+  "blocked_behavior": "switch_lane_immediately_while_resolving_original_lane",
+  "outbound_constraint": "new_third_party_gmail_send_and_draft_actions_may_be_blocked_by_platform_safety_checks;do_not_bypass"
 }
