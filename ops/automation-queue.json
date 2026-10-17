@@ -120,5 +120,15 @@
     "profit"
   ],
   "blocked_behavior": "switch_lane_immediately_while_resolving_original_lane",
-  "outbound_constraint": "new_third_party_gmail_send_and_draft_actions_may_be_blocked_by_platform_safety_checks;do_not_bypass"
+  "outbound_constraint": "new_third_party_gmail_send_and_draft_actions_may_be_blocked_by_platform_safety_checks;do_not_bypass",
+  "email_policy": {
+    "effective_from_jst": "2026-10-17",
+    "status": "stop_square_url_in_outbound_email",
+    "rules": [
+      "Do not include Square page URLs in outbound sales email body or signature.",
+      "Do not include Square commercial-transactions-law page URLs or direct links to that page.",
+      "Do not alter already-sent emails.",
+      "Use reply-based or document-request CTAs without URLs until this stop is lifted."
+    ]
+  }
 }
