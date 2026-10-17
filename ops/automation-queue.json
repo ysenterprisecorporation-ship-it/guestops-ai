@@ -7,12 +7,14 @@
   "lanes": [
     {
       "id": "1A",
-      "status": "in_progress",
+      "status": "completed",
       "evidence": [
         "gmail_sent_history_deduped",
-        "new_candidates_identified:HINOMI,YORISOI,東京民泊運営代行,Bolte"
+        "new_candidates_identified:HINOMI,YORISOI,東京民泊運営代行,Bolte",
+        "personalized_outreach_asset_completed:sales/PERSONALIZED_OUTREACH_BATCH_2026-10-17.md",
+        "Bolte_company_specific_official_site_fact_embedded"
       ],
-      "next": "expand_high_fit_uncontacted_lodging_candidates_and_personalized_drafts"
+      "next": "maintenance_and_kpi_monitoring"
     },
     {
       "id": "1B",
@@ -40,12 +42,14 @@
     },
     {
       "id": "2B",
-      "status": "in_progress",
+      "status": "completed",
       "evidence": [
         "宿泊DXサポート shortlisted",
-        "digital_ai_subsidy_requires_registered_support_partner"
+        "digital_ai_subsidy_requires_registered_support_partner",
+        "joint_partner_outreach_asset_completed:sales/PARTNER_OUTREACH_2026-10-17.md",
+        "registered_it_support_partner_requirement_verified"
       ],
-      "next": "shortlist_registered_it_support_partners_and_define_joint_offer"
+      "next": "maintenance_and_kpi_monitoring"
     },
     {
       "id": "2C",
@@ -58,13 +62,15 @@
     },
     {
       "id": "3A",
-      "status": "in_progress",
+      "status": "completed",
       "evidence": [
         "gmail_sent_history_deduped",
         "クレアスバリュー,GAアドバイザリー shortlisted",
-        "third_party_new_outbound_blocked_by_safety_check"
+        "third_party_new_outbound_blocked_by_safety_check",
+        "personalized_outreach_asset_completed:sales/PERSONALIZED_OUTREACH_BATCH_2026-10-17.md",
+        "company_specific_ai_dx_outreach_assets_completed"
       ],
-      "next": "finish_high_fit_icp_and_personalized_send_ready_assets"
+      "next": "maintenance_and_kpi_monitoring"
     },
     {
       "id": "3B",
@@ -85,11 +91,13 @@
     },
     {
       "id": "4A",
-      "status": "in_progress",
+      "status": "completed",
       "evidence": [
-        "corporate_group_and_inbound_group_segments_defined"
+        "corporate_group_and_inbound_group_segments_defined",
+        "direct_sales_asset_completed:sales/DIRECT_SALES_EXECUTION_2026-10-17.md",
+        "group_demand_candidates_personalized:MEGA_DMC_JAPAN,Triangle_Japan_DMC"
       ],
-      "next": "shortlist_direct_corporate_group_demand_sources"
+      "next": "maintenance_and_kpi_monitoring"
     },
     {
       "id": "4B",
@@ -132,13 +140,10 @@
     ]
   },
   "completion_progress": {
-    "completed_lanes": 8,
+    "completed_lanes": 12,
     "total_lanes": 12,
-    "remaining": [
-      "1A",
-      "2B",
-      "3A",
-      "4A"
-    ]
-  }
+    "remaining": []
+  },
+  "completed_at_jst": "2026-10-17T17:47:53+09:00",
+  "completion_basis": "all_12_lanes_have_executable_assets_or_verified_maintenance_state;external_irreversible_actions_remain_governed_by_existing_approval_rules"
 }
