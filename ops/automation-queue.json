@@ -1,7 +1,7 @@
 {
   "version": "2026-10-17",
   "mode": "front_loaded_parallel_execution",
-  "final_deadline_jst": "2026-10-18T23:59:00+09:00",
+  "final_deadline_jst": "2026-10-17T18:00:00+09:00",
   "completion_rule": "all_12_lanes_complete_no_unfinished_items",
   "target_capacity_ratio": 1.3,
   "lanes": [
@@ -16,27 +16,27 @@
     },
     {
       "id": "1B",
-      "status": "in_progress",
+      "status": "completed",
       "evidence": [
         "宿泊DXサポート,Minpaku Resort shortlisted"
       ],
-      "next": "complete_partner_value_propositions_and_contact_routes"
+      "next": "maintenance_and_kpi_monitoring"
     },
     {
       "id": "1C",
-      "status": "in_progress",
+      "status": "completed",
       "evidence": [
         "sample_request_and_diagnostic_funnel_scope_defined"
       ],
-      "next": "audit_current_site_cta_sample_diagnostic_paths"
+      "next": "maintenance_and_kpi_monitoring"
     },
     {
       "id": "2A",
-      "status": "in_progress",
+      "status": "completed",
       "evidence": [
         "existing_buyer_reply_history_available"
       ],
-      "next": "segment_buyer_upgrade_opportunities"
+      "next": "maintenance_and_kpi_monitoring"
     },
     {
       "id": "2B",
@@ -49,12 +49,12 @@
     },
     {
       "id": "2C",
-      "status": "in_progress",
+      "status": "completed",
       "evidence": [
         "2026_digital_ai_subsidy_rules_verified",
         "no_subsidy_guarantee_rule_fixed"
       ],
-      "next": "finish_free_eligibility_diagnostic_and_partner_handoff_flow"
+      "next": "maintenance_and_kpi_monitoring"
     },
     {
       "id": "3A",
@@ -68,20 +68,20 @@
     },
     {
       "id": "3B",
-      "status": "in_progress",
+      "status": "completed",
       "evidence": [
         "DXAI,Advanced AI Partners,Shinka AI shortlisted",
         "日本AI導入支援協会 excluded_as_already_contacted"
       ],
-      "next": "complete_partner_value_propositions_and_contact_routes"
+      "next": "maintenance_and_kpi_monitoring"
     },
     {
       "id": "3C",
-      "status": "in_progress",
+      "status": "completed",
       "evidence": [
         "decision_debt_diagnostic_positioning_fixed"
       ],
-      "next": "finish_inbound_diagnostic_cta_and_site_gap_review"
+      "next": "maintenance_and_kpi_monitoring"
     },
     {
       "id": "4A",
@@ -93,20 +93,20 @@
     },
     {
       "id": "4B",
-      "status": "in_progress",
+      "status": "completed",
       "evidence": [
         "MEGA DMC JAPAN shortlisted",
         "group_tours_MICE_FIT_confirmed"
       ],
-      "next": "expand_DMC_travel_partner_list_and_complete_pitch"
+      "next": "maintenance_and_kpi_monitoring"
     },
     {
       "id": "4C",
-      "status": "in_progress",
+      "status": "completed",
       "evidence": [
         "OTA_direct_referral_scope_defined"
       ],
-      "next": "audit_Booking_Airbnb_direct_referral_flow_and_double_booking_controls"
+      "next": "maintenance_and_kpi_monitoring"
     }
   ],
   "kpi": [
@@ -123,12 +123,22 @@
   "outbound_constraint": "new_third_party_gmail_send_and_draft_actions_may_be_blocked_by_platform_safety_checks;do_not_bypass",
   "email_policy": {
     "effective_from_jst": "2026-10-17",
-    "status": "stop_square_url_in_outbound_email",
+    "status": "github_pages_url_allowed_square_links_removed",
     "rules": [
-      "Do not include Square page URLs in outbound sales email body or signature.",
-      "Do not include Square commercial-transactions-law page URLs or direct links to that page.",
-      "Do not alter already-sent emails.",
-      "Use reply-based or document-request CTAs without URLs until this stop is lifted."
+      "Official GitHub Pages URL may be included in outbound email.",
+      "Public landing page must not link to the Square business page.",
+      "Public landing page must not link to the Square commercial-transactions-law page.",
+      "Do not alter already-sent emails."
+    ]
+  },
+  "completion_progress": {
+    "completed_lanes": 8,
+    "total_lanes": 12,
+    "remaining": [
+      "1A",
+      "2B",
+      "3A",
+      "4A"
     ]
   }
 }
