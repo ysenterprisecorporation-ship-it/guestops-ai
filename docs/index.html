@@ -32,16 +32,15 @@ a{color:#146a9d}
 .plan{display:grid;grid-template-columns:1.2fr 1.7fr auto;gap:12px;align-items:center;padding:16px;border-radius:12px;margin:12px 0;background:#f8fbfe}
 .plan strong{font-size:18px}
 .plan .price{font-size:20px;font-weight:800;white-space:nowrap}
-.flow{display:grid;grid-template-columns:1fr auto 1fr;gap:18px;align-items:center;margin-top:24px}
+.flow{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:stretch;margin-top:24px}
 .flow-box{padding:18px;border-radius:14px;text-align:center;font-weight:800}
 .flow-buy{background:#fff0e4}
 .flow-monthly{background:#e7f2ff}
-.arrow{font-size:30px;font-weight:900;color:#4c6fa8}
 details.faq-item{padding:12px 0;border-bottom:1px solid #dce5ef}
 details.faq-item summary{cursor:pointer}
 details.faq-item p{margin:12px 0 4px}
 footer{font-size:14px;color:#516171}
-@media(max-width:760px){.products{grid-template-columns:1fr}.plan{grid-template-columns:1fr}.flow{grid-template-columns:1fr}.arrow{transform:rotate(90deg);text-align:center}header{display:block}nav{margin-top:10px}nav a{margin:0 12px 0 0}}
+@media(max-width:760px){.products{grid-template-columns:1fr}.plan{grid-template-columns:1fr}.flow{grid-template-columns:1fr}header{display:block}nav{margin-top:10px}nav a{margin:0 12px 0 0}}
 </style>
 </head>
 <body>
@@ -115,7 +114,6 @@ footer{font-size:14px;color:#516171}
 
 <div class="flow">
 <div class="flow-box flow-buy">買い切り商品<br>施設専用プロンプトを購入</div>
-<div class="arrow">→</div>
 <div class="flow-box flow-monthly">月額AI商品<br>施設専用AIを導入し、本格運用</div>
 </div>
 </section>
