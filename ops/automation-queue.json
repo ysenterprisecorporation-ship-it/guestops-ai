@@ -1,0 +1,21 @@
+{
+  "version": "2026-10-17",
+  "mode": "front_loaded_parallel_execution",
+  "target_capacity_ratio": 1.3,
+  "lanes": [
+    {"id":"1A","status":"active","next":"qualified_lead_refresh_and_personalized_drafts"},
+    {"id":"1B","status":"active","next":"partner_shortlist_and_value_proposition"},
+    {"id":"1C","status":"active","next":"sample_request_and_diagnostic_funnel_review"},
+    {"id":"2A","status":"active","next":"buyer_upgrade_segmentation"},
+    {"id":"2B","status":"active","next":"it_support_partner_shortlist"},
+    {"id":"2C","status":"active","next":"subsidy_entry_diagnostic_design"},
+    {"id":"3A","status":"active","next":"decision_debt_icp_scoring_and_drafts"},
+    {"id":"3B","status":"active","next":"ai_dx_partner_shortlist"},
+    {"id":"3C","status":"active","next":"diagnostic_inbound_funnel_review"},
+    {"id":"4A","status":"active","next":"corporate_group_demand_route_review"},
+    {"id":"4B","status":"active","next":"travel_hospitality_partner_shortlist"},
+    {"id":"4C","status":"active","next":"ota_direct_referral_funnel_review"}
+  ],
+  "kpi": ["inventory","delivered","reply","sample","meeting","order","revenue","profit"],
+  "blocked_behavior": "switch_lane_immediately"
+}
