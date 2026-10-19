@@ -23,6 +23,12 @@ a{color:#146a9d}
 .button{display:inline-block;background:#e3f4ff;color:#0b4569;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:700}
 .reduce-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-top:20px}
 .reduce-item{background:#eef6fd;border-radius:12px;padding:16px;font-weight:700;text-align:center}
+.memory-section{margin-top:28px;background:white;border-radius:16px;padding:24px;box-shadow:0 4px 18px #142d4314}
+.memory-section h2{margin-top:0}
+.memory-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px}
+.memory-card{background:#f8fbfe;border-radius:12px;padding:18px;border:1px solid #dce8f2}
+.memory-card h3{margin:0 0 8px}
+.memory-card p{margin:0}
 .products{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:22px}
 .product-column{background:white;border-radius:16px;padding:20px;box-shadow:0 4px 18px #142d4314}
 .product-column.buyout{border-top:8px solid #f28b43}
@@ -41,7 +47,7 @@ details.faq-item{padding:12px 0;border-bottom:1px solid #dce5ef}
 details.faq-item summary{cursor:pointer}
 details.faq-item p{margin:12px 0 4px}
 footer{font-size:14px;color:#516171}
-@media(max-width:760px){.products{grid-template-columns:1fr}.plan{grid-template-columns:1fr}.flow{grid-template-columns:1fr}header{display:block}nav{margin-top:10px}nav a{margin:0 12px 0 0}}
+@media(max-width:760px){.products{grid-template-columns:1fr}.memory-grid{grid-template-columns:1fr}.plan{grid-template-columns:1fr}.flow{grid-template-columns:1fr}header{display:block}nav{margin-top:10px}nav a{margin:0 12px 0 0}}
 </style>
 </head>
 <body>
@@ -67,16 +73,16 @@ footer{font-size:14px;color:#516171}
 <div class="reduce-item">同じ問題を毎回ゼロから判断する状態</div>
 </div>
 
-<section>
+<section class="memory-section">
   <h2>スタッフが辞めてもノウハウが残る。<br>過去の対応履歴を「施設の記憶」としてAIに資産化。</h2>
-  <p>GuestOps AI（月額AI商品）は、単なる文章作成ツールではありません。過去に起きたイレギュラー対応、独自の清掃チェック基準、オーナー様が「なぜその時、全額返金ではなく半額補償で合意したのか」という経緯までをAIに学習させます。</p>
+  <p>GuestOps AI（月額AI商品）は、単なる文章作成ツールではありません。過去に起きたイレギュラー対応、独自の清掃チェック基準、オーナー様が「なぜその時、全額返金ではなく半額補償で合意したのか」という経緯までを、施設専用AIの運用ルール・対応知識として蓄積します。</p>
 
-  <div>
-    <article>
+  <div class="memory-grid">
+    <article class="memory-card">
       <h3>結果だけでなく「判断理由」を蓄積</h3>
-      <p>「このケースは責任者へエスカレーションする」「このケースはマニュアル通り即時対応する」という境界線をAIが記憶。人が入れ替わっても、施設としてのゲスト対応クオリティが落ちません。</p>
+      <p>「このケースは責任者へエスカレーションする」「このケースはマニュアル通り即時対応する」という境界線をAI環境に蓄積。人が入れ替わっても、施設としてのゲスト対応クオリティを維持しやすくします。</p>
     </article>
-    <article>
+    <article class="memory-card">
       <h3>属人化からの完全な脱却</h3>
       <p>ベテランスタッフの頭の中にしかなかった「運営のさじ加減」を、月額AI環境に継続的にアップデート。常に最新のルールで稼働する、退職しない右腕が誕生します。</p>
     </article>
