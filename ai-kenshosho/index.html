@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI検証所｜企業向け生成AI・DX支援／判断負債診断</title>
+  <meta name="description" content="生成AIを導入しても最後は人が全部確認する。そんな『判断負債』を可視化し、AI処理・人確認・責任者承認・停止条件を業務単位で整理します。PoC、要件定義、プロンプト・ナレッジ整備、業務自動化まで支援。">
+  <meta property="og:title" content="AI検証所｜企業向け生成AI・DX支援／判断負債診断">
+  <meta property="og:description" content="AI活用のボトルネックを『判断負債』として可視化。業務設計・要件定義・PoC・運用定着まで支援します。">
+  <meta name="theme-color" content="#0b1020">
+  <style>
+    :root{
+      --bg:#08111f;--panel:#0f1b2d;--panel2:#13243b;--text:#f7fbff;--muted:#b7c5d6;
+      --line:#263a54;--accent:#62d4ff;--accent2:#8cf0c8;--danger:#ffcb78;--max:1120px;
+    }
+    *{box-sizing:border-box} html{scroll-behavior:smooth}
+    body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;background:linear-gradient(180deg,#07101c 0%,#0a1422 55%,#07101c 100%);color:var(--text);line-height:1.75}
+    a{color:inherit}.wrap{max-width:var(--max);margin:auto;padding:0 24px}
+    header{position:sticky;top:0;z-index:10;background:rgba(8,17,31,.88);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.07)}
+    .nav{height:68px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+    .brand{font-weight:800;letter-spacing:.04em}.brand small{display:block;color:var(--muted);font-size:11px;font-weight:500}
+    .nav a{text-decoration:none}.cta{display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#04121a;font-weight:800;text-decoration:none}
+    .hero{padding:90px 0 64px}.eyebrow{color:var(--accent2);font-weight:800;font-size:14px;letter-spacing:.09em}
+    h1{font-size:clamp(36px,6vw,68px);line-height:1.12;margin:14px 0 22px;letter-spacing:-.025em}
+    .lead{max-width:820px;color:var(--muted);font-size:clamp(17px,2vw,21px)}
+    .hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:30px}.ghost{display:inline-flex;padding:12px 18px;border:1px solid var(--line);border-radius:12px;text-decoration:none;color:var(--text)}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:44px}.stat{padding:20px;border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.025)}.stat b{display:block;font-size:24px;color:var(--accent)}
+    section{padding:58px 0}.section-title{font-size:clamp(28px,4vw,42px);line-height:1.25;margin:0 0 12px}.section-intro{color:var(--muted);max-width:820px;margin-bottom:30px}
+    .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.card{background:linear-gradient(180deg,var(--panel),#0b1726);border:1px solid var(--line);border-radius:18px;padding:24px}.card h3{margin-top:0}.num{display:inline-flex;width:34px;height:34px;border-radius:10px;align-items:center;justify-content:center;background:#173a4e;color:var(--accent);font-weight:900}
+    .matrix{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.matrix .card{padding:20px}.matrix strong{display:block;margin:12px 0 6px}
+    .flow{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}.step{padding:16px;border-radius:14px;border:1px solid var(--line);background:var(--panel);text-align:center}.step b{display:block;color:var(--accent2)}
+    .offer{display:grid;grid-template-columns:1fr 1fr;gap:18px}.price{font-size:36px;font-weight:900;color:var(--accent)}.note{font-size:13px;color:var(--muted)}
+    .faq details{border-top:1px solid var(--line);padding:18px 0}.faq summary{cursor:pointer;font-weight:800}.faq p{color:var(--muted)}
+    .contact{padding:38px;border-radius:22px;background:linear-gradient(135deg,#102740,#123428);border:1px solid #2f5570}.contact h2{margin-top:0}.mail{font-size:clamp(20px,3vw,30px);font-weight:900;word-break:break-all}
+    footer{padding:40px 0 60px;color:var(--muted);border-top:1px solid rgba(255,255,255,.07);font-size:13px}
+    .tag{display:inline-block;padding:5px 9px;border-radius:99px;background:#162b43;color:#cdefff;font-size:12px;margin:4px 4px 0 0}
+    @media(max-width:850px){.stats,.grid3,.matrix,.offer,.flow{grid-template-columns:1fr 1fr}.nav .hide-mobile{display:none}}
+    @media(max-width:560px){.stats,.grid3,.matrix,.offer,.flow{grid-template-columns:1fr}.hero{padding-top:62px}}
+  </style>
+</head>
+<body>
+<header>
+  <div class="wrap nav">
+    <div class="brand">AI検証所<small>ワイズエンタープライズコーポレーション</small></div>
+    <a class="cta" href="mailto:ai.kenshosho@gmail.com?subject=AI%2FDX%E6%94%AF%E6%8F%B4%E3%81%AE%E7%9B%B8%E8%AB%87">メールで相談する</a>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <div class="eyebrow">GENERATIVE AI / DX / BUSINESS DESIGN</div>
+      <h1>AIを入れたのに、<br>最後は人が全部確認する。<br>その状態を終わらせる。</h1>
+      <p class="lead">AI検証所は、生成AI導入で残りやすい「誰が・どこまで・どの条件で判断するか」の曖昧さを、<strong>AI処理／人確認／責任者承認／停止条件</strong>の4区分で整理します。業務整理、要件定義、PoC、プロンプト・ナレッジ整備、運用定着まで、成果物ベースで支援します。</p>
+      <div class="hero-actions">
+        <a class="cta" href="#service">支援内容を見る</a>
+        <a class="ghost" href="#diagnosis">判断負債診断を見る</a>
+      </div>
+      <div class="stats">
+        <div class="stat"><b>4区分</b>AI・人・責任者・停止条件</div>
+        <div class="stat"><b>1業務から</b>小さく診断・PoC可能</div>
+        <div class="stat"><b>非対面対応</b>初期整理はメール中心でも可能</div>
+        <div class="stat"><b>実装接続</b>Web/AIアプリ開発会社との協業も可能</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="problem">
+    <div class="wrap">
+      <h2 class="section-title">生成AI導入後に残る「判断負債」</h2>
+      <p class="section-intro">生成AIの性能だけでは、業務は自動化されません。AIが答えを出しても、毎回「これは出してよい？」「誰に確認する？」「例外時はどうする？」が残ると、確認工数と属人性が積み上がります。AI検証所では、この未整理の判断ルールを「判断負債」と捉えます。</p>
+      <div class="grid3">
+        <div class="card"><span class="num">1</span><h3>確認が減らない</h3><p>AIで初稿は速くなったが、最後は上司が全件確認。処理量が増えるほど承認待ちが増える。</p></div>
+        <div class="card"><span class="num">2</span><h3>担当者ごとに判断が違う</h3><p>同じケースでも、人によってAIの使い方・確認基準・例外処理が異なり、品質差が残る。</p></div>
+        <div class="card"><span class="num">3</span><h3>事故時に止められない</h3><p>個人情報、契約、価格、法務、根拠不明数値など、AI処理を止める条件が明文化されていない。</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="diagnosis">
+    <div class="wrap">
+      <h2 class="section-title">判断を4区分に固定する</h2>
+      <p class="section-intro">「AIに任せる／人が見る」だけでは不十分です。責任者承認と自動停止条件まで分けることで、通常ケースを速くしながら高リスク領域だけを確実に人へ戻します。</p>
+      <div class="matrix">
+        <div class="card"><span class="num">A</span><strong>AI処理</strong><p>定型整理、要約、フォーマット変換、承認済み情報を使った初稿など。</p></div>
+        <div class="card"><span class="num">B</span><strong>人確認</strong><p>顧客向け文章、重要数値、公開前コンテンツなど、担当者確認で進められる範囲。</p></div>
+        <div class="card"><span class="num">C</span><strong>責任者承認</strong><p>価格、契約、返金、法務、会社公式見解、重要な対外判断など。</p></div>
+        <div class="card"><span class="num">D</span><strong>停止条件</strong><p>根拠不明、個人情報、権利未確認、ルール競合、事故・苦情等が発生した場合。</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="service">
+    <div class="wrap">
+      <h2 class="section-title">企業向け支援内容</h2>
+      <div class="grid3">
+        <div class="card"><h3>業務整理・要件定義</h3><p>As-Is / To-Be、対象業務、例外ケース、承認境界、PoC合格基準を整理します。</p><span class="tag">業務フロー</span><span class="tag">要件定義</span><span class="tag">例外設計</span></div>
+        <div class="card"><h3>プロンプト・ナレッジ設計</h3><p>AIに参照させる情報、出力形式、判断ルール、更新方法を実務に合わせて設計します。</p><span class="tag">Prompt</span><span class="tag">Knowledge</span><span class="tag">RAG前段</span></div>
+        <div class="card"><h3>PoC・実装支援</h3><p>Web/AIアプリ試作、既存コード、API連携等は実装パートナーと切り分け、要件から本番化判断まで接続します。</p><span class="tag">PoC</span><span class="tag">Web App</span><span class="tag">API</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="process">
+    <div class="wrap">
+      <h2 class="section-title">導入フロー</h2>
+      <div class="flow">
+        <div class="step"><b>01</b>対象業務を決める</div>
+        <div class="step"><b>02</b>現行判断を棚卸し</div>
+        <div class="step"><b>03</b>4区分へ整理</div>
+        <div class="step"><b>04</b>PoC・運用テスト</div>
+        <div class="step"><b>05</b>更新ルールを固定</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="offer">
+    <div class="wrap">
+      <h2 class="section-title">要件定義・判断負債診断</h2>
+      <p class="section-intro">初回から大規模導入を前提にせず、1業務から切り出して検証できます。</p>
+      <div class="offer">
+        <div class="card">
+          <h3>ライト</h3><div class="price">100,000円</div>
+          <p>1業務・1ユースケース向け。</p>
+          <p>業務フロー、4区分マトリクス、停止条件、承認チェック、主要例外、PoC合格基準を整理。</p>
+          <p class="note">案件内容により個別調整。正式条件は見積時に確定します。</p>
+        </div>
+        <div class="card">
+          <h3>スタンダード</h3><div class="price">150,000円</div>
+          <p>最大3業務、または複数画面・API連携を含む案件向け。</p>
+          <p>ライト一式に加え、データ項目、権限・承認フロー、テストケース、更新基準、本番移行条件を整理。</p>
+          <p class="note">開発・外部サービス費は別途。正式条件は見積時に確定します。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="faq">
+    <div class="wrap">
+      <h2 class="section-title">よくある質問</h2>
+      <details><summary>開発会社です。協業できますか？</summary><p>可能です。AI検証所が業務整理・要件定義・AI利用範囲を担当し、開発会社様がWeb/AIアプリの試作・実装を担当する分業が可能です。</p></details>
+      <details><summary>オンライン面談なしでも相談できますか？</summary><p>初期整理はメール中心でも進められます。案件が具体化した段階で必要に応じてオンライン打合せへ移行します。</p></details>
+      <details><summary>AI研修後の定着支援にも使えますか？</summary><p>使えます。研修で「使い方」を教えた後に、実務で誰がどこまで判断するかを4区分化することで、運用定着を補完します。</p></details>
+      <details><summary>効果は保証されますか？</summary><p>特定の売上・工数削減・成果を保証するサービスではありません。現行業務と判断境界を整理し、PoCと運用データで改善を検証します。</p></details>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="contact">
+        <h2>まず1業務から、判断境界を可視化します。</h2>
+        <p>対象業務を1つだけメールでお送りください。例：営業資料作成、顧客メール、AI研修後の実務利用、FAQ、社内ナレッジ、WebアプリのAI機能。</p>
+        <div class="mail"><a href="mailto:ai.kenshosho@gmail.com?subject=AI%2FDX%E6%94%AF%E6%8F%B4%E3%81%AE%E7%9B%B8%E8%AB%87">ai.kenshosho@gmail.com</a></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <strong>AI検証所</strong><br>
+    ワイズエンタープライズコーポレーション<br>
+    ai.kenshosho@gmail.com
+  </div>
+</footer>
+</body>
+</html>
