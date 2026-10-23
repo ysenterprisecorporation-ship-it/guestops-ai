@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>3分でわかる民泊判断負荷チェック｜GuestOps AI</title>
+<meta name="description" content="清掃不備・設備トラブル・返金判断など、民泊運営で発生する判断負荷を10問で可視化します。">
+<style>
+:root{--ink:#172033;--muted:#687386;--bg:#f5f7fb;--card:#fff;--line:#dde4ef;--accent:#244fd7;--low:#19734a;--mid:#a86600;--high:#b3261e}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI","Noto Sans JP",sans-serif;line-height:1.7}
+main{max-width:860px;margin:auto;padding:28px 18px 64px}.hero,.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:26px;margin:16px 0}
+.hero{background:linear-gradient(135deg,#17295f,#244fd7);color:white}.hero h1{font-size:clamp(28px,5vw,46px);line-height:1.3;margin:.2em 0}.hero p{max-width:680px}
+.q{margin:22px 0 28px}.q h2{font-size:18px;margin-bottom:12px}.choices{display:grid;gap:9px}.choices label{display:block;padding:13px 14px;border:1px solid var(--line);border-radius:12px;background:white;cursor:pointer}.choices input{margin-right:9px}
+button,.cta{display:inline-block;border:0;border-radius:11px;padding:14px 20px;background:var(--accent);color:#fff;font-weight:800;text-decoration:none;cursor:pointer;font-size:16px}
+#result{display:none}.score{font-size:54px;font-weight:900;line-height:1}.risk{font-size:24px;font-weight:900;margin:10px 0}.low{color:var(--low)}.mid{color:var(--mid)}.high{color:var(--high)}.bar{height:14px;background:#e6eaf1;border-radius:999px;overflow:hidden;margin:14px 0}.bar span{display:block;height:100%;background:var(--accent);width:0}.small{font-size:13px;color:var(--muted)}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+ul{padding-left:1.25em}
+</style>
+</head>
+<body>
+<main>
+<section class="hero">
+  <strong>GuestOps AI｜無料診断</strong>
+  <h1>3分でわかる<br>民泊判断負荷チェック</h1>
+  <p>清掃不備・設備トラブル・返金要求などで、どれだけ「人に聞かないと進まない判断」が残っているかを10問で可視化します。</p>
+</section>
+
+<form id="quiz" class="card">
+  <div id="questions"></div>
+  <button type="submit">診断結果を見る</button>
+  <p class="small">入力内容はこのページ内で計算され、サーバーへ送信しません。</p>
+</form>
+
+<section id="result" class="card">
+  <div class="score"><span id="score">0</span><span style="font-size:22px"> / 100</span></div>
+  <div id="risk" class="risk"></div>
+  <div class="bar"><span id="bar"></span></div>
+  <p id="summary"></p>
+  <ul id="advice"></ul>
+  <div class="actions">
+    <a class="cta" href="https://ysenterprisecorporation-ship-it.github.io/guestops-ai/">GuestOps AIを見る</a>
+    <button type="button" id="retry" style="background:#5e6675">もう一度診断する</button>
+  </div>
+  <p class="small">診断結果は自己評価をもとにした目安であり、業務成果を保証するものではありません。</p>
+</section>
+</main>
+<script>
+const items = [
+  ["清掃不備が起きた際、担当者が補償や再清掃の範囲をその場で判断できますか？"],
+  ["設備故障時に、現場判断・責任者確認・宿泊継続不可の境界が決まっていますか？"],
+  ["返金・値引き・補償について、金額帯や条件ごとの承認ルールがありますか？"],
+  ["夜間や休日でも、誰に確認すべきか迷わず対応できますか？"],
+  ["施設ごとの差分を残しつつ、共通の対応基準がありますか？"],
+  ["新人・外部スタッフでも、ベテランと近い判断ができますか？"],
+  ["過去の例外対応と、その判断理由を後から検索できますか？"],
+  ["担当者が変わっても、同じ基準でゲスト対応できますか？"],
+  ["問い合わせ対応で『念のため責任者確認』が頻発していませんか？"],
+  ["施設数が増えても、同じ判断ルールを展開できる状態ですか？"]
+];
+const options = [
+  ["ほぼ常にできる",0],
+  ["だいたいできる",3],
+  ["ケースによって迷う",7],
+  ["毎回確認が必要",10]
+];
+const wrap=document.getElementById("questions");
+items.forEach((x,i)=>{
+  const box=document.createElement("div"); box.className="q";
+  box.innerHTML='<h2>Q'+(i+1)+'. '+x[0]+'</h2><div class="choices">'+options.map((o,j)=>
+    '<label><input required type="radio" name="q'+i+'" value="'+o[1]+'">'+o[0]+'</label>'
+  ).join("")+'</div>';
+  wrap.appendChild(box);
+});
+document.getElementById("quiz").addEventListener("submit",e=>{
+  e.preventDefault();
+  let total=0;
+  for(let i=0;i<items.length;i++) total+=Number(new FormData(e.target).get("q"+i));
+  document.getElementById("score").textContent=total;
+  document.getElementById("bar").style.width=total+"%";
+  const risk=document.getElementById("risk");
+  const summary=document.getElementById("summary");
+  const advice=document.getElementById("advice");
+  let label,cls,text,points;
+  if(total<=29){
+    label="判断負荷：低"; cls="low";
+    text="運用ルールは比較的整理されています。次の課題は、判断履歴を蓄積し、施設増加や担当交代でも再利用できる状態にすることです。";
+    points=["例外対応の判断理由を記録する","施設ごとの差分だけを分離する","担当交代時にルールが再利用できる形にする"];
+  }else if(total<=59){
+    label="判断負荷：中"; cls="mid";
+    text="一部の業務で、担当者判断と責任者確認の境界が曖昧な可能性があります。特に繰り返し発生する例外対応から標準化すると改善しやすい状態です。";
+    points=["清掃不備・設備故障・返金補償の境界を優先整理","現場判断できる条件を明文化","停止条件と責任者確認条件を分ける"];
+  }else{
+    label="判断負荷：高"; cls="high";
+    text="確認待ちや属人判断が運営ボトルネックになっている可能性があります。施設数を増やす前に、例外判断を共通ルール化する余地が大きい状態です。";
+    points=["現場判断／責任者確認／オーナー承認／停止条件の4区分化","頻出例外から優先して基準化","過去判断を施設ナレッジとして蓄積"];
+  }
+  risk.textContent=label; risk.className="risk "+cls;
+  summary.textContent=text;
+  advice.innerHTML=points.map(p=>"<li>"+p+"</li>").join("");
+  document.getElementById("quiz").style.display="none";
+  document.getElementById("result").style.display="block";
+  window.scrollTo({top:0,behavior:"smooth"});
+});
+document.getElementById("retry").addEventListener("click",()=>{
+  document.getElementById("quiz").reset();
+  document.getElementById("quiz").style.display="block";
+  document.getElementById("result").style.display="none";
+  window.scrollTo({top:0,behavior:"smooth"});
+});
+</script>
+</body>
+</html>
