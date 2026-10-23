@@ -37,7 +37,7 @@ ul{padding-left:1.25em}
   <p id="summary"></p>
   <ul id="advice"></ul>
   <div class="actions">
-    <a class="cta" href="https://ysenterprisecorporation-ship-it.github.io/guestops-ai/">GuestOps AIを見る</a>
+    <a class="cta" href="../">GuestOps AIを見る</a>
     <button type="button" id="retry" style="background:#5e6675">もう一度診断する</button>
   </div>
   <p class="small">診断結果は自己評価をもとにした目安であり、業務成果を保証するものではありません。</p>
@@ -73,7 +73,8 @@ items.forEach((x,i)=>{
 document.getElementById("quiz").addEventListener("submit",e=>{
   e.preventDefault();
   let total=0;
-  for(let i=0;i<items.length;i++) total+=Number(new FormData(e.target).get("q"+i));
+  const formData=new FormData(e.target);
+  for(let i=0;i<items.length;i++) total+=Number(formData.get("q"+i));
   document.getElementById("score").textContent=total;
   document.getElementById("bar").style.width=total+"%";
   const risk=document.getElementById("risk");
