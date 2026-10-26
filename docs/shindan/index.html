@@ -3,31 +3,32 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>3分でわかる民泊判断負荷チェック｜GuestOps AI</title>
-<meta name="description" content="清掃不備・設備トラブル・返金判断など、民泊運営で発生する判断負荷を10問で可視化します。">
+<title>3分でわかるAI判断負債診断｜AI検証所</title>
+<meta name="description" content="生成AI導入後に残る確認待ち・承認集中・例外判断の曖昧さを8問で可視化。AI処理、人確認、責任者承認、停止条件の整理余地を診断します。">
+<meta name="robots" content="index,follow">
 <style>
-:root{--ink:#172033;--muted:#687386;--bg:#f5f7fb;--card:#fff;--line:#dde4ef;--accent:#244fd7;--low:#19734a;--mid:#a86600;--high:#b3261e}
+:root{--ink:#102039;--muted:#64748b;--bg:#f5f7fb;--card:#fff;--line:#dce3ee;--accent:#2256d8;--low:#0b6b46;--mid:#a35f00;--high:#b3261e}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI","Noto Sans JP",sans-serif;line-height:1.7}
 main{max-width:860px;margin:auto;padding:28px 18px 64px}.hero,.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:26px;margin:16px 0}
-.hero{background:linear-gradient(135deg,#17295f,#244fd7);color:white}.hero h1{font-size:clamp(28px,5vw,46px);line-height:1.3;margin:.2em 0}.hero p{max-width:680px}
+.hero{background:linear-gradient(135deg,#102452,#2256d8);color:#fff}.hero h1{font-size:clamp(28px,5vw,46px);line-height:1.3;margin:.2em 0}.hero p{max-width:720px}
 .q{margin:22px 0 28px}.q h2{font-size:18px;margin-bottom:12px}.choices{display:grid;gap:9px}.choices label{display:block;padding:13px 14px;border:1px solid var(--line);border-radius:12px;background:white;cursor:pointer}.choices input{margin-right:9px}
 button,.cta{display:inline-block;border:0;border-radius:11px;padding:14px 20px;background:var(--accent);color:#fff;font-weight:800;text-decoration:none;cursor:pointer;font-size:16px}
-#result{display:none}.score{font-size:54px;font-weight:900;line-height:1}.risk{font-size:24px;font-weight:900;margin:10px 0}.low{color:var(--low)}.mid{color:var(--mid)}.high{color:var(--high)}.bar{height:14px;background:#e6eaf1;border-radius:999px;overflow:hidden;margin:14px 0}.bar span{display:block;height:100%;background:var(--accent);width:0}.small{font-size:13px;color:var(--muted)}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
-ul{padding-left:1.25em}
+.cta.secondary{background:#fff;color:#173c99;border:1px solid #b8c7ee}
+#result{display:none}.score{font-size:54px;font-weight:900;line-height:1}.risk{font-size:24px;font-weight:900;margin:10px 0}.low{color:var(--low)}.mid{color:var(--mid)}.high{color:var(--high)}.bar{height:14px;background:#e6eaf1;border-radius:999px;overflow:hidden;margin:14px 0}.bar span{display:block;height:100%;background:var(--accent);width:0}.small{font-size:13px;color:var(--muted)}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}ul{padding-left:1.25em}
 </style>
 </head>
 <body>
 <main>
 <section class="hero">
-  <strong>GuestOps AI｜無料診断</strong>
-  <h1>3分でわかる<br>民泊判断負荷チェック</h1>
-  <p>清掃不備・設備トラブル・返金要求などで、どれだけ「人に聞かないと進まない判断」が残っているかを10問で可視化します。</p>
+  <strong>AI検証所｜無料診断</strong>
+  <h1>3分でわかる<br>AI判断負債診断</h1>
+  <p>生成AIを導入したのに「結局、人が全部確認する」「責任者への確認が増える」「例外時に止まる」が残っていないかを8問で可視化します。</p>
 </section>
 
 <form id="quiz" class="card">
   <div id="questions"></div>
   <button type="submit">診断結果を見る</button>
-  <p class="small">入力内容はこのページ内で計算され、サーバーへ送信しません。</p>
+  <p class="small">入力内容はこのページ内だけで計算され、サーバーへ送信しません。</p>
 </form>
 
 <section id="result" class="card">
@@ -37,76 +38,46 @@ ul{padding-left:1.25em}
   <p id="summary"></p>
   <ul id="advice"></ul>
   <div class="actions">
-    <a class="cta" href="../">GuestOps AIを見る</a>
+    <a class="cta" id="mailcta" href="mailto:ai.kenshosho@gmail.com?subject=AI判断負債診断の相談">診断結果をもとに相談する</a>
+    <a class="cta secondary" href="../ai-kenshosho/">サービス詳細を見る</a>
     <button type="button" id="retry" style="background:#5e6675">もう一度診断する</button>
   </div>
-  <p class="small">診断結果は自己評価をもとにした目安であり、業務成果を保証するものではありません。</p>
+  <p class="small">診断結果は自己評価による簡易チェックです。業務成果や法的適合性を保証するものではありません。</p>
 </section>
 </main>
 <script>
-const items = [
-  ["清掃不備が起きた際、担当者が補償や再清掃の範囲をその場で判断できますか？"],
-  ["設備故障時に、現場判断・責任者確認・宿泊継続不可の境界が決まっていますか？"],
-  ["返金・値引き・補償について、金額帯や条件ごとの承認ルールがありますか？"],
-  ["夜間や休日でも、誰に確認すべきか迷わず対応できますか？"],
-  ["施設ごとの差分を残しつつ、共通の対応基準がありますか？"],
-  ["新人・外部スタッフでも、ベテランと近い判断ができますか？"],
-  ["過去の例外対応と、その判断理由を後から検索できますか？"],
-  ["担当者が変わっても、同じ基準でゲスト対応できますか？"],
-  ["問い合わせ対応で『念のため責任者確認』が頻発していませんか？"],
-  ["施設数が増えても、同じ判断ルールを展開できる状態ですか？"]
+const items=[
+"AIに任せてよい業務範囲が、担当者ごとではなく明文化されていますか？",
+"AI出力を人が確認すべき条件と、確認不要の条件が分かれていますか？",
+"責任者承認が必要な価格・契約・対外発信などの条件が決まっていますか？",
+"根拠不足・個人情報・法務・想定外例外でAIを停止する条件がありますか？",
+"AI導入後に『念のため人が全部確認する』運用が常態化していませんか？",
+"例外が起きた時、誰が判断し、どこまで決められるか明確ですか？",
+"PoCから本番運用へ移す際の合格基準・差戻し条件が決まっていますか？",
+"過去の判断理由を次回のAI利用・承認ルールへ反映できていますか？"
 ];
-const options = [
-  ["ほぼ常にできる",0],
-  ["だいたいできる",3],
-  ["ケースによって迷う",7],
-  ["毎回確認が必要",10]
-];
+const options=[["明確にできている",0],["概ねできている",1],["一部曖昧",2],["ほぼ未整理",3]];
 const wrap=document.getElementById("questions");
-items.forEach((x,i)=>{
-  const box=document.createElement("div"); box.className="q";
-  box.innerHTML='<h2>Q'+(i+1)+'. '+x[0]+'</h2><div class="choices">'+options.map((o,j)=>
-    '<label><input required type="radio" name="q'+i+'" value="'+o[1]+'">'+o[0]+'</label>'
-  ).join("")+'</div>';
-  wrap.appendChild(box);
+items.forEach((q,i)=>{
+ const box=document.createElement("div");box.className="q";
+ box.innerHTML='<h2>Q'+(i+1)+'. '+q+'</h2><div class="choices">'+options.map(o=>'<label><input required type="radio" name="q'+i+'" value="'+o[1]+'">'+o[0]+'</label>').join("")+'</div>';
+ wrap.appendChild(box);
 });
 document.getElementById("quiz").addEventListener("submit",e=>{
-  e.preventDefault();
-  let total=0;
-  const formData=new FormData(e.target);
-  for(let i=0;i<items.length;i++) total+=Number(formData.get("q"+i));
-  document.getElementById("score").textContent=total;
-  document.getElementById("bar").style.width=total+"%";
-  const risk=document.getElementById("risk");
-  const summary=document.getElementById("summary");
-  const advice=document.getElementById("advice");
-  let label,cls,text,points;
-  if(total<=29){
-    label="判断負荷：低"; cls="low";
-    text="運用ルールは比較的整理されています。次の課題は、判断履歴を蓄積し、施設増加や担当交代でも再利用できる状態にすることです。";
-    points=["例外対応の判断理由を記録する","施設ごとの差分だけを分離する","担当交代時にルールが再利用できる形にする"];
-  }else if(total<=59){
-    label="判断負荷：中"; cls="mid";
-    text="一部の業務で、担当者判断と責任者確認の境界が曖昧な可能性があります。特に繰り返し発生する例外対応から標準化すると改善しやすい状態です。";
-    points=["清掃不備・設備故障・返金補償の境界を優先整理","現場判断できる条件を明文化","停止条件と責任者確認条件を分ける"];
-  }else{
-    label="判断負荷：高"; cls="high";
-    text="確認待ちや属人判断が運営ボトルネックになっている可能性があります。施設数を増やす前に、例外判断を共通ルール化する余地が大きい状態です。";
-    points=["現場判断／責任者確認／オーナー承認／停止条件の4区分化","頻出例外から優先して基準化","過去判断を施設ナレッジとして蓄積"];
-  }
-  risk.textContent=label; risk.className="risk "+cls;
-  summary.textContent=text;
-  advice.innerHTML=points.map(p=>"<li>"+p+"</li>").join("");
-  document.getElementById("quiz").style.display="none";
-  document.getElementById("result").style.display="block";
-  window.scrollTo({top:0,behavior:"smooth"});
+ e.preventDefault();const fd=new FormData(e.target);let raw=0;
+ for(let i=0;i<items.length;i++)raw+=Number(fd.get("q"+i));
+ const total=Math.round(raw/24*100);
+ document.getElementById("score").textContent=total;document.getElementById("bar").style.width=total+"%";
+ const risk=document.getElementById("risk"),summary=document.getElementById("summary"),advice=document.getElementById("advice");
+ let label,cls,text,points;
+ if(total<=29){label="判断負債：低";cls="low";text="AIと人の境界は比較的整理されています。次は判断履歴を運用へ戻し、担当変更や業務拡張でも同じ基準を使える状態にすると効果的です。";points=["判断理由の記録方法を固定する","例外時の停止条件を定期更新する","PoC評価基準と本番運用基準を接続する"];}
+ else if(total<=59){label="判断負債：中";cls="mid";text="一部業務でAI・担当者・責任者の境界が曖昧な可能性があります。頻出業務を1つ選び、判断条件を固定すると改善しやすい状態です。";points=["AI処理／人確認／責任者承認／停止条件の4区分化","頻出例外と承認条件を1業務から整理","判断マトリクスとチェックリストを作る"];}
+ else{label="判断負債：高";cls="high";text="AI導入後も確認待ち・承認集中・例外停止が残っている可能性が高い状態です。AI機能追加より先に、業務側の判断境界を要件として整理する余地があります。";points=["最も確認回数の多い1業務を特定","AI・担当者・責任者の権限境界を明文化","停止条件・差戻し条件・PoC合格基準を要件化"];}
+ risk.textContent=label;risk.className="risk "+cls;summary.textContent=text;advice.innerHTML=points.map(p=>"<li>"+p+"</li>").join("");
+ document.getElementById("mailcta").href="mailto:ai.kenshosho@gmail.com?subject="+encodeURIComponent("AI判断負債診断の相談（"+total+"点）")+"&body="+encodeURIComponent("診断結果："+total+"点\n対象にしたい業務：\n");
+ document.getElementById("quiz").style.display="none";document.getElementById("result").style.display="block";window.scrollTo({top:0,behavior:"smooth"});
 });
-document.getElementById("retry").addEventListener("click",()=>{
-  document.getElementById("quiz").reset();
-  document.getElementById("quiz").style.display="block";
-  document.getElementById("result").style.display="none";
-  window.scrollTo({top:0,behavior:"smooth"});
-});
+document.getElementById("retry").addEventListener("click",()=>{document.getElementById("quiz").reset();document.getElementById("quiz").style.display="block";document.getElementById("result").style.display="none";window.scrollTo({top:0,behavior:"smooth"});});
 </script>
 </body>
 </html>
