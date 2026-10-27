@@ -23,6 +23,6 @@
 - 責任者確認：返金、金銭補償、規約例外、重大クレーム、予約変更の例外
 - 緊急停止：火災、漏水、負傷、警察・救急、鍵/防犯上の重大事故
 
-## 月額版への移行
-購入30日以内にGuestOps AI OSへ移行する場合、Starter Kit 9,800円を初月利用料へ充当する設計候補。
-月額料金の正式確定前は個別案内とし、未確定料金を断定しない。
+## GuestOps AIへの移行
+購入30日以内にGuestOps AIへ申し込む場合、Starter Kit 9,800円分を初月利用料へ充当する。
+最新料金は https://ysenterprisecorporation-ship-it.github.io/guestops-ai/#pricing の表示を基準とする。
