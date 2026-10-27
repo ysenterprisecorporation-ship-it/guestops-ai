@@ -42,7 +42,7 @@ h1{line-height:1.35}ul{padding-left:22px}
 <span class="small">自動返信を使っていても、予約サイトごとに確認画面が分かれ、見落としや確認漏れが起きやすい。</span></label>
 
 <label class="check"><input type="checkbox" value="例外質問の判断">
-<strong>定型FAQは自動化できているが、例外質問は結局スタッフが内容を読んで判断している</strong><br>
+<strong>よくある質問への返信は自動化できているが、いつもと違う質問は結局スタッフが内容を読んで判断している</strong><br>
 <span class="small">例：早着・延長・追加人数・設備故障・騒音・清掃不備・駐車例外・特別リクエスト。</span></label>
 
 <label class="check"><input type="checkbox" value="テンプレートの多重管理">
@@ -71,10 +71,10 @@ h1{line-height:1.35}ul{padding-left:22px}
 
 <label class="check"><input type="checkbox" value="返金補償の承認往復">
 <strong>返金・補償・清掃不備・設備故障などで、担当者→責任者→オーナーの確認往復が多い</strong><br>
-<span class="small">文章作成ではなく、誰が決めてよいかの境界がボトルネックになっている。</span></label>
+<span class="small">文章作成ではなく、誰が決めてよいかが曖昧で、確認の往復が増えている。</span></label>
 
 <label class="check"><input type="checkbox" value="判断履歴の属人化">
-<strong>過去にどう判断したかが、OTAのメッセージ履歴や担当者の記憶に散らばっている</strong><br>
+<strong>過去にどう判断したかが、予約サイトのメッセージ履歴や担当者の記憶に散らばっている</strong><br>
 <span class="small">類似案件でも毎回ゼロから判断している。</span></label>
 
 <button class="button" onclick="diagnose()">診断する</button>
@@ -103,14 +103,14 @@ function diagnose(){
  const r=document.getElementById('result');
  if(!xs.length){r.innerHTML='<strong>診断結果：</strong>大きな手作業は残っていない可能性があります。無理に新しい仕組みを追加する必要はありません。';return}
  let priority=[];
- if(xs.includes('返金補償の承認往復')||xs.includes('例外質問の判断')||xs.includes('送信前承認')) priority.push('判断ルールAI：回答可能／責任者確認／緊急停止を自動分類');
+ if(xs.includes('返金補償の承認往復')||xs.includes('例外質問の判断')||xs.includes('送信前承認')) priority.push('判断の振り分け：そのまま回答できる内容／責任者確認が必要な内容／すぐ対応を止める内容を自動で分ける');
  if(xs.includes('予約サイト別の確認')||xs.includes('テンプレートの多重管理')) priority.push('予約・メッセージの一元化：複数の予約サイトをまとめて確認できるようにする');
- if(xs.includes('予約条件に応じた文面分岐')) priority.push('予約文脈AI：施設・人数・到着時刻・予約状態に応じて内容を分岐');
- if(xs.includes('本人確認後のアクセス案内')) priority.push('状態連動：本人確認完了後だけ鍵・チェックイン案内を送信');
- if(xs.includes('価格運用')) priority.push('価格ルールエンジン：最低/上限・曜日・稼働率・直前日数で変更');
- if(xs.includes('低評価レビュー返信')||xs.includes('低評価による予約機会損失')) priority.push('レビュー返信AI：低評価内容を分類し、事実確認・謝意・改善策・再発防止・安心材料まで含む公開返信を作成');
- if(xs.includes('低評価による予約機会損失')) priority.push('レビュー改善ループ：低評価原因を運営ルールへ戻し、同じ不満の再発防止と次の予約検討者への信頼回復につなげる');
- if(xs.includes('判断履歴の属人化')) priority.push('運用ナレッジ：過去の判断理由を施設ルールとして蓄積');
+ if(xs.includes('予約条件に応じた文面分岐')) priority.push('予約内容に合わせた返信：施設・人数・到着時刻などに応じて案内内容を変える');
+ if(xs.includes('本人確認後のアクセス案内')) priority.push('本人確認後の自動案内：確認が終わった人だけに鍵・入室方法を送る');
+ if(xs.includes('価格運用')) priority.push('料金調整の自動化：最低・上限価格、曜日、空室状況、直前予約などに応じて料金を調整');
+ if(xs.includes('低評価レビュー返信')||xs.includes('低評価による予約機会損失')) priority.push('低評価レビュー返信：事実確認・謝意・改善策・再発防止・安心材料まで含む返信案を作る');
+ if(xs.includes('低評価による予約機会損失')) priority.push('レビュー改善：低評価の原因を運営ルールへ反映し、同じ不満の再発を防ぐ');
+ if(xs.includes('判断履歴の属人化')) priority.push('過去対応の共有：以前の判断理由を残し、次回の対応に使えるようにする');
  if(xs.includes('予約サイトごとの特別対応')) priority.push('予約サイトごとの処理整理：自動で進められる内容と、人が確認する内容を分ける');
  r.innerHTML='<strong>優先して減らせる仕事：</strong><br><br>'+priority.map((x,i)=>(i+1)+'. '+x).join('<br>')+
  '<br><br><strong>選択した残作業：</strong><br>'+xs.join(' / ')+
