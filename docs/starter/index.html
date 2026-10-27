@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="description" content="GuestOps AI Starter無料体験。施設情報を入力すると、宿泊施設専用のAI返信プロンプトをブラウザ上で生成できます。">
 <title>GuestOps AI Starter｜無料体験</title>
 <style>
@@ -50,19 +53,19 @@ ul{padding-left:22px}@media(max-width:720px){.grid{grid-template-columns:1fr}.wi
 <section id="generator" class="card">
 <h2>施設専用AIプロンプト生成</h2>
 <div class="grid">
-<div class="field"><label>施設名</label><input id="facility" placeholder="例：さくらゲストハウス"></div>
-<div class="field"><label>所在地・最寄駅</label><input id="location" placeholder="例：東京都○○区／○○駅徒歩5分"></div>
-<div class="field"><label>最大宿泊人数</label><input id="capacity" placeholder="例：6名"></div>
-<div class="field"><label>チェックイン／アウト</label><input id="checktime" placeholder="例：15:00 / 10:00"></div>
-<div class="field wide"><label>アクセス・到着案内</label><textarea id="access" placeholder="駅からの道順、空港からの推奨経路など"></textarea></div>
-<div class="field"><label>Wi-Fi</label><textarea id="wifi" placeholder="SSID、案内方法など"></textarea></div>
-<div class="field"><label>ゴミ</label><textarea id="garbage" placeholder="分別、置き場所、回収ルール"></textarea></div>
-<div class="field"><label>騒音ルール</label><textarea id="noise" placeholder="静粛時間、近隣配慮"></textarea></div>
-<div class="field"><label>喫煙・ペット</label><textarea id="smoking" placeholder="禁止事項、例外"></textarea></div>
-<div class="field wide"><label>設備・アメニティ</label><textarea id="amenities" placeholder="ベッド、キッチン、洗濯機、駐車、アメニティ等"></textarea></div>
-<div class="field wide"><label>返金・補償の判断基準</label><textarea id="refund" placeholder="例：全額返金は責任者承認。軽微な不足は再提供を優先。金銭補償は自動判断しない。"></textarea></div>
-<div class="field wide"><label>緊急時ルール</label><textarea id="emergency" placeholder="火災、漏水、鍵、設備故障、警察・救急等。責任者へ上げる条件を記入。"></textarea></div>
-<div class="field wide"><label>その他の施設固有ルール</label><textarea id="other" placeholder="子連れ、追加人数、荷物預かり、チェックアウト延長等"></textarea></div>
+<div class="field"><label>施設名</label><input id="facility" placeholder="例：海風ゲストハウス"></div>
+<div class="field"><label>所在地・最寄駅</label><input id="location" placeholder="例：大阪府○○市／○○駅徒歩7分"></div>
+<div class="field"><label>最大宿泊人数</label><input id="capacity" placeholder="例：4名"></div>
+<div class="field"><label>チェックイン／アウト</label><input id="checktime" placeholder="例：16:00 / 11:00"></div>
+<div class="field wide"><label>アクセス・到着案内</label><textarea id="access" placeholder="例：○○駅東口から徒歩7分。空港からは○○線を利用"></textarea></div>
+<div class="field"><label>Wi-Fi</label><textarea id="wifi" placeholder="例：SSIDは室内案内カードに記載"></textarea></div>
+<div class="field"><label>ゴミ</label><textarea id="garbage" placeholder="例：可燃・資源を分別し、室内指定ボックスへ"></textarea></div>
+<div class="field"><label>騒音ルール</label><textarea id="noise" placeholder="例：22:00〜7:00は静かにお過ごしください"></textarea></div>
+<div class="field"><label>喫煙・ペット</label><textarea id="smoking" placeholder="例：室内禁煙・ペット不可"></textarea></div>
+<div class="field wide"><label>設備・アメニティ</label><textarea id="amenities" placeholder="例：ダブルベッド2台、キッチン、洗濯機、タオル"></textarea></div>
+<div class="field wide"><label>返金・補償の判断基準</label><textarea id="refund" placeholder="例：返金・金銭補償は責任者承認。備品不足は再提供を優先。"></textarea></div>
+<div class="field wide"><label>緊急時ルール</label><textarea id="emergency" placeholder="例：火災・漏水・負傷・防犯事故は即時に責任者へ連絡。"></textarea></div>
+<div class="field wide"><label>その他の施設固有ルール</label><textarea id="other" placeholder="例：荷物預かりは当日12時以降のみ。延長は事前承認制。"></textarea></div>
 </div>
 <p>
 <button class="primary" onclick="generatePrompt()">施設専用プロンプトを生成</button>
@@ -111,7 +114,7 @@ ul{padding-left:22px}@media(max-width:720px){.grid{grid-template-columns:1fr}.wi
 <p><a class="button primary" href="../#pricing">GuestOps AIの詳細を見る</a></p>
 </section>
 </main>
-<footer>運営：ワイズエンタープライズコーポレーション<br>無料版はプロンプト生成体験です。OTA/PMSへの接続や自動送信は行いません。</footer>
+<footer>運営：ワイズエンタープライズコーポレーション<br>無料版はプロンプト生成体験です。OTA/PMSへの接続や自動送信は行いません。<br><span class="small">Starter page version: 2026-10-28a</span></footer>
 
 <script>
 function v(id){return document.getElementById(id).value.trim()||"未設定"}
