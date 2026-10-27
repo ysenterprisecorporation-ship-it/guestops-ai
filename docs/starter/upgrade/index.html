@@ -116,6 +116,7 @@ function diagnose(){
  const r=document.getElementById('result');
  if(!xs.length){r.innerHTML='<strong>現状：</strong>上記の残作業は選択されていません。OTA標準機能だけで十分自動化できている可能性があります。無理にGuestOps AI OSを追加する必要はありません。';return}
  let priority=[];
+ if(xs.includes('低評価レビュー返信')||xs.includes('レビュー返信による予約影響')) priority.push('レビュー返信AI：事実確認・謝意・改善策・再発防止を整理し、将来の予約者にも安心感が伝わる返信案を生成');
  if(xs.includes('返金補償の承認往復')||xs.includes('例外質問の判断')||xs.includes('送信前承認')) priority.push('判断ルールAI：回答可能／責任者確認／緊急停止を自動分類');
  if(xs.includes('跨OTA受信箱')||xs.includes('テンプレートの多重管理')) priority.push('PMS連携：複数OTAの予約・メッセージ・施設知識を統合');
  if(xs.includes('予約条件に応じた文面分岐')) priority.push('予約文脈AI：施設・人数・到着時刻・予約状態に応じて内容を分岐');
