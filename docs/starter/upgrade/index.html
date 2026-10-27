@@ -85,11 +85,6 @@ h1{line-height:1.35}ul{padding-left:22px}
 <button class="button" onclick="diagnose()">診断する</button>
 <div id="result" class="result" style="display:none"></div>
 <div id="nextStep" class="next-step"></div>
-<div id="diagnosisActions" style="display:none;margin-top:14px">
-  <button class="button secondary" type="button" onclick="copyDiagnosis()">結果をコピー</button>
-  <button class="button secondary" type="button" onclick="saveDiagnosis()">結果を保存</button>
-  <div id="saveNote" class="small" style="margin-top:10px"></div>
-</div>
 </section>
 
 <section class="card">
@@ -113,16 +108,12 @@ function diagnose(){
  const xs=[...document.querySelectorAll('input:checked')].map(x=>x.value);
  const r=document.getElementById('result');
  const n=document.getElementById('nextStep');
- const a=document.getElementById('diagnosisActions');
- const note=document.getElementById('saveNote');
 
- if(note) note.textContent='';
 
  if(!xs.length){
    r.style.display='block';
    r.innerHTML='<strong>1｜診断結果</strong><br><br>該当する項目が選ばれていません。気になる項目を1つ以上選んで、もう一度診断してください。';
    n.style.display='none';
-   a.style.display='none';
    r.scrollIntoView({behavior:'smooth',block:'start'});
    return;
  }
@@ -170,38 +161,7 @@ function diagnose(){
      '<p><a class="button secondary" href="../../#pricing">GuestOps AI本体も見る</a></p>';
  }
 
- a.style.display='block';
  r.scrollIntoView({behavior:'smooth',block:'start'});
-}
-
-function getDiagnosisText(){
- const r=document.getElementById('result');
- return r ? r.innerText.trim() : '';
-}
-async function copyDiagnosis(){
- const t=getDiagnosisText();
- const n=document.getElementById('saveNote');
- if(!t || t==='選択後に診断結果を表示します。'){
-   if(n) n.textContent='先に項目を選んで「診断する」を押してください。';
-   return;
- }
- try{
-   await navigator.clipboard.writeText(t);
-   const n=document.getElementById('saveNote'); if(n) n.textContent='診断結果をコピーしました。';
- }catch(e){
-   window.prompt('診断結果をコピーしてください',t);
- }
-}
-function saveDiagnosis(){
- const t=getDiagnosisText();
- const n=document.getElementById('saveNote');
- if(!t || t==='選択後に診断結果を表示します。'){
-   if(n) n.textContent='先に項目を選んで「診断する」を押してください。';
-   return;
- }
- localStorage.setItem('guestops_diagnosis',t);
- localStorage.setItem('guestops_diagnosis_saved_at',new Date().toISOString());
- if(n) n.textContent='この端末のブラウザに診断結果を保存しました。';
 }
 </script>
 </body></html>
