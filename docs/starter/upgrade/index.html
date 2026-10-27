@@ -83,6 +83,11 @@ h1{line-height:1.35}ul{padding-left:22px}
 </section>
 
 <section class="card">
+<h2>相談するとき</h2>
+<p><strong>メールアプリは開きません。</strong> 診断結果をワンクリックでコピーできるので、普段お使いの問い合わせフォーム・チャット・社内ツール等へそのまま貼り付けできます。</p>
+</section>
+
+<section class="card">
 <h2>GuestOps AIで減らせる仕事</h2>
 <ul>
 <li>予約サイトにある自動返信や定型文は、そのまま活用</li>
@@ -116,6 +121,26 @@ function diagnose(){
  r.innerHTML='<strong>優先して減らせる仕事：</strong><br><br>'+priority.map((x,i)=>(i+1)+'. '+x).join('<br>')+
  '<br><br><strong>選択した残作業：</strong><br>'+xs.join(' / ')+
  '<br><br>';
+}
+
+function getDiagnosisText(){
+ const r=document.getElementById('result');
+ return r ? r.innerText.replace('診断結果をコピー この端末に保存','').trim() : '';
+}
+async function copyDiagnosis(){
+ const t=getDiagnosisText();
+ try{
+   await navigator.clipboard.writeText(t);
+   const n=document.getElementById('saveNote'); if(n) n.textContent='診断結果をコピーしました。チャット・問い合わせフォーム等へそのまま貼り付けできます。';
+ }catch(e){
+   window.prompt('診断結果をコピーしてください',t);
+ }
+}
+function saveDiagnosis(){
+ const t=getDiagnosisText();
+ localStorage.setItem('guestops_diagnosis',t);
+ localStorage.setItem('guestops_diagnosis_saved_at',new Date().toISOString());
+ const n=document.getElementById('saveNote'); if(n) n.textContent='この端末のブラウザに診断結果を保存しました。';
 }
 </script>
 </body></html>
