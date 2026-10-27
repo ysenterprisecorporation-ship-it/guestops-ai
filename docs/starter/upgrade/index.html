@@ -1,0 +1,13 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GuestOps AI｜自動化診断</title><style>
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#f7fafc;color:#172638;line-height:1.7}main,header,footer{max-width:920px;margin:auto;padding:22px}.card{background:#fff;padding:22px;border-radius:14px;margin:18px 0;box-shadow:0 4px 18px #142d4314}label{display:block;margin:10px 0}.button{display:inline-block;background:#0d5c96;color:#fff;padding:12px 18px;border:0;border-radius:8px;font-weight:800;cursor:pointer}.result{background:#eef6fd;padding:18px;border-radius:12px;margin-top:18px}</style></head><body><header><a href="../">← Starterへ</a></header><main><h1>月額版への自動化診断</h1><p>現在の手作業を選ぶと、GuestOps AI OSで自動化優先度の高い項目を表示します。</p>
+<section class="card" id="checks">
+<label><input type="checkbox" value="OTAメッセージ取得"> OTAのメッセージを人が毎回確認している</label>
+<label><input type="checkbox" value="返信生成・送信"> ゲスト返信を毎回作成・コピーしている</label>
+<label><input type="checkbox" value="予約連動メッセージ"> 到着前・当日・退出前の案内を手動送信している</label>
+<label><input type="checkbox" value="価格更新"> 料金を人がカレンダーで変更している</label>
+<label><input type="checkbox" value="本人確認後の案内"> 本人確認後に鍵・チェックイン情報を手動送信している</label>
+<label><input type="checkbox" value="承認フロー"> 返金・補償・例外対応の確認往復が多い</label>
+<button class="button" onclick="diagnose()">診断する</button><div id="result" class="result">選択後に診断結果を表示します。</div></section>
+</main><footer>GuestOps AI</footer><script>
+function diagnose(){const xs=[...document.querySelectorAll('input:checked')].map(x=>x.value);const r=document.getElementById('result');if(!xs.length){r.textContent='現在の手作業を1つ以上選択してください。';return}r.innerHTML='<strong>自動化優先候補：</strong><br>'+xs.map((x,i)=>(i+1)+'. '+x).join('<br>')+'<br><br>Starterでは手動運用を標準化し、月額版ではこの部分をPMS/APIとAIで自動化します。<br><br><a href="mailto:minpaku.ai.kit@gmail.com?subject=GuestOps%20AI%20OS%E8%87%AA%E5%8B%95%E5%8C%96%E7%9B%B8%E8%AB%87">自動化相談を送る</a>'}
+</script></body></html>
