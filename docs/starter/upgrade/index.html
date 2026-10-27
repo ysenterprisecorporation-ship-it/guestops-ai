@@ -134,32 +134,16 @@ function diagnose(){
    priority.map((x,i)=>(i+1)+'. '+x).join('<br>')+
    '<br><br><span class="small">選択した項目：'+xs.join(' / ')+'</span>';
 
- const heavyKeys=['予約サイト別の確認','テンプレートの多重管理','予約条件に応じた文面分岐','本人確認後のアクセス案内','価格運用','返金補償の承認往復','予約サイトごとの特別対応'];
- const heavy=xs.some(x=>heavyKeys.includes(x));
-
  n.style.display='block';
-
- if(heavy || xs.length>=3){
-   n.innerHTML=
-     '<h3>2｜おすすめの進め方</h3>'+
-     '<p><strong>今すぐ自動化まで進める価値が高い状態です。</strong></p>'+
-     '<p>GuestOps AI本体では、予約・メッセージ・判断・料金調整・本人確認後の案内まで、日々の手作業を減らす設計に進めます。</p>'+
-     '<p><a class="button" href="../../#pricing">3｜GuestOps AI本体を見る</a></p>'+
-     '<hr style="border:0;border-top:1px solid #e3d6b7;margin:20px 0">'+
-     '<p><strong>まず小さく試したい場合</strong></p>'+
-     '<p>9,800円Starterで、施設情報・返信基準・判断ルールを先に整えてから本体へ進めます。</p>'+
-     '<p><a class="button secondary" href="../order/">9,800円Starterを見る</a></p>';
- }else{
-   n.innerHTML=
-     '<h3>2｜おすすめの進め方</h3>'+
-     '<p><strong>まずはStarterで運用ルールを整えるのが始めやすい状態です。</strong></p>'+
-     '<p>9,800円Starterで、施設情報・返信基準・判断ルールを整理します。</p>'+
-     '<p><a class="button" href="../order/">3｜9,800円Starterを見る</a></p>'+
-     '<hr style="border:0;border-top:1px solid #e3d6b7;margin:20px 0">'+
-     '<p><strong>その先に自動化したい場合</strong></p>'+
-     '<p>GuestOps AI本体では、複数の予約サイト確認、定型外対応、料金調整、本人確認後の案内など、Starterで整えたルールを使って日々の作業を減らします。</p>'+
-     '<p><a class="button secondary" href="../../#pricing">GuestOps AI本体も見る</a></p>';
- }
+ n.innerHTML=
+   '<h3>2｜おすすめの進め方</h3>'+
+   '<p><strong>最優先：GuestOps AI本体</strong></p>'+
+   '<p>診断で見つかった確認・判断・レビュー返信・料金調整などを、日々の運用から減らしたい場合はこちらが本命です。</p>'+
+   '<p><a class="button" href="../../#pricing">3｜GuestOps AI本体を見る</a></p>'+
+   '<hr style="border:0;border-top:1px solid #e3d6b7;margin:20px 0">'+
+   '<p><strong>2番目：まず小さく試すならStarter</strong></p>'+
+   '<p>9,800円Starterは、施設情報・返信基準・判断ルールを整理して、GuestOps AI本体へ進む前段として使えます。</p>'+
+   '<p><a class="button secondary" href="../order/">9,800円Starterを見る</a></p>';
 
  r.scrollIntoView({behavior:'smooth',block:'start'});
 }
