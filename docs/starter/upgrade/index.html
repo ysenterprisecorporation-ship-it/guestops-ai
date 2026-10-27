@@ -42,6 +42,14 @@ h1{line-height:1.35}ul{padding-left:22px}
 <section class="card" id="checks">
 <h2>OTA標準機能を使ったうえで、まだ残っているものを選択</h2>
 
+<label class="check"><input type="checkbox" value="低評価レビュー返信">
+<strong>低評価レビューに対して、予約検討者にも効果的な公開返信ができていない</strong><br>
+<span class="small">謝罪だけ、反論だけ、事実説明だけで終わり、改善内容・再発防止・今後の安心材料まで伝えられていない。</span></label>
+
+<label class="check"><input type="checkbox" value="低評価による予約機会損失">
+<strong>低評価レビューへの返信が弱く、閲覧者の不安を解消できず予約機会を失っていると感じる</strong><br>
+<span class="small">低評価そのものは消せなくても、原因・対応・改善策を整理した返信で、次の予約検討者が判断できる情報を残したい。</span></label>
+
 <label class="check"><input type="checkbox" value="跨OTA受信箱">
 <strong>Airbnb・Booking.com・Vrbo・Agodaなどを、それぞれ別画面で確認している</strong><br>
 <span class="small">各OTA内の自動返信は使えていても、受信箱・未返信・優先度確認が分散している。</span></label>
@@ -78,14 +86,6 @@ h1{line-height:1.35}ul{padding-left:22px}
 <strong>返金・補償・清掃不備・設備故障などで、担当者→責任者→オーナーの確認往復が多い</strong><br>
 <span class="small">文章作成ではなく、誰が決めてよいかの境界がボトルネックになっている。</span></label>
 
-<label class="check"><input type="checkbox" value="低評価レビュー返信">
-<strong>低評価レビューに対して、予約検討者にも効果的な公開返信ができていない</strong><br>
-<span class="small">謝罪だけ、反論だけ、事実説明だけで終わり、改善内容・再発防止・今後の安心材料まで伝えられていない。</span></label>
-
-<label class="check"><input type="checkbox" value="低評価による予約機会損失">
-<strong>低評価レビューへの返信が弱く、閲覧者の不安を解消できず予約機会を失っていると感じる</strong><br>
-<span class="small">低評価そのものは消せなくても、原因・対応・改善策を整理した返信で、次の予約検討者が判断できる情報を残したい。</span></label>
-
 <label class="check"><input type="checkbox" value="判断履歴の属人化">
 <strong>過去にどう判断したかが、OTAのメッセージ履歴や担当者の記憶に散らばっている</strong><br>
 <span class="small">類似案件でも毎回ゼロから判断している。</span></label>
@@ -116,7 +116,6 @@ function diagnose(){
  const r=document.getElementById('result');
  if(!xs.length){r.innerHTML='<strong>現状：</strong>上記の残作業は選択されていません。OTA標準機能だけで十分自動化できている可能性があります。無理にGuestOps AI OSを追加する必要はありません。';return}
  let priority=[];
- if(xs.includes('低評価レビュー返信')||xs.includes('レビュー返信による予約影響')) priority.push('レビュー返信AI：事実確認・謝意・改善策・再発防止を整理し、将来の予約者にも安心感が伝わる返信案を生成');
  if(xs.includes('返金補償の承認往復')||xs.includes('例外質問の判断')||xs.includes('送信前承認')) priority.push('判断ルールAI：回答可能／責任者確認／緊急停止を自動分類');
  if(xs.includes('跨OTA受信箱')||xs.includes('テンプレートの多重管理')) priority.push('PMS連携：複数OTAの予約・メッセージ・施設知識を統合');
  if(xs.includes('予約条件に応じた文面分岐')) priority.push('予約文脈AI：施設・人数・到着時刻・予約状態に応じて内容を分岐');
