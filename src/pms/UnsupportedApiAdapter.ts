@@ -28,18 +28,27 @@ export class UnsupportedApiAdapter implements PmsAdapter {
     };
   }
 
-  getBooking(_id: string): PmsBooking | null {
+  getBooking(id: string): PmsBooking | null {
+    void id;
     throw new PmsUnsupportedError(this.provider, "getBooking");
   }
-  getMessages(_bookingId: string): PmsMessage[] {
+
+  getMessages(bookingId: string): PmsMessage[] {
+    void bookingId;
     throw new PmsUnsupportedError(this.provider, "getMessages");
   }
-  sendMessage(_bookingId: string, _body: string): void {
+
+  sendMessage(bookingId: string, body: string): void {
+    void bookingId;
+    void body;
     throw new PmsUnsupportedError(this.provider, "sendMessage");
   }
-  updateDailyPrices(_updates: DailyPriceUpdate[]): void {
+
+  updateDailyPrices(updates: DailyPriceUpdate[]): void {
+    void updates;
     throw new PmsUnsupportedError(this.provider, "updateDailyPrices");
   }
+
   normalizeWebhook(payload: unknown): PmsWebhookEvent {
     return { provider: this.provider, eventType: "unknown", raw: payload };
   }
