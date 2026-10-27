@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Airbnb・Booking.com・Vrbo・Agodaなど、OTA標準機能を使ったうえで残る宿泊運営の手作業・例外判断を診断します。">
-<title>GuestOps AI｜OTA実態連動 自動化診断</title>
+<meta name="description" content="低評価レビューへの返信と、宿泊運営に残る確認・判断作業を診断します。">
+<title>GuestOps AI｜宿泊運営 自動化診断</title>
 <style>
 body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#f7fafc;color:#172638;line-height:1.7}
 main,header,footer{max-width:960px;margin:auto;padding:22px}
@@ -13,8 +13,6 @@ main,header,footer{max-width:960px;margin:auto;padding:22px}
 label.check{display:block;margin:12px 0;padding:12px;background:#f8fbfe;border-radius:10px}
 .button{display:inline-block;background:#0d5c96;color:#fff;padding:12px 18px;border:0;border-radius:8px;font-weight:800;cursor:pointer;text-decoration:none}
 .result{background:#eef6fd;padding:18px;border-radius:12px;margin-top:18px}
-.ota-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
-.ota{border:1px solid #dce8f2;border-radius:12px;padding:14px;background:#fff}
 .small{font-size:14px;color:#5c6d7d}.tag{display:inline-block;background:#e7f2ff;color:#0d5c96;border-radius:999px;padding:3px 9px;font-size:13px;font-weight:700}
 h1{line-height:1.35}ul{padding-left:22px}
 </style>
@@ -23,14 +21,13 @@ h1{line-height:1.35}ul{padding-left:22px}
 <header><a href="../">← Starterへ</a></header>
 <main>
 <section class="hero">
-<p>② GuestOps AI OS</p>
-<p style="font-size:22px;font-weight:900;margin:0 0 10px">予約を減らす“残り仕事”を、見える化。</p>
-<h1>低評価レビュー返信と、<br>人に残る判断業務を診断</h1>
-<p>OTAの自動返信では解決しにくい、<strong>低評価レビュー対応・定型外対応・責任者確認</strong>をチェックします。</p>
+<p style="font-size:24px;font-weight:900;margin:0 0 12px">そのレビュー返信、次の予約を逃していませんか？</p>
+<h1>低評価レビューと、<br>まだ人に残る仕事を3分診断</h1>
+<p>返信・確認・料金調整など、<strong>今も人が判断している仕事</strong>をチェックします。</p>
 </section>
 
 <section class="card" id="checks">
-<h2>OTA標準機能を使ったうえで、まだ残っているものを選択</h2>
+<h2>今も人が対応しているものを選んでください</h2>
 
 <label class="check"><input type="checkbox" value="低評価レビュー返信">
 <strong>低評価レビューに対して、予約検討者にも効果的な公開返信ができていない</strong><br>
@@ -40,17 +37,17 @@ h1{line-height:1.35}ul{padding-left:22px}
 <strong>低評価レビューへの返信が弱く、閲覧者の不安を解消できず予約機会を失っていると感じる</strong><br>
 <span class="small">低評価そのものは消せなくても、原因・対応・改善策を整理した返信で、次の予約検討者が判断できる情報を残したい。</span></label>
 
-<label class="check"><input type="checkbox" value="跨OTA受信箱">
-<strong>Airbnb・Booking.com・Vrbo・Agodaなどを、それぞれ別画面で確認している</strong><br>
-<span class="small">各OTA内の自動返信は使えていても、受信箱・未返信・優先度確認が分散している。</span></label>
+<label class="check"><input type="checkbox" value="予約サイト別の確認">
+<strong>Airbnb・Booking.com・Vrbo・Agodaなどを、それぞれ別の画面で確認している</strong><br>
+<span class="small">自動返信を使っていても、予約サイトごとに確認画面が分かれ、見落としや確認漏れが起きやすい。</span></label>
 
 <label class="check"><input type="checkbox" value="例外質問の判断">
 <strong>定型FAQは自動化できているが、例外質問は結局スタッフが内容を読んで判断している</strong><br>
 <span class="small">例：早着・延長・追加人数・設備故障・騒音・清掃不備・駐車例外・特別リクエスト。</span></label>
 
 <label class="check"><input type="checkbox" value="テンプレートの多重管理">
-<strong>同じ案内をOTAごと・施設ごとにテンプレート登録し、変更時に複数箇所を直している</strong><br>
-<span class="small">OTA標準テンプレートが便利でも、複数OTA・複数施設では更新箇所が増える。</span></label>
+<strong>同じ案内を予約サイトごと・施設ごとに登録し、変更のたびに何か所も直している</strong><br>
+<span class="small">予約サイトや施設が増えるほど、同じ案内の修正箇所も増えていく。</span></label>
 
 <label class="check"><input type="checkbox" value="予約条件に応じた文面分岐">
 <strong>予約経路・施設・人数・到着時刻・本人確認状況によって、送る内容を人が変えている</strong><br>
@@ -60,17 +57,17 @@ h1{line-height:1.35}ul{padding-left:22px}
 <strong>自動送信にしたくない質問だけ、人が確認してから送る仕組みが必要</strong><br>
 <span class="small">返金・補償・予約変更例外・重大クレーム・安全事故など。</span></label>
 
-<label class="check"><input type="checkbox" value="Booking.com構造化リクエスト">
+<label class="check"><input type="checkbox" value="予約サイトごとの特別対応">
 <strong>Booking.com等の特別リクエストで、内容によって返信方法や処理場所が変わり、スタッフ判断が残る</strong><br>
 <span class="small">例：チェックイン時刻・駐車・ベッド等と、日程変更・キャンセル条件変更などで処理が異なる。</span></label>
 
 <label class="check"><input type="checkbox" value="価格運用">
-<strong>OTAやPMSの価格機能は使っているが、最低価格・曜日・稼働率・直前割などの判断ルールを人が調整している</strong><br>
+<strong>料金変更の機能は使っているが、最低価格・曜日・空室状況・直前割などの判断は人がしている</strong><br>
 <span class="small">価格変更そのものではなく、「いつ・どこまで変えるか」の判断を自動化したい。</span></label>
 
 <label class="check"><input type="checkbox" value="本人確認後のアクセス案内">
 <strong>本人確認・宿泊者情報の確認後に、鍵・暗証番号・チェックイン案内を人が送っている</strong><br>
-<span class="small">OTAの定時メッセージではなく、「確認完了」という状態を条件に送信したい。</span></label>
+<span class="small">決まった時刻ではなく、「本人確認が終わったら送る」という流れにしたい。</span></label>
 
 <label class="check"><input type="checkbox" value="返金補償の承認往復">
 <strong>返金・補償・清掃不備・設備故障などで、担当者→責任者→オーナーの確認往復が多い</strong><br>
@@ -85,37 +82,37 @@ h1{line-height:1.35}ul{padding-left:22px}
 </section>
 
 <section class="card">
-<h2>GuestOps AI OSが追加する価値</h2>
+<h2>GuestOps AIで減らせる仕事</h2>
 <ul>
-<li>OTA標準のScheduled MessageやQuick Replyは、そのまま活用</li>
-<li>PMS/APIで複数OTAの予約・メッセージを1つの判断レイヤーへ集約</li>
-<li>施設情報・予約条件・過去ルールを参照して、定型外質問を分類</li>
-<li>通常案件は自動処理、高リスク案件だけ人間承認</li>
-<li>本人確認完了など「状態」を条件にチェックイン情報を送信</li>
+<li>予約サイトにある自動返信や定型文は、そのまま活用</li>
+<li>複数の予約サイトから届く予約・メッセージをまとめて確認</li>
+<li>施設情報・予約内容・過去の対応ルールを見て、定型外の質問を振り分け</li>
+<li>通常の問い合わせは自動で進め、返金・補償など重要な案件だけ人が確認</li>
+<li>本人確認が終わったら、鍵・入室方法などを自動送信</li>
 <li>低評価レビューの内容を分類し、事実確認・謝意・改善策・再発防止まで含む公開返信を支援</li>
 <li>レビューで判明した不満原因を施設ルールへ戻し、再発防止と次の予約検討者への信頼回復につなげる</li>
-<li>判断理由を監査ログとして残し、次回の運用ルールへ反映</li>
+<li>なぜその対応をしたかを記録し、次回の対応ルールへ反映</li>
 </ul>
 </section>
 </main>
-<footer>GuestOps AI｜ワイズエンタープライズコーポレーション<br><span class="small">OTA機能を置き換えるのではなく、各OTAの標準機能では自動化しきれない確認作業や定型外対応、責任者確認、施設ごとのルール対応と、低評価レビュー後の信頼回復・再発防止を補完する設計です。</span></footer>
+<footer>GuestOps AI｜ワイズエンタープライズコーポレーション<br><span class="small">予約サイトにある便利な機能はそのまま使い、そこでは自動化しにくい確認・判断・レビュー返信を補います。</span></footer>
 
 <script>
 function diagnose(){
  const xs=[...document.querySelectorAll('input:checked')].map(x=>x.value);
  const r=document.getElementById('result');
- if(!xs.length){r.innerHTML='<strong>現状：</strong>上記の残作業は選択されていません。OTA標準機能だけで十分自動化できている可能性があります。無理にGuestOps AI OSを追加する必要はありません。';return}
+ if(!xs.length){r.innerHTML='<strong>診断結果：</strong>大きな手作業は残っていない可能性があります。無理に新しい仕組みを追加する必要はありません。';return}
  let priority=[];
  if(xs.includes('返金補償の承認往復')||xs.includes('例外質問の判断')||xs.includes('送信前承認')) priority.push('判断ルールAI：回答可能／責任者確認／緊急停止を自動分類');
- if(xs.includes('跨OTA受信箱')||xs.includes('テンプレートの多重管理')) priority.push('PMS連携：複数OTAの予約・メッセージ・施設知識を統合');
+ if(xs.includes('予約サイト別の確認')||xs.includes('テンプレートの多重管理')) priority.push('予約・メッセージの一元化：複数の予約サイトをまとめて確認できるようにする');
  if(xs.includes('予約条件に応じた文面分岐')) priority.push('予約文脈AI：施設・人数・到着時刻・予約状態に応じて内容を分岐');
  if(xs.includes('本人確認後のアクセス案内')) priority.push('状態連動：本人確認完了後だけ鍵・チェックイン案内を送信');
  if(xs.includes('価格運用')) priority.push('価格ルールエンジン：最低/上限・曜日・稼働率・直前日数で変更');
  if(xs.includes('低評価レビュー返信')||xs.includes('低評価による予約機会損失')) priority.push('レビュー返信AI：低評価内容を分類し、事実確認・謝意・改善策・再発防止・安心材料まで含む公開返信を作成');
  if(xs.includes('低評価による予約機会損失')) priority.push('レビュー改善ループ：低評価原因を運営ルールへ戻し、同じ不満の再発防止と次の予約検討者への信頼回復につなげる');
  if(xs.includes('判断履歴の属人化')) priority.push('運用ナレッジ：過去の判断理由を施設ルールとして蓄積');
- if(xs.includes('Booking.com構造化リクエスト')) priority.push('OTA別処理ルール：API処理可能案件とExtranet等での処理案件を振分け');
- r.innerHTML='<strong>GuestOps AI OSで優先すべき自動化：</strong><br><br>'+priority.map((x,i)=>(i+1)+'. '+x).join('<br>')+
+ if(xs.includes('予約サイトごとの特別対応')) priority.push('予約サイトごとの処理整理：自動で進められる内容と、人が確認する内容を分ける');
+ r.innerHTML='<strong>優先して減らせる仕事：</strong><br><br>'+priority.map((x,i)=>(i+1)+'. '+x).join('<br>')+
  '<br><br><strong>選択した残作業：</strong><br>'+xs.join(' / ')+
  '<br><br><a href="mailto:minpaku.ai.kit@gmail.com?subject=GuestOps%20AI%20OS%E8%87%AA%E5%8B%95%E5%8C%96%E7%9B%B8%E8%AB%87">この診断内容で自動化相談を送る</a>';
 }
