@@ -80,6 +80,11 @@ h1{line-height:1.35}ul{padding-left:22px}
 
 <button class="button" onclick="diagnose()">診断する</button>
 <div id="result" class="result">選択後に診断結果を表示します。</div>
+<div id="diagnosisActions" style="margin-top:14px">
+  <button class="button" type="button" onclick="copyDiagnosis()">診断結果をコピー</button>
+  <button class="button" type="button" onclick="saveDiagnosis()">この端末に保存</button>
+  <div id="saveNote" class="small" style="margin-top:10px"></div>
+</div>
 </section>
 
 <section class="card">
@@ -125,10 +130,15 @@ function diagnose(){
 
 function getDiagnosisText(){
  const r=document.getElementById('result');
- return r ? r.innerText.replace('診断結果をコピー この端末に保存','').trim() : '';
+ return r ? r.innerText.trim() : '';
 }
 async function copyDiagnosis(){
  const t=getDiagnosisText();
+ const n=document.getElementById('saveNote');
+ if(!t || t==='選択後に診断結果を表示します。'){
+   if(n) n.textContent='先に項目を選んで「診断する」を押してください。';
+   return;
+ }
  try{
    await navigator.clipboard.writeText(t);
    const n=document.getElementById('saveNote'); if(n) n.textContent='診断結果をコピーしました。チャット・問い合わせフォーム等へそのまま貼り付けできます。';
@@ -138,9 +148,14 @@ async function copyDiagnosis(){
 }
 function saveDiagnosis(){
  const t=getDiagnosisText();
+ const n=document.getElementById('saveNote');
+ if(!t || t==='選択後に診断結果を表示します。'){
+   if(n) n.textContent='先に項目を選んで「診断する」を押してください。';
+   return;
+ }
  localStorage.setItem('guestops_diagnosis',t);
  localStorage.setItem('guestops_diagnosis_saved_at',new Date().toISOString());
- const n=document.getElementById('saveNote'); if(n) n.textContent='この端末のブラウザに診断結果を保存しました。';
+ if(n) n.textContent='この端末のブラウザに診断結果を保存しました。';
 }
 </script>
 </body></html>
