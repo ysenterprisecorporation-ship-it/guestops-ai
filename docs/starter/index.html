@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="GuestOps AI Starter無料体験。施設情報を入力すると、宿泊施設専用のAI返信プロンプトをブラウザ上で生成できます。">
+<title>GuestOps AI Starter｜無料体験</title>
+<style>
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#172638;background:#f6f9fc;line-height:1.7}
+header,main,footer{max-width:980px;margin:auto;padding:22px}
+header{display:flex;justify-content:space-between;align-items:center;gap:16px}
+a{color:#146a9d}.hero{background:linear-gradient(135deg,#0d5c96,#103653);color:#fff;padding:44px 28px;border-radius:18px}
+h1{font-size:clamp(30px,5vw,46px);line-height:1.3;margin:.2em 0}.lead{font-size:18px}
+.card{background:#fff;border-radius:16px;padding:22px;margin:20px 0;box-shadow:0 4px 18px #142d4314}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.field{display:flex;flex-direction:column;gap:6px}
+label{font-weight:700}input,textarea,select{font:inherit;padding:10px;border:1px solid #b8c8d6;border-radius:8px;background:#fff}
+textarea{min-height:86px;resize:vertical}.wide{grid-column:1/-1}
+button,.button{display:inline-block;border:0;border-radius:9px;padding:12px 18px;font-weight:800;cursor:pointer;text-decoration:none}
+.primary{background:#0d5c96;color:#fff}.secondary{background:#e7f2ff;color:#0d5c96}.accent{background:#ffedd8;color:#8a4300}
+.notice{background:#eef6fd;border-left:5px solid #2f80d9;padding:14px 16px;border-radius:8px}
+.result{white-space:pre-wrap;background:#0f1720;color:#eaf4ff;padding:18px;border-radius:12px;max-height:560px;overflow:auto}
+.badge{display:inline-block;background:#dff4e5;color:#155d2f;padding:5px 10px;border-radius:999px;font-weight:700}
+.price{font-size:30px;font-weight:900}.small{font-size:14px;color:#5c6d7d}
+ul{padding-left:22px}@media(max-width:720px){.grid{grid-template-columns:1fr}.wide{grid-column:auto}header{display:block}}
+</style>
+</head>
+<body>
+<header>
+<strong>GuestOps AI Starter</strong>
+<nav><a href="../">GuestOps AI本体</a>　<a href="#generator">無料体験</a>　<a href="#starter">9,800円版</a></nav>
+</header>
+<main>
+<section class="hero">
+<span class="badge">14日無料体験</span>
+<h1>自施設専用のAI返信プロンプトを<br>3分で作る</h1>
+<p class="lead">施設情報・ハウスルール・判断基準を入力すると、ChatGPT・Claude・Gemini等でそのまま使える「施設専用AIプロンプト」をブラウザ内で生成します。</p>
+<p>入力内容はこのページから外部へ送信しません。ブラウザ上だけで生成します。</p>
+</section>
+
+<section class="card">
+<h2>無料版で分かること</h2>
+<ul>
+<li>施設情報をAIへ正しく渡すと、返信のばらつきがどこまで減るか</li>
+<li>「現場で回答してよい質問」と「責任者確認が必要な質問」を分ける効果</li>
+<li>手動コピー運用から、自動返信・予約連動へ移行した場合の自動化余地</li>
+</ul>
+<div class="notice"><strong>無料版は手動運用です。</strong> OTAからのメッセージ取得・自動送信・予約連動・価格変更・本人確認は行いません。これらは月額版GuestOps AI OSの対象です。</div>
+</section>
+
+<section id="generator" class="card">
+<h2>施設専用AIプロンプト生成</h2>
+<div class="grid">
+<div class="field"><label>施設名</label><input id="facility" placeholder="例：Tokyo Designer House"></div>
+<div class="field"><label>所在地・最寄駅</label><input id="location" placeholder="例：東京都江戸川区／葛西駅徒歩8分"></div>
+<div class="field"><label>最大宿泊人数</label><input id="capacity" placeholder="例：9名"></div>
+<div class="field"><label>チェックイン／アウト</label><input id="checktime" placeholder="例：15:00 / 10:00"></div>
+<div class="field wide"><label>アクセス・到着案内</label><textarea id="access" placeholder="駅からの道順、空港からの推奨経路など"></textarea></div>
+<div class="field"><label>Wi-Fi</label><textarea id="wifi" placeholder="SSID、案内方法など"></textarea></div>
+<div class="field"><label>ゴミ</label><textarea id="garbage" placeholder="分別、置き場所、回収ルール"></textarea></div>
+<div class="field"><label>騒音ルール</label><textarea id="noise" placeholder="静粛時間、近隣配慮"></textarea></div>
+<div class="field"><label>喫煙・ペット</label><textarea id="smoking" placeholder="禁止事項、例外"></textarea></div>
+<div class="field wide"><label>設備・アメニティ</label><textarea id="amenities" placeholder="ベッド、キッチン、洗濯機、駐車、アメニティ等"></textarea></div>
+<div class="field wide"><label>返金・補償の判断基準</label><textarea id="refund" placeholder="例：全額返金は責任者承認。軽微な不足は再提供を優先。金銭補償は自動判断しない。"></textarea></div>
+<div class="field wide"><label>緊急時ルール</label><textarea id="emergency" placeholder="火災、漏水、鍵、設備故障、警察・救急等。責任者へ上げる条件を記入。"></textarea></div>
+<div class="field wide"><label>その他の施設固有ルール</label><textarea id="other" placeholder="子連れ、追加人数、荷物預かり、チェックアウト延長等"></textarea></div>
+</div>
+<p>
+<button class="primary" onclick="generatePrompt()">施設専用プロンプトを生成</button>
+<button class="secondary" onclick="copyPrompt()">生成結果をコピー</button>
+<button class="secondary" onclick="downloadPrompt()">テキスト保存</button>
+</p>
+<div id="result" class="result">ここに生成結果が表示されます。</div>
+</section>
+
+<section id="starter" class="card">
+<h2>① GuestOps Starter Kit</h2>
+<p class="price">9,800円 <span class="small">買い切り</span></p>
+<p>無料版で効果を確認した事業者向けに、施設運用ルールを「使い続けられる形」まで整理する有料版です。</p>
+<div class="grid">
+<div>
+<h3>納品内容</h3>
+<ul>
+<li>施設情報設定シート</li>
+<li>20場面の返信判断テンプレート</li>
+<li>施設専用マスタープロンプト</li>
+<li>責任者確認・対応停止条件</li>
+<li>ChatGPT / Claude / Gemini利用手順</li>
+<li>②移行用の自動化要件整理シート</li>
+</ul>
+</div>
+<div>
+<h3>②へ移行する場合</h3>
+<p><strong>購入後30日以内にGuestOps AI OSへ移行した場合、Starter Kit代9,800円を初月利用料へ充当する設計を予定しています。</strong></p>
+<p class="small">月額版の正式料金・適用条件は現在最終調整中です。確定までは個別案内を優先します。</p>
+</div>
+</div>
+<p><a class="button accent" href="mailto:minpaku.ai.kit@gmail.com?subject=GuestOps%20Starter%20Kit%E7%94%B3%E8%BE%BC">Starter Kitを問い合わせる</a></p>
+</section>
+
+<section class="card">
+<h2>月額版にすると何が自動化されるか</h2>
+<ul>
+<li>予約・ゲスト情報をPMSから取得</li>
+<li>OTAメッセージを予約文脈と施設情報で判断</li>
+<li>通常質問は自動返信、高リスク案件のみ人間確認</li>
+<li>到着前・当日・チェックアウト前の予約連動メッセージ</li>
+<li>価格ルールに基づく料金更新</li>
+<li>本人確認完了後のチェックイン案内送信</li>
+<li>判断・返信・価格変更の監査ログ</li>
+</ul>
+<p><a class="button primary" href="../#pricing">GuestOps AIの詳細を見る</a></p>
+</section>
+</main>
+<footer>運営：ワイズエンタープライズコーポレーション<br>無料版はプロンプト生成体験です。OTA/PMSへの接続や自動送信は行いません。</footer>
+
+<script>
+function v(id){return document.getElementById(id).value.trim()||"未設定"}
+function generatePrompt(){
+const p=`あなたは「${v("facility")}」専用の宿泊ゲスト対応AIです。
+以下の施設情報と運営ルールだけを根拠に回答してください。情報が不足している場合は推測せず、確認が必要であることを伝えてください。
+
+【施設基本情報】
+施設名：${v("facility")}
+所在地・最寄駅：${v("location")}
+最大宿泊人数：${v("capacity")}
+チェックイン／アウト：${v("checktime")}
+
+【アクセス】
+${v("access")}
+
+【Wi-Fi】
+${v("wifi")}
+
+【ゴミ】
+${v("garbage")}
+
+【騒音】
+${v("noise")}
+
+【喫煙・ペット】
+${v("smoking")}
+
+【設備・アメニティ】
+${v("amenities")}
+
+【返金・補償ルール】
+${v("refund")}
+
+【緊急時ルール】
+${v("emergency")}
+
+【その他の施設固有ルール】
+${v("other")}
+
+【回答ルール】
+1. 宿泊者へそのまま送れる、簡潔で丁寧な文章を作る。
+2. 施設情報にない内容を推測しない。
+3. 金銭補償・返金・キャンセル例外・重大クレーム・安全事故・警察/救急案件は、明示的な許可ルールがない限り自動確定せず「責任者確認」とする。
+4. 通常FAQ（アクセス、Wi-Fi、設備、ゴミ、チェックイン方法等）は、登録情報に根拠があれば回答する。
+5. 返信の前に内部で「回答可能／責任者確認／緊急停止」の3区分を判定する。
+6. 出力は次の形式にする。
+
+【判定】回答可能 / 責任者確認 / 緊急停止
+【ゲスト返信案】
+（そのまま送れる文章）
+【内部メモ】
+（判断根拠を1〜2行）
+
+最初のゲストメッセージを入力してください。`;
+document.getElementById("result").textContent=p;
+}
+async function copyPrompt(){
+const t=document.getElementById("result").textContent;
+try{await navigator.clipboard.writeText(t);alert("プロンプトをコピーしました")}
+catch(e){prompt("コピーしてください",t)}
+}
+function downloadPrompt(){
+const t=document.getElementById("result").textContent;
+const blob=new Blob([t],{type:"text/plain;charset=utf-8"});
+const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="GuestOps_施設専用プロンプト.txt";a.click();URL.revokeObjectURL(a.href);
+}
+</script>
+</body>
+</html>
