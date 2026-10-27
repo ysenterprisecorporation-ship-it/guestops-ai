@@ -12,6 +12,7 @@ main,header,footer{max-width:960px;margin:auto;padding:22px}
 .card{background:#fff;padding:22px;border-radius:14px;margin:18px 0;box-shadow:0 4px 18px #142d4314}
 label.check{display:block;margin:12px 0;padding:12px;background:#f8fbfe;border-radius:10px}
 .button{display:inline-block;background:#0d5c96;color:#fff;padding:12px 18px;border:0;border-radius:8px;font-weight:800;cursor:pointer;text-decoration:none}
+.copybtn{display:inline-block;margin-top:12px;background:#17365D;color:#fff;padding:11px 16px;border:0;border-radius:8px;font-weight:800;cursor:pointer}
 .result{background:#eef6fd;padding:18px;border-radius:12px;margin-top:18px}
 .small{font-size:14px;color:#5c6d7d}.tag{display:inline-block;background:#e7f2ff;color:#0d5c96;border-radius:999px;padding:3px 9px;font-size:13px;font-weight:700}
 h1{line-height:1.35}ul{padding-left:22px}
@@ -114,7 +115,7 @@ function diagnose(){
  if(xs.includes('予約サイトごとの特別対応')) priority.push('予約サイトごとの処理整理：自動で進められる内容と、人が確認する内容を分ける');
  r.innerHTML='<strong>優先して減らせる仕事：</strong><br><br>'+priority.map((x,i)=>(i+1)+'. '+x).join('<br>')+
  '<br><br><strong>選択した残作業：</strong><br>'+xs.join(' / ')+
- '<br><br><a href="mailto:minpaku.ai.kit@gmail.com?subject=GuestOps%20AI%20OS%E8%87%AA%E5%8B%95%E5%8C%96%E7%9B%B8%E8%AB%87">この診断内容で自動化相談を送る</a>';
+ '<br><br>';
 }
 </script>
 </body></html>
