@@ -78,6 +78,14 @@ h1{line-height:1.35}ul{padding-left:22px}
 <strong>返金・補償・清掃不備・設備故障などで、担当者→責任者→オーナーの確認往復が多い</strong><br>
 <span class="small">文章作成ではなく、誰が決めてよいかの境界がボトルネックになっている。</span></label>
 
+<label class="check"><input type="checkbox" value="低評価レビュー返信">
+<strong>低評価レビューに対して、予約検討者にも効果的な公開返信ができていない</strong><br>
+<span class="small">謝罪だけ、反論だけ、事実説明だけで終わり、改善内容・再発防止・今後の安心材料まで伝えられていない。</span></label>
+
+<label class="check"><input type="checkbox" value="低評価による予約機会損失">
+<strong>低評価レビューへの返信が弱く、閲覧者の不安を解消できず予約機会を失っていると感じる</strong><br>
+<span class="small">低評価そのものは消せなくても、原因・対応・改善策を整理した返信で、次の予約検討者が判断できる情報を残したい。</span></label>
+
 <label class="check"><input type="checkbox" value="判断履歴の属人化">
 <strong>過去にどう判断したかが、OTAのメッセージ履歴や担当者の記憶に散らばっている</strong><br>
 <span class="small">類似案件でも毎回ゼロから判断している。</span></label>
@@ -94,11 +102,13 @@ h1{line-height:1.35}ul{padding-left:22px}
 <li>施設情報・予約条件・過去ルールを参照して、定型外質問を分類</li>
 <li>通常案件は自動処理、高リスク案件だけ人間承認</li>
 <li>本人確認完了など「状態」を条件にチェックイン情報を送信</li>
+<li>低評価レビューの内容を分類し、事実確認・謝意・改善策・再発防止まで含む公開返信を支援</li>
+<li>レビューで判明した不満原因を施設ルールへ戻し、再発防止と次の予約検討者への信頼回復につなげる</li>
 <li>判断理由を監査ログとして残し、次回の運用ルールへ反映</li>
 </ul>
 </section>
 </main>
-<footer>GuestOps AI｜ワイズエンタープライズコーポレーション<br><span class="small">OTA機能を置き換えるのではなく、各OTAの標準機能で残る運用判断を補完する設計です。</span></footer>
+<footer>GuestOps AI｜ワイズエンタープライズコーポレーション<br><span class="small">OTA機能を置き換えるのではなく、各OTAの標準機能で残る運用判断と、低評価レビュー後の信頼回復・再発防止を補完する設計です。</span></footer>
 
 <script>
 function diagnose(){
@@ -111,6 +121,8 @@ function diagnose(){
  if(xs.includes('予約条件に応じた文面分岐')) priority.push('予約文脈AI：施設・人数・到着時刻・予約状態に応じて内容を分岐');
  if(xs.includes('本人確認後のアクセス案内')) priority.push('状態連動：本人確認完了後だけ鍵・チェックイン案内を送信');
  if(xs.includes('価格運用')) priority.push('価格ルールエンジン：最低/上限・曜日・稼働率・直前日数で変更');
+ if(xs.includes('低評価レビュー返信')||xs.includes('低評価による予約機会損失')) priority.push('レビュー返信AI：低評価内容を分類し、事実確認・謝意・改善策・再発防止・安心材料まで含む公開返信を作成');
+ if(xs.includes('低評価による予約機会損失')) priority.push('レビュー改善ループ：低評価原因を運営ルールへ戻し、同じ不満の再発防止と次の予約検討者への信頼回復につなげる');
  if(xs.includes('判断履歴の属人化')) priority.push('運用ナレッジ：過去の判断理由を施設ルールとして蓄積');
  if(xs.includes('Booking.com構造化リクエスト')) priority.push('OTA別処理ルール：API処理可能案件とExtranet等での処理案件を振分け');
  r.innerHTML='<strong>GuestOps AI OSで優先すべき自動化：</strong><br><br>'+priority.map((x,i)=>(i+1)+'. '+x).join('<br>')+
