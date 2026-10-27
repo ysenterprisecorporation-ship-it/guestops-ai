@@ -83,13 +83,13 @@ h1{line-height:1.35}ul{padding-left:22px}
 <span class="small">類似案件でも毎回ゼロから判断している。</span></label>
 
 <button class="button" onclick="diagnose()">診断する</button>
-<div id="result" class="result">選択後に診断結果を表示します。</div>
-<div id="diagnosisActions" style="margin-top:14px">
+<div id="result" class="result" style="display:none"></div>
+<div id="nextStep" class="next-step"></div>
+<div id="diagnosisActions" style="display:none;margin-top:14px">
   <button class="button secondary" type="button" onclick="copyDiagnosis()">結果をコピー</button>
   <button class="button secondary" type="button" onclick="saveDiagnosis()">結果を保存</button>
   <div id="saveNote" class="small" style="margin-top:10px"></div>
 </div>
-<div id="nextStep" class="next-step"></div>
 </section>
 
 <section class="card">
@@ -112,32 +112,55 @@ h1{line-height:1.35}ul{padding-left:22px}
 function diagnose(){
  const xs=[...document.querySelectorAll('input:checked')].map(x=>x.value);
  const r=document.getElementById('result');
- if(!xs.length){
- r.innerHTML='<strong>診断結果：</strong>大きな手作業は残っていない可能性があります。無理に新しい仕組みを追加する必要はありません。';
- const n=document.getElementById('nextStep'); if(n) n.style.display='none';
- return
-}
- let priority=[];
- if(xs.includes('返金補償の承認往復')||xs.includes('例外質問の判断')||xs.includes('送信前承認')) priority.push('判断の振り分け：そのまま回答できる内容／責任者確認が必要な内容／すぐ対応を止める内容を自動で分ける');
- if(xs.includes('予約サイト別の確認')||xs.includes('テンプレートの多重管理')) priority.push('予約・メッセージの一元化：複数の予約サイトをまとめて確認できるようにする');
- if(xs.includes('予約条件に応じた文面分岐')) priority.push('予約内容に合わせた返信：施設・人数・到着時刻などに応じて案内内容を変える');
- if(xs.includes('本人確認後のアクセス案内')) priority.push('本人確認後の自動案内：確認が終わった人だけに鍵・入室方法を送る');
- if(xs.includes('価格運用')) priority.push('料金調整の自動化：最低・上限価格、曜日、空室状況、直前予約などに応じて料金を調整');
- if(xs.includes('低評価レビュー返信')||xs.includes('低評価による予約機会損失')) priority.push('低評価レビュー返信：事実確認・謝意・改善策・再発防止・安心材料まで含む返信案を作る');
- if(xs.includes('低評価による予約機会損失')) priority.push('レビュー改善：低評価の原因を運営ルールへ反映し、同じ不満の再発を防ぐ');
- if(xs.includes('判断履歴の属人化')) priority.push('過去対応の共有：以前の判断理由を残し、次回の対応に使えるようにする');
- if(xs.includes('予約サイトごとの特別対応')) priority.push('予約サイトごとの処理整理：自動で進められる内容と、人が確認する内容を分ける');
- r.innerHTML='<strong>優先して減らせる仕事：</strong><br><br>'+priority.map((x,i)=>(i+1)+'. '+x).join('<br>')+
- '<br><br><strong>選択した項目：</strong><br>'+xs.join(' / ');
-
  const n=document.getElementById('nextStep');
- const heavy = xs.some(x=>['予約サイト別の確認','テンプレートの多重管理','予約条件に応じた文面分岐','本人確認後のアクセス案内','価格運用','返金補償の承認往復','予約サイトごとの特別対応'].includes(x));
- if(heavy || xs.length>=3){
-   n.innerHTML='<h3>次の一手：自動化まで進める</h3><p>複数の確認・判断作業が残っています。手作業を減らすなら、GuestOps AIの自動化プランが向いています。</p><a class="button" href="../../#pricing">GuestOps AIの導入プランを見る</a><a class="button secondary" href="../order/">まず9,800円Starterから試す</a>';
- }else{
-   n.innerHTML='<h3>次の一手：まず1施設で整える</h3><p>課題が限定的なので、まずは9,800円Starterで施設ルールと返信基準を整理するのが適しています。</p><a class="button" href="../order/">9,800円Starterを見る</a><a class="button secondary" href="../../#pricing">自動化プランも見る</a>';
+ const a=document.getElementById('diagnosisActions');
+ const note=document.getElementById('saveNote');
+
+ if(note) note.textContent='';
+
+ if(!xs.length){
+   r.style.display='block';
+   r.innerHTML='<strong>1｜診断結果</strong><br><br>該当する項目が選ばれていません。気になる項目を1つ以上選んで、もう一度診断してください。';
+   n.style.display='none';
+   a.style.display='none';
+   r.scrollIntoView({behavior:'smooth',block:'start'});
+   return;
  }
+
+ let priority=[];
+ if(xs.includes('返金補償の承認往復')||xs.includes('例外質問の判断')||xs.includes('送信前承認')) priority.push('そのまま回答できる内容／責任者確認が必要な内容／すぐ対応を止める内容を自動で分ける');
+ if(xs.includes('予約サイト別の確認')||xs.includes('テンプレートの多重管理')) priority.push('複数の予約サイトの予約・メッセージをまとめて確認できるようにする');
+ if(xs.includes('予約条件に応じた文面分岐')) priority.push('施設・人数・到着時刻など、予約内容に合わせて案内を変える');
+ if(xs.includes('本人確認後のアクセス案内')) priority.push('本人確認が終わった人だけに鍵・入室方法を送る');
+ if(xs.includes('価格運用')) priority.push('最低・上限価格、曜日、空室状況、直前予約などに応じて料金を調整する');
+ if(xs.includes('低評価レビュー返信')||xs.includes('低評価による予約機会損失')) priority.push('低評価レビューに、事実・謝意・改善策・再発防止まで含む返信案を作る');
+ if(xs.includes('低評価による予約機会損失')) priority.push('低評価の原因を運営ルールへ反映し、同じ不満の再発を防ぐ');
+ if(xs.includes('判断履歴の属人化')) priority.push('以前の判断理由を残し、次回の対応に使えるようにする');
+ if(xs.includes('予約サイトごとの特別対応')) priority.push('自動で進められる内容と、人が確認する内容を分ける');
+
+ r.style.display='block';
+ r.innerHTML='<strong>1｜診断結果</strong><br><br><strong>優先して減らせる仕事</strong><br><br>'+
+   priority.map((x,i)=>(i+1)+'. '+x).join('<br>')+
+   '<br><br><span class="small">選択した項目：'+xs.join(' / ')+'</span>';
+
+ const heavyKeys=['予約サイト別の確認','テンプレートの多重管理','予約条件に応じた文面分岐','本人確認後のアクセス案内','価格運用','返金補償の承認往復','予約サイトごとの特別対応'];
+ const heavy=xs.some(x=>heavyKeys.includes(x));
+
  n.style.display='block';
+ if(heavy || xs.length>=3){
+   n.innerHTML='<h3>2｜おすすめ判定：自動化まで進める</h3>'+
+     '<p>複数の確認・判断作業が残っています。個別の文章作成だけではなく、日々の運用そのものを減らす方が効果的です。</p>'+
+     '<p><a class="button" href="../../#pricing">3｜GuestOps AIの導入プランを見る</a> '+
+     '<a class="button secondary" href="../order/">まずStarterから試す</a></p>';
+ }else{
+   n.innerHTML='<h3>2｜おすすめ判定：まず1施設で整える</h3>'+
+     '<p>課題が限定的なので、まずは施設情報・返信基準・判断ルールを整えるところから始めるのが適しています。</p>'+
+     '<p><a class="button" href="../order/">3｜9,800円Starterを見る</a> '+
+     '<a class="button secondary" href="../../#pricing">自動化プランを見る</a></p>';
+ }
+
+ a.style.display='block';
+ r.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
 function getDiagnosisText(){
