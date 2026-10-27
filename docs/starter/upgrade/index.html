@@ -149,18 +149,27 @@ function diagnose(){
  n.style.display='block';
 
  if(heavy || xs.length>=3){
-   n.innerHTML='<h3>2｜おすすめ：GuestOps AIで運用そのものを減らす</h3>'+
-     '<p>複数の確認・判断作業が残っています。返信文を作るだけではなく、予約情報・施設ルール・過去の判断を使って、日々の確認作業そのものを減らすのが効果的です。</p>'+
-     '<p><a class="button" href="../../#pricing">3｜GuestOps AIの導入プランを見る</a></p>'+
-     '<p class="small">まず小さく試したい場合は、Starterで1施設のルール整理から始められます。</p>'+
-     '<p><a class="button secondary" href="../order/">Starterから始める</a></p>';
+   n.innerHTML=
+     '<h3>2｜おすすめの進め方</h3>'+
+     '<p><strong>今すぐ自動化まで進める価値が高い状態です。</strong></p>'+
+     '<p>GuestOps AI本体では、予約・メッセージ・判断・料金調整・本人確認後の案内まで、日々の手作業を減らす設計に進めます。</p>'+
+     '<p><a class="button" href="../../#pricing">3｜GuestOps AI本体を見る</a></p>'+
+     '<hr style="border:0;border-top:1px solid #e3d6b7;margin:20px 0">'+
+     '<p><strong>まず小さく試したい場合</strong></p>'+
+     '<p>9,800円Starterで、施設情報・返信基準・判断ルールを先に整えてから本体へ進めます。</p>'+
+     '<p><a class="button secondary" href="../order/">9,800円Starterを見る</a></p>';
  }else{
-   n.innerHTML='<h3>2｜おすすめ：GuestOps AIで今後の自動化につなげる</h3>'+
-     '<p>現在の課題は限定的でも、施設情報・返信基準・判断ルールをGuestOps AIにつながる形で整理しておくと、後から自動化へ移行しやすくなります。</p>'+
-     '<p><a class="button" href="../../#pricing">3｜GuestOps AIの導入プランを見る</a></p>'+
-     '<p class="small">すぐに本格導入しない場合は、Starterで1施設から始めることもできます。</p>'+
-     '<p><a class="button secondary" href="../order/">Starterから始める</a></p>';
+   n.innerHTML=
+     '<h3>2｜おすすめの進め方</h3>'+
+     '<p><strong>まずはStarterで運用ルールを整えるのが始めやすい状態です。</strong></p>'+
+     '<p>9,800円Starterで、施設情報・返信基準・判断ルールを整理します。</p>'+
+     '<p><a class="button" href="../order/">3｜9,800円Starterを見る</a></p>'+
+     '<hr style="border:0;border-top:1px solid #e3d6b7;margin:20px 0">'+
+     '<p><strong>その先に自動化したい場合</strong></p>'+
+     '<p>GuestOps AI本体では、複数の予約サイト確認、定型外対応、料金調整、本人確認後の案内など、Starterで整えたルールを使って日々の作業を減らします。</p>'+
+     '<p><a class="button secondary" href="../../#pricing">GuestOps AI本体も見る</a></p>';
  }
+
  a.style.display='block';
  r.scrollIntoView({behavior:'smooth',block:'start'});
 }
