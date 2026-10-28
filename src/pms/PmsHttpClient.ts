@@ -48,6 +48,7 @@ export function parseJson<T>(body: string): T {
 }
 
 export function require2xx(status: number, body: string) {
+  void body;
   if (status < 200 || status >= 300)
-    throw new Error(`PMS_HTTP_ERROR:${status}:${body.slice(0, 300)}`);
+    throw new Error(`PMS_HTTP_ERROR:${status}`);
 }
