@@ -6,7 +6,7 @@ test("read-only mail parser creates bounded proposals",()=>{
   let queried=false;
   const reader:MailReader={search:(_query,limit)=>{
     queried=true;assert.equal(limit,20);
-    return [{id:"id1",from:"bookings@booking.com",subject:"予約 1234567890",
+    return [{id:"id1",from:"bookings@booking.com",subject:"Booking.com - 新しい予約がありました！ (1234567890, 2026年12月1日火曜日)",
     body:"チェックイン：2026-12-01\nチェックアウト：2026-12-02\n宿泊人数：6"}];
   }};
   const report=inspectReservationMailbox(reader);
