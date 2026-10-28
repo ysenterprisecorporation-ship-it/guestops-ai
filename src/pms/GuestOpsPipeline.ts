@@ -97,7 +97,9 @@ export function planGuestOpsEvent(
   };
 }
 
-// Fingerprint is for idempotent *planning*, not an authentication mechanism.
+// Event type and booking ID alone are NOT unique enough for persistent deduplication.
+// Callers must use the verified provider event ID or a source-specific version.
 export function eventFingerprint(event: PmsWebhookEvent): string {
-  return [event.provider, event.eventType, event.bookingId ?? ""].join(":");
+  void event;
+  throw new Error("PMS_EVENT_ID_REQUIRED_FOR_DEDUPLICATION");
 }
