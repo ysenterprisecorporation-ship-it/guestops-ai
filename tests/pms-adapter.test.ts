@@ -75,3 +75,16 @@ test("Mock adapter is replaceable without changing caller contract", () => {
   assert.equal(adapter.provider, "mock");
   assert.equal(adapter.capabilities().webhooks, true);
 });
+
+test("Beds24 booking lookup rejects a different booking ID", () => {
+  const http = new FakeHttp();
+  http.responses.push({status:200,body:JSON.stringify([{id:99999,propertyId:364051}])});
+  const adapter = new Beds24Adapter({token:"test-token"},http);
+  assert.throws(() => adapter.getBooking("12345"),/PMS_BOOKING_ID_MISMATCH/);
+});
+test("Beds24 booking lookup rejects duplicate result IDs", () => {
+  const http = new FakeHttp();
+  http.responses.push({status:200,body:JSON.stringify([{id:12345,propertyId:364051},{id:12345,propertyId:364051}])});
+  const adapter = new Beds24Adapter({token:"test-token"},http);
+  assert.throws(() => adapter.getBooking("12345"),/PMS_BOOKING_DUPLICATE_RECORDS/);
+});
