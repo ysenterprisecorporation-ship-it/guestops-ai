@@ -44,3 +44,22 @@ export function beds24SetupInviteCode() {
  props.deleteProperty("GTOS_BEDS24_SETUP_ENABLED");
  return {setup:"SUCCESS",inviteCodeRemoved:true};
 }
+
+export function beds24ConnectionTest() {
+ requireReadOnly();
+ const http=new GasPmsHttpClient();
+ const token=new Beds24TokenManager(http,new GasBeds24TokenStore()).accessToken();
+ const response=http.request("GET","https://beds24.com/api/v2/bookings?limit=1",
+   {token,accept:"application/json"});
+ if(response.status<200 || response.status>=300)
+   throw new Error("BEDS24_LIVE_TEST_HTTP_"+response.status);
+ let parsed:unknown;
+ try { parsed=JSON.parse(response.body); }
+ catch { throw new Error("BEDS24_LIVE_TEST_INVALID_JSON"); }
+ if(!Array.isArray(parsed) && !(parsed && typeof parsed==="object" &&
+   Array.isArray((parsed as {data?:unknown}).data)))
+   throw new Error("BEDS24_LIVE_TEST_UNEXPECTED_RESPONSE");
+ return {connected:true,readOnly:true,responseSchema:"BOOKINGS_ARRAY",
+   // No guest names, booking IDs, OTA payloads, or tokens returned.
+   accessTokenRefreshValidated:true};
+}
