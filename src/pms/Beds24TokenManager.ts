@@ -8,6 +8,20 @@ type AuthReply = { token?: unknown; refreshToken?: unknown; expiresIn?: unknown 
 export class Beds24TokenManager {
   constructor(private readonly http: PmsHttpClient, private readonly store: Beds24TokenStore,
     private readonly baseUrl = "https://api.beds24.com/v2") {}
+  exchangeInviteCode(inviteCode: string, now = Date.now()): void {
+    if (!inviteCode || inviteCode.length > 512) throw new Error("BEDS24_INVITE_CODE_INVALID");
+    const response = this.http.request("GET", this.baseUrl + "/authentication/setup",
+      {code:inviteCode,accept:"application/json"});
+    require2xx(response.status,response.body);
+    const data = parseJson<AuthReply>(response.body);
+    if(typeof data.token !== "string" || !data.token ||
+      typeof data.refreshToken !== "string" || !data.refreshToken ||
+      typeof data.expiresIn !== "number" || data.expiresIn < 60)
+      throw new Error("BEDS24_SETUP_RESPONSE_INVALID");
+    this.store.set("BEDS24_REFRESH_TOKEN",data.refreshToken);
+    this.store.set("BEDS24_ACCESS_TOKEN",data.token);
+    this.store.set("BEDS24_ACCESS_EXPIRES_AT",String(now + data.expiresIn * 1000));
+  }
   accessToken(now = Date.now()): string {
     const token = this.store.get("BEDS24_ACCESS_TOKEN");
     const expires = Number(this.store.get("BEDS24_ACCESS_EXPIRES_AT"));
