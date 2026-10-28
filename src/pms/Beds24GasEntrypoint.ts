@@ -1,1 +1,1 @@
-export { beds24ReadOnlyStatus, beds24ReadOnlyBooking } from "./Beds24ReadOnlyRuntime";
+export { beds24ReadOnlyStatus, beds24ReadOnlyBooking, beds24SetupInviteCode } from "./Beds24ReadOnlyRuntime";
