@@ -15,6 +15,7 @@ await writeFile(
   [
     "function beds24ReadOnlyStatus() { return Beds24Test.beds24ReadOnlyStatus(); }",
     "function beds24SetupInviteCode() { return Beds24Test.beds24SetupInviteCode(); }",
+    "function beds24ConnectionTest() { return Beds24Test.beds24ConnectionTest(); }",
     "function beds24ReadOnlyBooking(id) { return Beds24Test.beds24ReadOnlyBooking(id); }",
     "",
   ].join("\n"),
