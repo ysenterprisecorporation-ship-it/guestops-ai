@@ -100,33 +100,14 @@ export class Beds24Adapter implements PmsAdapter {
   }
 
   sendMessage(bookingId: string, body: string): void {
-    if (!body.trim()) throw new Error("PMS_MESSAGE_EMPTY");\n    throw new Error("PMS_LIVE_MESSAGE_WRITE_DISABLED_UNTIL_CONTRACT_VERIFIED");\n    /*
-    const response = this.http.request(
-      "POST",
-      `${this.baseUrl}/bookings/messages`,
-      this.headers(),
-      JSON.stringify([{ bookingId, message: body }]),
-    );
-    require2xx(response.status, response.body);
+    void bookingId;
+    void body;
+    throw new Error("PMS_MESSAGE_WRITE_DISABLED_UNVERIFIED_CONTRACT");
   }
 
   updateDailyPrices(updates: DailyPriceUpdate[]): void {
-    if (updates.length === 0) return;\n    throw new Error("PMS_LIVE_PRICE_WRITE_DISABLED_UNTIL_FLOOR_AND_CONTRACT_VERIFIED");\n    /*
-    const body = updates.map((item) => ({
-      propertyId: item.propertyId,
-      roomId: item.roomId,
-      date: item.date,
-      price: item.price,
-      ...(item.minStay === undefined ? {} : { minStay: item.minStay }),
-      ...(item.available === undefined ? {} : { available: item.available }),
-    }));
-    const response = this.http.request(
-      "POST",
-      `${this.baseUrl}/inventory/calendar`,
-      this.headers(),
-      JSON.stringify(body),
-    );
-    require2xx(response.status, response.body);
+    void updates;
+    throw new Error("PMS_PRICE_WRITE_DISABLED_UNVERIFIED_CONTRACT_AND_FLOOR");
   }
 
   normalizeWebhook(payload: unknown): PmsWebhookEvent {
