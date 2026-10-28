@@ -87,7 +87,10 @@ export class Beds24Adapter implements PmsAdapter {
       throw new Error("PMS_BOOKING_RESPONSE_UNVERIFIED");
     const rows = asArray(parsed);
     if (rows.length === 0) return null;
-    return this.mapBooking(rows[0]);
+    const matching = rows.map(row => this.mapBooking(row)).filter(booking => booking.id === id);
+    if (matching.length === 0) throw new Error("PMS_BOOKING_ID_MISMATCH");
+    if (matching.length > 1) throw new Error("PMS_BOOKING_DUPLICATE_RECORDS");
+    return matching[0];
   }
 
   getMessages(bookingId: string): PmsMessage[] {
