@@ -14,6 +14,7 @@ await writeFile(
   "dist-gtos/Entrypoints.js",
   [
     "function beds24ReadOnlyStatus() { return Beds24Test.beds24ReadOnlyStatus(); }",
+    "function beds24SetupInviteCode() { return Beds24Test.beds24SetupInviteCode(); }",
     "function beds24ReadOnlyBooking(id) { return Beds24Test.beds24ReadOnlyBooking(id); }",
     "",
   ].join("\n"),
