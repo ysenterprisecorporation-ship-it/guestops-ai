@@ -47,7 +47,7 @@ export function transitionBooking(previous: BookingRecord | undefined, notice: B
   if (notice.status === "CANCELLED")
     return { action: "CANCEL_CLEANING_REVIEW", next, reason: "CANCELLATION_NEEDS_RECONCILIATION" };
   if (!validDate(next.departure))
-    return { action: "MANUAL_REVIEW", next, reason: "DEPARTURE_UNVERIFIED" };
+    return { action: "MANUAL_REVIEW", next: previous ?? { ...next, status: "REVIEW" }, reason: "DEPARTURE_UNVERIFIED" };
   return { action: !previous || previous.status !== "CONFIRMED" ?
     "CREATE_CLEANING_DRAFT" : previous.departure !== next.departure ?
       "UPDATE_CLEANING_DRAFT" : "NO_CHANGE",
