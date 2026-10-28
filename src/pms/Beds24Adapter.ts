@@ -142,7 +142,7 @@ export class Beds24Adapter implements PmsAdapter {
       eventType = "booking.cancelled";
     else if (action.includes("new") || action.includes("create"))
       eventType = "booking.created";
-    else if (bookingId) eventType = "booking.updated";
+    else if (action.includes("modify") || action.includes("update")) eventType = "booking.updated";
 
     return { provider: this.provider, eventType, bookingId, raw: payload };
   }
