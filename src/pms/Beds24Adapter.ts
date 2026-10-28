@@ -82,7 +82,10 @@ export class Beds24Adapter implements PmsAdapter {
       this.headers(),
     );
     require2xx(response.status, response.body);
-    const parsed = parseJson<unknown>(response.body);\n    if (!Array.isArray(parsed) && !Array.isArray(asObject(parsed).data))\n      throw new Error("PMS_BOOKING_RESPONSE_UNVERIFIED");\n    const rows = asArray(parsed);
+    const parsed = parseJson<unknown>(response.body);
+    if (!Array.isArray(parsed) && !Array.isArray(asObject(parsed).data))
+      throw new Error("PMS_BOOKING_RESPONSE_UNVERIFIED");
+    const rows = asArray(parsed);
     if (rows.length === 0) return null;
     return this.mapBooking(rows[0]);
   }
@@ -94,7 +97,10 @@ export class Beds24Adapter implements PmsAdapter {
       this.headers(),
     );
     require2xx(response.status, response.body);
-    const parsed = parseJson<unknown>(response.body);\n    if (!Array.isArray(parsed) && !Array.isArray(asObject(parsed).data))\n      throw new Error("PMS_MESSAGE_RESPONSE_UNVERIFIED");\n    return asArray(parsed).map((row, index) =>
+    const parsed = parseJson<unknown>(response.body);
+    if (!Array.isArray(parsed) && !Array.isArray(asObject(parsed).data))
+      throw new Error("PMS_MESSAGE_RESPONSE_UNVERIFIED");
+    return asArray(parsed).map((row, index) =>
       this.mapMessage(row, bookingId, index),
     );
   }
