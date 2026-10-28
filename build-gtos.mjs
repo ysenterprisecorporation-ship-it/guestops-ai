@@ -26,6 +26,7 @@ await writeFile("dist-gtos/appsscript.json", JSON.stringify({
   exceptionLogging: "STACKDRIVER",
   oauthScopes: [
     "https://www.googleapis.com/auth/script.external_request",
+    "https://www.googleapis.com/auth/script.storage",
   ],
 }, null, 2));
 
