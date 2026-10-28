@@ -38,7 +38,7 @@ test("does not auto-process cancellations or missing dates", () => {
   assert.equal(run(sample, {}).status, "IGNORED");
 });
 
-test("stable fingerprint independent of guest PII", () => {
-  assert.equal(eventFingerprint({provider:"beds24",eventType:"booking.updated",
-    bookingId:"B1",raw:{name:"sensitive"}}), "beds24:booking.updated:B1");
+test("rejects unsafe idempotency based only on booking ID", () => {
+  assert.throws(() => eventFingerprint({provider:"beds24",eventType:"booking.updated",
+    bookingId:"B1",raw:{name:"sensitive"}}), /EVENT_ID_REQUIRED/);
 });
