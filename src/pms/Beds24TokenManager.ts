@@ -7,7 +7,7 @@ export interface Beds24TokenStore {
 type AuthReply = { token?: unknown; refreshToken?: unknown; expiresIn?: unknown };
 export class Beds24TokenManager {
   constructor(private readonly http: PmsHttpClient, private readonly store: Beds24TokenStore,
-    private readonly baseUrl = "https://api.beds24.com/v2") {}
+    private readonly baseUrl = "https://beds24.com/api/v2") {}
   exchangeInviteCode(inviteCode: string, now = Date.now()): void {
     if (!inviteCode || inviteCode.length > 512) throw new Error("BEDS24_INVITE_CODE_INVALID");
     const response = this.http.request("GET", this.baseUrl + "/authentication/setup",
