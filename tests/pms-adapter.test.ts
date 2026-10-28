@@ -46,35 +46,20 @@ test("Beds24 getBooking normalizes booking data", () => {
   assert.equal(http.calls[0].headers?.token, "secret");
 });
 
-test("Beds24 sendMessage uses booking messages endpoint", () => {
+test("Beds24 message writes fail closed before verified live contract", () => {
   const http = new FakeHttp();
-  http.responses.push({ status: 200, body: "{}" });
   const adapter = new Beds24Adapter({ token: "secret" }, http);
-  adapter.sendMessage("B1", "Welcome");
-  assert.equal(http.calls[0].method, "POST");
-  assert.match(http.calls[0].url, /\/bookings\/messages$/);
-  assert.deepEqual(JSON.parse(http.calls[0].body ?? ""), [
-    { bookingId: "B1", message: "Welcome" },
-  ]);
+  assert.equal(adapter.capabilities().messagesWrite, false);
+  assert.throws(() => adapter.sendMessage("B1", "Welcome"), /WRITE_DISABLED/);
+  assert.equal(http.calls.length, 0);
 });
 
-test("Beds24 price update uses inventory calendar endpoint", () => {
+test("Beds24 price writes fail closed before floor and contract verification", () => {
   const http = new FakeHttp();
-  http.responses.push({ status: 200, body: "{}" });
   const adapter = new Beds24Adapter({ token: "secret" }, http);
-  adapter.updateDailyPrices([
-    {
-      propertyId: "P1",
-      roomId: "R1",
-      date: "2026-12-01",
-      price: 52800,
-      minStay: 2,
-    },
-  ]);
-  assert.match(http.calls[0].url, /\/inventory\/calendar$/);
-  const payload = JSON.parse(http.calls[0].body ?? "[]");
-  assert.equal(payload[0].price, 52800);
-  assert.equal(payload[0].minStay, 2);
+  assert.equal(adapter.capabilities().pricesWrite, false);
+  assert.throws(() => adapter.updateDailyPrices([{ propertyId: "P1", roomId: "R1", date: "2026-12-01", price: 52800 }]), /WRITE_DISABLED/);
+  assert.equal(http.calls.length, 0);
 });
 
 test("AirHost and Lodgify share the contract but fail closed until API is configured", () => {
