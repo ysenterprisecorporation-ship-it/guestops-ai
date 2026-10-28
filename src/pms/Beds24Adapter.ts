@@ -66,11 +66,11 @@ export class Beds24Adapter implements PmsAdapter {
   capabilities(): PmsCapabilities {
     return {
       reservationsRead: true,
-      reservationsWrite: true,
+      reservationsWrite: false,
       messagesRead: true,
-      messagesWrite: true,
-      pricesRead: true,
-      pricesWrite: true,
+      messagesWrite: false,
+      pricesRead: false,
+      pricesWrite: false,
       webhooks: true,
     };
   }
@@ -82,7 +82,7 @@ export class Beds24Adapter implements PmsAdapter {
       this.headers(),
     );
     require2xx(response.status, response.body);
-    const rows = asArray(parseJson<unknown>(response.body));
+    const parsed = parseJson<unknown>(response.body);\n    if (!Array.isArray(parsed) && !Array.isArray(asObject(parsed).data))\n      throw new Error("PMS_BOOKING_RESPONSE_UNVERIFIED");\n    const rows = asArray(parsed);
     if (rows.length === 0) return null;
     return this.mapBooking(rows[0]);
   }
@@ -94,13 +94,13 @@ export class Beds24Adapter implements PmsAdapter {
       this.headers(),
     );
     require2xx(response.status, response.body);
-    return asArray(parseJson<unknown>(response.body)).map((row, index) =>
+    const parsed = parseJson<unknown>(response.body);\n    if (!Array.isArray(parsed) && !Array.isArray(asObject(parsed).data))\n      throw new Error("PMS_MESSAGE_RESPONSE_UNVERIFIED");\n    return asArray(parsed).map((row, index) =>
       this.mapMessage(row, bookingId, index),
     );
   }
 
   sendMessage(bookingId: string, body: string): void {
-    if (!body.trim()) throw new Error("PMS_MESSAGE_EMPTY");
+    if (!body.trim()) throw new Error("PMS_MESSAGE_EMPTY");\n    throw new Error("PMS_LIVE_MESSAGE_WRITE_DISABLED_UNTIL_CONTRACT_VERIFIED");\n    /*
     const response = this.http.request(
       "POST",
       `${this.baseUrl}/bookings/messages`,
@@ -111,7 +111,7 @@ export class Beds24Adapter implements PmsAdapter {
   }
 
   updateDailyPrices(updates: DailyPriceUpdate[]): void {
-    if (updates.length === 0) return;
+    if (updates.length === 0) return;\n    throw new Error("PMS_LIVE_PRICE_WRITE_DISABLED_UNTIL_FLOOR_AND_CONTRACT_VERIFIED");\n    /*
     const body = updates.map((item) => ({
       propertyId: item.propertyId,
       roomId: item.roomId,
