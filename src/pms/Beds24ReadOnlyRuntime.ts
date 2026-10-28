@@ -32,3 +32,15 @@ export function beds24ReadOnlyBooking(bookingId: string) {
  return {found:true,bookingId:booking.id,propertyId:booking.propertyId,
   arrival:booking.arrival,departure:booking.departure,status:booking.status};
 }
+
+export function beds24SetupInviteCode() {
+ const props=PropertiesService.getScriptProperties();
+ if(props.getProperty("GTOS_BEDS24_SETUP_ENABLED")!=="true")
+   throw new Error("GTOS_BEDS24_SETUP_DISABLED");
+ const code=props.getProperty("BEDS24_INVITE_CODE");
+ if(!code) throw new Error("BEDS24_INVITE_CODE_MISSING");
+ new Beds24TokenManager(new GasPmsHttpClient(),new GasBeds24TokenStore()).exchangeInviteCode(code);
+ props.deleteProperty("BEDS24_INVITE_CODE");
+ props.deleteProperty("GTOS_BEDS24_SETUP_ENABLED");
+ return {setup:"SUCCESS",inviteCodeRemoved:true};
+}
