@@ -27,3 +27,17 @@ test("HTTP unauthorized is redacted and throws",()=>{
  const s=setup(401,'{"token":"confidential"}');
  assert.throws(()=>s.manager.accessToken(1000),/PMS_HTTP_ERROR/);
 });
+
+test("invite code exchange persists refresh token without revealing token",()=>{
+ const state:Record<string,string>={};
+ const http:PmsHttpClient={request:(method,url,headers)=>{
+  assert.equal(method,"GET");assert.match(url,/\/authentication\/setup$/);
+  assert.equal(headers?.code,"invite-once");
+  return {status:200,body:'{"token":"access","refreshToken":"refresh","expiresIn":86400}'};
+ }};
+ const mgr=new Beds24TokenManager(http,{get:key=>state[key]??"",set:(k,v)=>{state[k]=v;}});
+ mgr.exchangeInviteCode("invite-once",100);
+ assert.equal(state.BEDS24_REFRESH_TOKEN,"refresh");
+ assert.equal(state.BEDS24_ACCESS_TOKEN,"access");
+ assert.equal(state.BEDS24_ACCESS_EXPIRES_AT,"86400100");
+});
