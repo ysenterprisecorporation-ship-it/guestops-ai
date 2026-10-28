@@ -60,7 +60,7 @@ export class Beds24Adapter implements PmsAdapter {
   ) {
     if (!config.token.trim())
       throw new PmsConfigurationError("BEDS24_TOKEN_MISSING");
-    this.baseUrl = (config.baseUrl ?? "https://api.beds24.com/v2").replace(/\/$/, "");
+    this.baseUrl = (config.baseUrl ?? "https://beds24.com/api/v2").replace(/\/$/, "");
   }
 
   capabilities(): PmsCapabilities {
