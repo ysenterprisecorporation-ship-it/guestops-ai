@@ -82,22 +82,22 @@ h1{line-height:1.35}ul{padding-left:22px}
 <strong>過去にどう判断したかが、予約サイトのメッセージ履歴や担当者の記憶に散らばっている</strong><br>
 <span class="small">類似案件でも毎回ゼロから判断している。</span></label>
 
-<button class="button" onclick="diagnose()">診断する</button>
+<p class="small">この診断は自己申告の課題整理であり、実装済み機能の判定や費用対効果の測定ではありません。</p><button class="button" onclick="diagnose()">診断する</button>
 <div id="result" class="result" style="display:none"></div>
 <div id="nextStep" class="next-step"></div>
 </section>
 
 <section class="card">
-<h2>診断結果をGuestOps AIでどう減らすか</h2>
+<h2>診断結果に基づく導入検討項目（稼働保証ではありません）</h2>
 <ul>
 <li>予約サイトにある自動返信や定型文は、そのまま活用</li>
-<li>複数の予約サイトから届く予約・メッセージをまとめて確認</li>
+<li>複数予約サイトの予約・メッセージを一元確認できるか接続条件を確認</li>
 <li>施設情報・予約内容・過去の対応ルールを見て、定型外の質問を振り分け</li>
-<li>通常の問い合わせは自動で進め、返金・補償など重要な案件だけ人が確認</li>
-<li>本人確認が終わったら、鍵・入室方法などを自動送信</li>
+<li>通常問い合わせと返金・補償等を分類し、送信前承認の要件を整理（自動送信は未検証）</li>
+<li>本人確認後の入室案内送信は、本人確認サービス・PMSの接続条件を確認</li>
 <li>低評価レビューの内容を分類し、事実確認・謝意・改善策・再発防止まで含む公開返信を支援</li>
 <li>レビューで判明した不満原因を施設ルールへ戻し、再発防止と次の予約検討者への信頼回復につなげる</li>
-<li>なぜその対応をしたかを記録し、次回の対応ルールへ反映</li>
+<li>対応の判断根拠と運用ルールを記録・更新する仕組みを検討</li>
 </ul>
 </section>
 </main>
@@ -137,8 +137,8 @@ function diagnose(){
  n.style.display='block';
  n.innerHTML=
    '<h3>2｜おすすめの進め方</h3>'+
-   '<p><strong>GuestOps AIで自動化する</strong></p>'+
-   '<p>診断で見つかった確認・判断・効果的なレビュー返信・料金調整などを、日々の運用から減らしたい場合はGuestOps AIが適しています。</p>'+
+   '<p><strong>GuestOps AIで自動化を検討する</strong></p>'+
+   '<p>診断で見つかった確認・判断・レビュー返信・料金調整などについて、現行の仕組みと接続条件を確認したうえで提供範囲を決定します。全機能の自動化は保証していません。</p>'+
    '<p><a class="button" href="../../#pricing">GuestOps AIを見る</a></p>'+
    '<hr style="border:0;border-top:1px solid #e3d6b7;margin:20px 0">'+
    '<p><strong>まず小さく試すならStarter</strong></p>'+
