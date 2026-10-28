@@ -1,5 +1,5 @@
 import { build } from "esbuild";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 // A separately deployed, read-only GAS app; never shares Square's doPost or OAuth setup.
 await mkdir("dist-gtos", { recursive: true });
 await build({
@@ -28,3 +28,7 @@ await writeFile("dist-gtos/appsscript.json", JSON.stringify({
     "https://www.googleapis.com/auth/script.external_request",
   ],
 }, null, 2));
+
+const bundled = await readFile("dist-gtos/Code.js", "utf8");
+const wrappers = await readFile("dist-gtos/Entrypoints.js", "utf8");
+await writeFile("dist-gtos/PasteIntoAppsScript.gs", bundled + "\n" + wrappers);
