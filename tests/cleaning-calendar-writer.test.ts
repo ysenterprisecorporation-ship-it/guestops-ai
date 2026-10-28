@@ -9,7 +9,7 @@ function memory() {
  const events:CleaningCalendarEvent[]=[];
  const api:CleaningCalendar={
   findByBookingId:id=>events.filter(e=>e.bookingId===id),
-  create:e=>{events.push({...e,eventId:"evt-"+events.length});return events.at(-1)!.eventId;},
+  create:e=>{events.push({...e,eventId:"evt-"+events.length});return events[events.length - 1].eventId;},
   update:(id,e)=>{const i=events.findIndex(x=>x.eventId===id);events[i]={...e,eventId:id};},
  };
  return {api,events};
