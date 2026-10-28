@@ -26,3 +26,9 @@ test("unverified property cannot schedule cleaning",()=>{
 test("cancellation does not delete schedule automatically",()=>{
  assert.equal(transitionBooking(undefined,{...base,status:"CANCELLED"}).action,"CANCEL_CLEANING_REVIEW");
 });
+
+test("unverified checkout never establishes a confirmed state",()=>{
+ const attempted=transitionBooking(undefined,{...base,departure:undefined});
+ assert.equal(attempted.action,"MANUAL_REVIEW");
+ assert.equal(attempted.next.status,"REVIEW");
+});
