@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - 'ops/starter-fulfillment.gs'
+      - 'ops/test-starter-fulfillment.js'
       - '.github/workflows/verify-fulfillment-script.yml'
   workflow_dispatch:
 jobs:
@@ -36,3 +37,4 @@ jobs:
           if(/GmailApp\.sendEmail\s*\(/.test(s))throw Error('Automatic sending is not permitted in this stage');
           console.log('PASS: syntactically valid, safety invariants retained');
           NODE
+          node ops/test-starter-fulfillment.js
