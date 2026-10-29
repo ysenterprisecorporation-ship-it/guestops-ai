@@ -198,5 +198,28 @@ assert.throws(() => vm.runInContext('auditStarterFulfillment()', ctx),
   /Unexpected Square payment list response/);
 assert.equal(sent.length, beforeMalformedPage, 'malformed Square page must not send');
 assert.deepEqual(props, propsBeforeMalformedPage, 'malformed Square page must not write state');
-console.log('PASS: 18 eligibility checks + idempotency, retries, dry-run, Gmail failure, missing message ID, first/second guard write failures, read-only audit, rejection breakdown, malformed Square response');
+// Fail closed when Square returns a JSON array or a malformed errors field.
+assert.throws(() => vm.runInContext('goValidatePaymentPage_([])', ctx),
+  /Unexpected Square payment list response/);
+assert.throws(() => vm.runInContext('goValidatePaymentPage_({errors:{code:"FAULT"}})', ctx),
+  /Unexpected Square payment list response/);
+assert.throws(() => vm.runInContext('goValidatePaymentPage_({payments:null})', ctx),
+  /Unexpected Square payment list response/);
+assert.equal(vm.runInContext('goValidatePaymentPage_({payments:[],errors:[]}).payments.length', ctx), 0);
+
+// A repeated cursor must not spin or silently process the same page forever.
+vm.runInContext(`
+  goSquareGet_ = function(url) {
+    if (url.startsWith('payments?')) return {payments:[],cursor:'repeat-cursor'};
+    throw Error('Unexpected Square path: ' + url);
+  };
+`, ctx);
+const beforeRepeatedCursor = sent.length;
+const propsBeforeRepeatedCursor = new Map(props);
+assert.throws(run, /Repeated Square pagination cursor/);
+assert.throws(() => vm.runInContext('auditStarterFulfillment()', ctx),
+  /Repeated Square pagination cursor/);
+assert.equal(sent.length, beforeRepeatedCursor, 'repeated cursor must not send');
+assert.deepEqual(props, propsBeforeRepeatedCursor, 'repeated cursor must not write state');
+console.log('PASS: 18 eligibility checks + idempotency, retries, dry-run, Gmail failure, missing message ID, guard write failures, read-only audit, rejection breakdown, malformed Square responses, repeated cursor safety');
 
