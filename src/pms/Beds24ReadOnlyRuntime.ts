@@ -63,3 +63,25 @@ export function beds24ConnectionTest() {
    // No guest names, booking IDs, OTA payloads, or tokens returned.
    accessTokenRefreshValidated:true};
 }
+
+export function beds24PropertyReadAudit() {
+ requireReadOnly();
+ const props=PropertiesService.getScriptProperties();
+ const propertyId=props.getProperty("GTOS_BEDS24_TEST_PROPERTY_ID");
+ if(!propertyId || !/^\d+$/.test(propertyId)) throw new Error("BEDS24_TEST_PROPERTY_NOT_CONFIGURED");
+ const http=new GasPmsHttpClient();
+ const token=new Beds24TokenManager(http,new GasBeds24TokenStore()).accessToken();
+ const response=http.request("GET",
+   "https://beds24.com/api/v2/properties?id="+encodeURIComponent(propertyId),
+   {token,accept:"application/json"});
+ if(response.status<200 || response.status>=300) throw new Error("BEDS24_PROPERTY_HTTP_"+response.status);
+ let data:unknown;
+ try {data=JSON.parse(response.body);} catch {throw new Error("BEDS24_PROPERTY_INVALID_JSON");}
+ const rows=Array.isArray(data)?data:
+   data && typeof data==="object" && Array.isArray((data as {data?:unknown}).data)
+     ?(data as {data:unknown[]}).data:[];
+ const matches=rows.filter(row=>row && typeof row==="object" &&
+   String((row as {id?:unknown}).id)===propertyId);
+ if(matches.length!==1) throw new Error("BEDS24_PROPERTY_ID_NOT_UNIQUELY_VERIFIED");
+ return {propertyId,apiVerified:true,recordsMatched:1,readOnly:true};
+}
