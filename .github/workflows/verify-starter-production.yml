@@ -58,7 +58,8 @@ jobs:
             code_order=$(curl -L --silent --show-error --max-time 20 --output /tmp/guestops-order.html --write-out '%{http_code}' -H 'Cache-Control: no-cache' "$BASE/starter/order/?audit=${GITHUB_SHA}" || true)
             if [ "$code_main" = "200" ] && [ "$code_order" = "200" ] && [ "$code_partner" = "200" ] \
               && grep -Fq '「誰に確認する？」を減らす施設運営へ。' /tmp/guestops-main.html \
-              && grep -Fq '9,800円/月' /tmp/guestops-main.html \
+              && grep -Fq '9,800円/月' /tmp/guestops-main.html
+              && grep -Fq 'Starter購入後、教材はどのように受け取りますか？' /tmp/guestops-main.html \ \
               && grep -Fq 'id="apply-guestops"' /tmp/guestops-main.html \
               && grep -Fq 'id="guestops-inquiry-form"' /tmp/guestops-main.html \
               && grep -Fq 'id="go-price-preview"' /tmp/guestops-main.html \
