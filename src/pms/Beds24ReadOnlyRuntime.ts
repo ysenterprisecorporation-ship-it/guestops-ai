@@ -131,6 +131,7 @@ export function beds24PropertyBookingSnapshot() {
     throw new Error("BEDS24_SNAPSHOT_NEXT_LINK_INVALID");
   next=value && typeof value.nextPageLink==="string" && value.nextPageLink
     ? value.nextPageLink.startsWith("/") ? "https://beds24.com"+value.nextPageLink : value.nextPageLink : "";
+  if(!next && rows.length===100) throw new Error("BEDS24_SNAPSHOT_TRUNCATION_POSSIBLE");
  }
  if(next)throw new Error("BEDS24_SNAPSHOT_PAGE_LIMIT_EXCEEDED");
  return {propertyId,readOnly:true,recordCount,statuses:counts,pages,complete:true,
