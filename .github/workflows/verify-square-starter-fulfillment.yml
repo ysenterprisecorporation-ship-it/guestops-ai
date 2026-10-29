@@ -1,0 +1,27 @@
+name: Verify Square Starter fulfillment
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'integrations/square-starter-fulfillment/**'
+      - '.github/workflows/verify-square-starter-fulfillment.yml'
+  pull_request:
+    paths:
+      - 'integrations/square-starter-fulfillment/**'
+      - '.github/workflows/verify-square-starter-fulfillment.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  fulfillment-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate Apps Script syntax
+        run: cp integrations/square-starter-fulfillment/Code.gs /tmp/starter-fulfillment.js && node --check /tmp/starter-fulfillment.js
+      - name: Execute mocked Square and Gmail integration checks
+        run: node integrations/square-starter-fulfillment/test-fulfillment.cjs
