@@ -17,6 +17,7 @@ const props = new Map(Object.entries({
 }));
 const sent = [];
 let failNextSend = false;
+let failNextMessageId = false;
 let failPaymentPropertyOnce = false;
 let failOrderPropertyOnce = false;
 const payment = (id) => ({
@@ -51,7 +52,13 @@ const ctx = vm.createContext({
       props.set(key, val);
     }
   })},
-  GmailApp: {sendEmail: (to, subject, body) => {if (failNextSend) throw Error('simulated Gmail failure'); sent.push({to, subject, body});}},
+  GmailApp: {createDraft: (to, subject, body) => ({send: () => {
+    if (failNextSend) throw Error('simulated Gmail failure');
+    sent.push({to, subject, body});
+    const id = failNextMessageId ? '' : 'mock-gmail-message-' + sent.length;
+    failNextMessageId = false;
+    return {getId: () => id};
+  }})},
   UrlFetchApp: {fetch: () => {throw Error('External Square request attempted in test');}}
 });
 vm.runInContext(code, ctx, {filename: 'Code.gs'});
@@ -68,8 +75,8 @@ const run = () => vm.runInContext('runStarterFulfillment()', ctx);
 run();
 assert.equal(sent.length, 1, 'same Square order must be delivered only once');
 assert.equal(sent[0].to, 'buyer@example.com');
-assert.match(props.get('TEST_P1'), /^SENT /);
-assert.match(props.get('TEST_ORDER:O1'), /^SENT /);
+assert.match(props.get('TEST_P1'), /^SENT .* MSG:mock-gmail-message-1$/);
+assert.match(props.get('TEST_ORDER:O1'), /^SENT .* MSG:mock-gmail-message-1$/);
 assert.equal(props.has('TEST_P2'), false, 'second payment should be skipped');
 run();
 assert.equal(sent.length, 1, 'repeat run must not resend');
@@ -93,6 +100,18 @@ assert.match(props.get('TEST_ORDER:O2'), /^PENDING /);
 failNextSend = false;
 run();
 assert.equal(sent.length, 1, 'Gmail failure must not trigger automatic resend');
+// Gmail may have sent successfully while the message ID is unavailable.
+// Keep PENDING and block automatic retry instead of recording an unverified SENT.
+ctx.__payments = [{...payment('P8'), order_id: 'O6'}];
+ctx.__order = {...order, id: 'O6'};
+failNextMessageId = true;
+const beforeMissingId = sent.length;
+assert.throws(run, /Gmail sent without a usable message ID/);
+assert.equal(sent.length, beforeMissingId + 1, 'mock Gmail sent before ID failure');
+assert.match(props.get('TEST_ORDER:O6'), /^PENDING /);
+assert.match(props.get('TEST_P8'), /^PENDING /);
+run();
+assert.equal(sent.length, beforeMissingId + 1, 'missing ID must not trigger a second email');
 // A partial Script Properties write must never allow Gmail send or duplicate delivery.
 ctx.__payments = [{...payment('P6'), order_id: 'O4'}];
 ctx.__order = {...order, id: 'O4'};
@@ -140,5 +159,5 @@ audit = vm.runInContext('auditStarterFulfillment()', ctx);
 assert.equal(audit.invalidOrders, 1, 'canceled order excluded');
 assert.equal(audit.readyToDeliver, 0);
 assert.equal(sent.length, sentBeforeAudit, 'audit remains send-free');
-console.log('PASS: 18 eligibility checks + idempotency, retries, dry-run, Gmail failure, first/second guard write failures, read-only audit');
+console.log('PASS: 18 eligibility checks + idempotency, retries, dry-run, Gmail failure, missing message ID, first/second guard write failures, read-only audit');
 
