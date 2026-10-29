@@ -13,6 +13,10 @@ export interface ProductionCutoverInput {
   beds24SeasonalBlocks: Interval[];
   /** False until all independent sources have been fully extracted. */
   snapshotsComplete: boolean;
+  /** Evidence must include all three OTA inventories, not merely a successful empty response. */
+  otaSourcesVerified?: { bookingCom: boolean; airbnbStay: boolean; airbnbMonthly: boolean; beds24: boolean };
+  /** Distinct verified timestamp of the source snapshots. */
+  sourceEvidenceTimestamp?: string;
 }
 export interface ProductionCutoverResult extends CutoverGate {
   bookingDifferences: string[];
@@ -32,6 +36,9 @@ export function evaluateProductionCutover(input: ProductionCutoverInput): Produc
   };
   const gate=evaluateBeds24ProductionCutover(evidence);
   const blockers=[...gate.blockers];
+  const sources=input.otaSourcesVerified;
+  if(!sources || !sources.bookingCom || !sources.airbnbStay || !sources.airbnbMonthly || !sources.beds24) blockers.push("ALL_FOUR_SOURCE_EXPORTS_NOT_VERIFIED");
+  if(!input.sourceEvidenceTimestamp || !Number.isFinite(Date.parse(input.sourceEvidenceTimestamp))) blockers.push("SOURCE_EVIDENCE_TIMESTAMP_MISSING");
   if(!input.snapshotsComplete) blockers.push("SOURCE_SNAPSHOTS_INCOMPLETE");
   if(!input.expectedPropertyId.trim()) blockers.push("PROPERTY_ID_MISSING");
   return {ready:blockers.length===0,blockers,
