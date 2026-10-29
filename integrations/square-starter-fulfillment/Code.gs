@@ -121,7 +121,9 @@ function runStarterFulfillment() {
       for (const payment of payments) {
         if (!goPaymentEligible_(payment, config)) continue;
         const key = goKey_(payment.id);
-        if (props.getProperty(key)) continue; // SENT or PENDING: no repeat send
+        // An order can have more than one payment; protect both identifiers.
+        const orderKey = goKey_('ORDER:' + payment.order_id);
+        if (props.getProperty(key) || props.getProperty(orderKey)) continue;
         const result = goSquareGet_('orders/' + encodeURIComponent(payment.order_id), config);
         if (!goOrderEligible_(result.order, payment, config)) continue;
         if (!config.enabled) {
@@ -130,14 +132,16 @@ function runStarterFulfillment() {
         }
         // Mark PENDING before Gmail send to fail closed on interrupted execution.
         // An unresolved PENDING record must be reviewed before any manual retry.
-        props.setProperty(key, 'PENDING ' + new Date().toISOString());
+        const pendingAt = 'PENDING ' + new Date().toISOString();
+        props.setProperties({[key]: pendingAt, [orderKey]: pendingAt});
         const subject = '【GuestOps AI】Starter Kit 教材のご案内';
         try {
           GmailApp.sendEmail(payment.buyer_email_address, subject,
             goDeliveryBody_(payment, config), {
               name: 'GuestOps AI', replyTo: GO_SENDER
             });
-          props.setProperty(key, 'SENT ' + new Date().toISOString());
+          const sentAt = 'SENT ' + new Date().toISOString();
+          props.setProperties({[key]: sentAt, [orderKey]: sentAt});
           console.log('SENT payment suffix: ' + payment.id.slice(-8));
         } catch (e) {
           // Keep PENDING: an API exception does not prove that mail was unsent.
@@ -171,5 +175,13 @@ function testStarterFulfillmentRules() {
   check(!goPaymentEligible_(Object.assign({},p,{buyer_email_address:''}),c), 'missing email');
   check(!goOrderEligible_(Object.assign({},o,{line_items:[{catalog_object_id:'OTHER',quantity:'1'}]}),p,c), 'wrong item');
   check(!goOrderEligible_(Object.assign({},o,{line_items:[{catalog_object_id:'VAR1',quantity:'2'}]}),p,c), 'quantity');
-  console.log('PASS: 8 safe fulfillment checks');
+  check(!goPaymentEligible_(Object.assign({},p,{refunded_money:{amount:9800,currency:'JPY'}}),c), 'refunded amount');
+  check(!goPaymentEligible_(Object.assign({},p,{created_at:'2026-10-28T00:00:00Z'}),c), 'before monitoring window');
+  check(!goPaymentEligible_(Object.assign({},p,{buyer_email_address:GO_SENDER}),c), 'self-delivery blocked');
+  check(!goPaymentEligible_(Object.assign({},p,{location_id:'OTHER'}),c), 'wrong payment location');
+  check(!goPaymentEligible_(Object.assign({},p,{amount_money:{amount:9800,currency:'USD'}}),c), 'wrong currency');
+  check(!goOrderEligible_(Object.assign({},o,{location_id:'OTHER'}),p,c), 'wrong order location');
+  check(!goOrderEligible_(Object.assign({},o,{line_items:[o.line_items[0],o.line_items[0]]}),p,c), 'multiple items');
+  check(!goOrderEligible_(Object.assign({},o,{total_money:{amount:9700,currency:'JPY'}}),p,c), 'wrong order total');
+  console.log('PASS: 16 safe fulfillment checks');
 }
