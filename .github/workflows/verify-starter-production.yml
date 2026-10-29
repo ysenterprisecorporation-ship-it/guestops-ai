@@ -5,6 +5,7 @@ on:
     paths:
       - 'docs/index.html'
       - 'docs/starter/order/index.html'
+      - 'docs/partners/index.html'
       - '.github/workflows/verify-starter-production.yml'
   workflow_dispatch:
 permissions:
@@ -53,21 +54,24 @@ jobs:
           BASE="https://ysenterprisecorporation-ship-it.github.io/guestops-ai"
           for i in {1..20}; do
             code_main=$(curl -L --silent --show-error --max-time 20 --output /tmp/guestops-main.html --write-out '%{http_code}' -H 'Cache-Control: no-cache' "$BASE/?audit=${GITHUB_SHA}" || true)
+            code_partner=$(curl -L --silent --show-error --max-time 20 --output /tmp/guestops-partner.html --write-out '%{http_code}' -H 'Cache-Control: no-cache' "$BASE/partners/?audit=${GITHUB_SHA}" || true)
             code_order=$(curl -L --silent --show-error --max-time 20 --output /tmp/guestops-order.html --write-out '%{http_code}' -H 'Cache-Control: no-cache' "$BASE/starter/order/?audit=${GITHUB_SHA}" || true)
-            if [ "$code_main" = "200" ] && [ "$code_order" = "200" ] \
+            if [ "$code_main" = "200" ] && [ "$code_order" = "200" ] && [ "$code_partner" = "200" ] \
               && grep -Fq '「誰に確認する？」を減らす施設運営へ。' /tmp/guestops-main.html \
               && grep -Fq '9,800円/月' /tmp/guestops-main.html \
               && grep -Fq 'id="apply-guestops"' /tmp/guestops-main.html \
               && grep -Fq 'id="guestops-inquiry-form"' /tmp/guestops-main.html \
               && grep -Fq 'id="go-price-preview"' /tmp/guestops-main.html \
               && grep -Fq '月額料金の目安：' /tmp/guestops-main.html \
+              && grep -Fq '顧客への案内文（編集して使用可能）' /tmp/guestops-partner.html \
+              && grep -Fq 'href="partners/"' /tmp/guestops-main.html \
               && grep -Fq '購入後、最初に使う3つの場面' /tmp/guestops-order.html \
               && grep -Fq '../../#apply-guestops' /tmp/guestops-order.html \
               && grep -Fq 'その迷いを、施設のルールに変える' /tmp/guestops-order.html; then
               echo "PASS: live pages contain latest conversion copy and pricing"
               exit 0
             fi
-            echo "Attempt $i: main HTTP $code_main, order HTTP $code_order; latest content not yet verified"
+            echo "Attempt $i: main HTTP $code_main, order HTTP $code_order, partner HTTP $code_partner; latest content not yet verified"
             sleep 15
           done
           echo "::error::Live GitHub Pages content differs from expected main/order HTML"
