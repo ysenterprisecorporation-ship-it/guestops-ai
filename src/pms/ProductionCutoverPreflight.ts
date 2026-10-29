@@ -1,6 +1,7 @@
 import { BookingSnapshot, compareBookingSnapshots } from "./BookingIdentityReconciler";
 import { Interval, reconcileIntervals, seasonProtected } from "./BookingInventoryReconciler";
 import { CutoverEvidence, CutoverGate, evaluateBeds24ProductionCutover } from "./ProductionCutoverGate";
+import { ReservationNotice, reviewReservationNotices } from "./ReservationNoticeAudit";
 
 /** Read-only preflight: successful code tests alone never authorize live OTA writes. */
 export interface ProductionCutoverInput {
@@ -17,6 +18,10 @@ export interface ProductionCutoverInput {
   otaSourcesVerified?: { bookingCom: boolean; airbnbStay: boolean; airbnbMonthly: boolean; beds24: boolean };
   /** Distinct verified timestamp of the source snapshots. */
   sourceEvidenceTimestamp?: string;
+  /** Source notification history; IDs are not current booking states. */
+  reservationNotices?: ReservationNotice[];
+  /** Booking.com IDs independently confirmed in the provider's live data. */
+  liveBookingComReservationIds?: string[];
 }
 export interface ProductionCutoverResult extends CutoverGate {
   bookingDifferences: string[];
@@ -41,6 +46,11 @@ export function evaluateProductionCutover(input: ProductionCutoverInput): Produc
   if(!input.sourceEvidenceTimestamp || !Number.isFinite(Date.parse(input.sourceEvidenceTimestamp))) blockers.push("SOURCE_EVIDENCE_TIMESTAMP_MISSING");
   if(!input.snapshotsComplete) blockers.push("SOURCE_SNAPSHOTS_INCOMPLETE");
   if(!input.expectedPropertyId.trim()) blockers.push("PROPERTY_ID_MISSING");
+  if(input.reservationNotices && input.reservationNotices.length){
+    const audit=reviewReservationNotices(input.reservationNotices);
+    const verified=new Set(input.liveBookingComReservationIds??[]);
+    if(audit.requiresProviderVerification.some(id=>!verified.has(id))) blockers.push("BOOKING_COM_NOTICES_UNVERIFIED_IN_LIVE_OTA");
+  }
   return {ready:blockers.length===0,blockers,
     bookingDifferences:bookings.blockers,inventoryDifferences:inventory.differences,monthlyProtected:monthly};
 }
