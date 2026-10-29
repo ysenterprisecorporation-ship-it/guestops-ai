@@ -4,7 +4,7 @@
 
 ## 動作
 - Square **Payments API（読み取り専用）**で決済一覧を取得し、**COMPLETED／JPY 9,800円／指定店舗／返金なし／設定開始日時以降**を検査。
-- Square **Orders API（読み取り専用）**で注文の**単一商品・数量1・指定catalog_object_id・合計9,800円**を再検査。商品名の曖昧一致やメール通知の文字列だけで納品しない。
+- Square **Orders API（読み取り専用）**で注文の**単一商品・数量1・指定catalog_object_id・合計9,800円・キャンセル／下書き注文の除外**を再検査。商品名の曖昧一致やメール通知の文字列だけで納品しない。
 - 購入者メールアドレスがPaymentに存在する場合だけ対象にする。未取得の場合は**自動納品をスキップ**（Square管理画面で別途確認）。
 - 送信前にScript Propertiesへ**決済ID・注文IDの両方**を `PENDING` として記録、送信後両方を `SENT` に更新。同一注文に複数の決済IDが存在しても二重納品しない。PENDINGの再試行は自動実行しない。
 - 初期値は `SEND_ENABLED` 未設定＝**送信禁止（dry run）**。課金・注文変更・Square設定変更をするAPIは一切呼ばない。
@@ -25,10 +25,11 @@
 | `STARTER_SHEET_URL` | 既存の購入者用「施設情報設定・20場面判断・初回テスト」Google Sheets URL |
 | `SEND_ENABLED` | **最初は `false`**。Square照合結果・受取権限・実決済テストを確認できた後だけ `true` |
 
-4. `testStarterFulfillmentRules()` を実行し、16ケースの `PASS` を確認。GitHub Actionsでは `test-fulfillment.cjs` により、注文単位の二重納品防止・再実行・PENDING・dry runも自動検査する。
-5. `runStarterFulfillment()` を**送信無効のまま**実行。実Squareデータの読取可否と対象商品の識別をログで確認する。
-6. 購入者用3ファイルが「リンクを知っている全員／閲覧者」であることを確認（2026-10-30にDrive APIで3件とも確認済み）。
-7. 本番接続・受取先・決済の整合性を検証後、`SEND_ENABLED=true` とし、`runStarterFulfillment` の時間主導型トリガー（15分毎など）を登録する。**この手順は未実行**。
+4. `testStarterFulfillmentRules()` を実行し、18ケースの `PASS` を確認。GitHub Actionsでは `test-fulfillment.cjs` により、注文単位の二重納品防止・再実行・PENDING・dry runも自動検査する。
+5. **送信を有効化する前に** `auditStarterFulfillment()` を実行。これはSquareの決済・注文を読み取り、集計値だけをログに出す。`SEND_ENABLED=true` でもメール送信・Script Properties書込は行わない。`readyToDeliver` は送信候補数であり、実送信数ではない。`pendingReview` が1件でもあれば自動再送しない。`invalidOrders` は商品・金額・注文状態などが一致しない注文の件数。購入者メールアドレスやトークンはログに出さない。
+6. `runStarterFulfillment()` を**送信無効のまま**実行。実Squareデータの読取可否と対象商品の識別をログで確認する。
+7. 購入者用3ファイルが「リンクを知っている全員／閲覧者」であることを確認（2026-10-30にDrive APIで3件とも確認済み）。
+8. 本番接続・受取先・決済の整合性を検証後、`SEND_ENABLED=true` とし、`runStarterFulfillment` の時間主導型トリガー（15分毎など）を登録する。**この手順は未実行**。
 
 ## 安全停止と例外処理
 - 送信を止めるときは `SEND_ENABLED=false`。トリガーを消さなくても送信しない。
@@ -44,3 +45,9 @@
 - 金額単位（JPYは円）: https://developer.squareup.com/docs/build-basics/common-data-types/working-with-monetary-amounts
 
 **重要:** コードとモックによる単体・統合テストの完成は、Square本番の自動納品稼働を意味しません。必要な認証情報・店舗/商品IDがこの実行環境に無いため、実Square API呼び出しや送信は行っていません。
+
+## 2026-10-30 追加検証
+- 読取専用の `auditStarterFulfillment()` を実装。模擬決済2件・同一注文1件で `readyToDeliver=1` を確認。
+- `SEND_ENABLED=true` の状態でも監査実行によるGmail送信0件・Script Properties書込0件を確認。
+- キャンセル注文の納品除外、模擬送信1回後の再実行で重複送信0件を確認。
+- これは**モックによる実行検証**であり、Square本番API接続、GAS配備、購入者への実送信の成功ではない。
