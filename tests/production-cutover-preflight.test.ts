@@ -9,7 +9,7 @@ const evidence:CutoverEvidence={
 };
 const input:ProductionCutoverInput={evidence,expectedPropertyId:"364051",otaBookings:[],beds24Bookings:[],
  otaInventory:[],beds24Inventory:[],beds24SeasonalBlocks:[{start:"2027-01-01",end:"2027-04-01",kind:"blocked",source:"verified"}],
- snapshotsComplete:true};
+ snapshotsComplete:true,otaSourcesVerified:{bookingCom:true,airbnbStay:true,airbnbMonthly:true,beds24:true},sourceEvidenceTimestamp:"2026-10-29T19:00:00+09:00"};
 test("preflight blocks incomplete real-source snapshots despite approval",()=>{
  const result=evaluateProductionCutover({...input,snapshotsComplete:false});
  assert.equal(result.ready,false);
@@ -32,4 +32,10 @@ test("preflight blocks unresolved booking mappings",()=>{
 });
 test("fully reconciled verified evidence can pass",()=>{
  assert.equal(evaluateProductionCutover(input).ready,true);
+});
+
+test("empty source arrays must be backed by individual verified exports",()=>{
+ assert.equal(evaluateProductionCutover({...input,otaSourcesVerified:undefined}).ready,false);
+ assert.equal(evaluateProductionCutover({...input,otaSourcesVerified:{bookingCom:true,airbnbStay:false,airbnbMonthly:true,beds24:true}}).ready,false);
+ assert.equal(evaluateProductionCutover({...input,sourceEvidenceTimestamp:undefined}).ready,false);
 });
