@@ -6,7 +6,7 @@
 - Square **Payments API（読み取り専用）**で決済一覧を取得し、**COMPLETED／JPY 9,800円／指定店舗／返金なし／設定開始日時以降**を検査。
 - Square **Orders API（読み取り専用）**で注文の**単一商品・数量1・指定catalog_object_id・合計9,800円**を再検査。商品名の曖昧一致やメール通知の文字列だけで納品しない。
 - 購入者メールアドレスがPaymentに存在する場合だけ対象にする。未取得の場合は**自動納品をスキップ**（Square管理画面で別途確認）。
-- 送信前にScript Propertiesへ `PENDING` を記録、送信後 `SENT` に更新。重複送信を避ける。PENDINGの再試行は自動実行しない。
+- 送信前にScript Propertiesへ**決済ID・注文IDの両方**を `PENDING` として記録、送信後両方を `SENT` に更新。同一注文に複数の決済IDが存在しても二重納品しない。PENDINGの再試行は自動実行しない。
 - 初期値は `SEND_ENABLED` 未設定＝**送信禁止（dry run）**。課金・注文変更・Square設定変更をするAPIは一切呼ばない。
 
 ## 既存環境への最短導入
@@ -25,14 +25,14 @@
 | `STARTER_SHEET_URL` | 既存の購入者用「施設情報設定・20場面判断・初回テスト」Google Sheets URL |
 | `SEND_ENABLED` | **最初は `false`**。Square照合結果・受取権限・実決済テストを確認できた後だけ `true` |
 
-4. `testStarterFulfillmentRules()` を実行し、8ケースの `PASS` を確認。
+4. `testStarterFulfillmentRules()` を実行し、16ケースの `PASS` を確認。GitHub Actionsでは `test-fulfillment.cjs` により、注文単位の二重納品防止・再実行・PENDING・dry runも自動検査する。
 5. `runStarterFulfillment()` を**送信無効のまま**実行。実Squareデータの読取可否と対象商品の識別をログで確認する。
 6. 購入者用3ファイルが「リンクを知っている全員／閲覧者」であることを確認（2026-10-30にDrive APIで3件とも確認済み）。
 7. 本番接続・受取先・決済の整合性を検証後、`SEND_ENABLED=true` とし、`runStarterFulfillment` の時間主導型トリガー（15分毎など）を登録する。**この手順は未実行**。
 
 ## 安全停止と例外処理
 - 送信を止めるときは `SEND_ENABLED=false`。トリガーを消さなくても送信しない。
-- `PENDING` のままの決済は自動再送しない。Gmail送信済みとSquare決済IDを照合してから対応。
+- `PENDING` のままの決済・注文は自動再送しない。Gmail送信済みとSquare決済ID・注文IDを照合してから対応。
 - 決済金額が違う、複数商品、返金、メール未登録、商品ID不一致、API権限不足の注文は**送信しない**。
 - Square APIは結果整合性に時間差があるため、時間主導型トリガーで次回取得する。最大10ページ超過はエラーで停止。
 - Square APIの利用条件や料金は変更しない。Apps Scriptは本番導入前に運用環境の権限・制限を確認する。
@@ -43,4 +43,4 @@
 - Orders API: https://developer.squareup.com/reference/square/orders-api/retrieve-order
 - 金額単位（JPYは円）: https://developer.squareup.com/docs/build-basics/common-data-types/working-with-monetary-amounts
 
-**重要:** コードと単体テストの完成は、Square本番の自動納品稼働を意味しません。必要な認証情報・店舗/商品IDがこの実行環境に無いため、実Square API呼び出しや送信は行っていません。
+**重要:** コードとモックによる単体・統合テストの完成は、Square本番の自動納品稼働を意味しません。必要な認証情報・店舗/商品IDがこの実行環境に無いため、実Square API呼び出しや送信は行っていません。
