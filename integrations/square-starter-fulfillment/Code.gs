@@ -56,6 +56,20 @@ function goSquareGet_(path, config) {
   return JSON.parse(res.getContentText());
 }
 
+/**
+ * Fail closed on malformed 200 responses. Square can omit `payments` when
+ * there are no matches, but a non-array payments field is not an empty page.
+ */
+function goValidatePaymentPage_(response) {
+  if (!response || typeof response !== 'object' ||
+      (response.payments !== undefined && !Array.isArray(response.payments)) ||
+      (response.cursor !== undefined && typeof response.cursor !== 'string') ||
+      (Array.isArray(response.errors) && response.errors.length > 0)) {
+    throw new Error('Unexpected Square payment list response; no delivery attempted.');
+  }
+  return response;
+}
+
 function goPaymentEligible_(p, config) {
   return !!(p && p.id && p.status === 'COMPLETED' &&
     p.location_id === config.location && p.order_id &&
@@ -117,7 +131,7 @@ function runStarterFulfillment() {
         encodeURIComponent(config.location) + '&begin_time=' +
         encodeURIComponent(config.since);
       if (cursor) query += '&cursor=' + encodeURIComponent(cursor);
-      const response = goSquareGet_(query, config);
+      const response = goValidatePaymentPage_(goSquareGet_(query, config));
       const payments = response.payments || [];
       for (const payment of payments) {
         if (!goPaymentEligible_(payment, config)) continue;
@@ -185,7 +199,9 @@ function auditStarterFulfillment() {
     const summary = {
       scannedPayments: 0, eligiblePayments: 0, uniqueEligibleOrders: 0,
       readyToDeliver: 0, recordedSent: 0, pendingReview: 0,
-      otherRecorded: 0, invalidOrders: 0
+      otherRecorded: 0, invalidOrders: 0, rejectedPayments: 0,
+      refundedPayments: 0, missingBuyerEmail: 0, unsettledPayments: 0,
+      otherRejectedPayments: 0
     };
     const seenOrders = {};
     let cursor = '';
@@ -194,10 +210,25 @@ function auditStarterFulfillment() {
         encodeURIComponent(config.location) + '&begin_time=' +
         encodeURIComponent(config.since);
       if (cursor) query += '&cursor=' + encodeURIComponent(cursor);
-      const response = goSquareGet_(query, config);
+      const response = goValidatePaymentPage_(goSquareGet_(query, config));
       for (const payment of (response.payments || [])) {
         summary.scannedPayments++;
-        if (!goPaymentEligible_(payment, config)) continue;
+        if (!goPaymentEligible_(payment, config)) {
+          summary.rejectedPayments++;
+          if (payment && ((Array.isArray(payment.refund_ids) && payment.refund_ids.length) ||
+              (payment.refunded_money && Number(payment.refunded_money.amount || 0) > 0))) {
+            summary.refundedPayments++;
+          } else if (!payment || typeof payment.buyer_email_address !== 'string' ||
+              !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(payment.buyer_email_address) ||
+              payment.buyer_email_address.toLowerCase() === GO_SENDER) {
+            summary.missingBuyerEmail++;
+          } else if (payment.status !== 'COMPLETED') {
+            summary.unsettledPayments++;
+          } else {
+            summary.otherRejectedPayments++;
+          }
+          continue;
+        }
         summary.eligiblePayments++;
         if (Object.prototype.hasOwnProperty.call(seenOrders, payment.order_id)) continue;
         seenOrders[payment.order_id] = true;
