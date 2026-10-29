@@ -39,3 +39,18 @@ test("empty source arrays must be backed by individual verified exports",()=>{
  assert.equal(evaluateProductionCutover({...input,otaSourcesVerified:{bookingCom:true,airbnbStay:false,airbnbMonthly:true,beds24:true}}).ready,false);
  assert.equal(evaluateProductionCutover({...input,sourceEvidenceTimestamp:undefined}).ready,false);
 });
+
+test("Booking.com reservation notification blocks cutover until its live OTA ID is verified",()=>{
+ const notice={identifier:"1234567890",source:"booking-com" as const,state:"new" as const};
+ const missing=evaluateProductionCutover({...input,reservationNotices:[notice]});
+ assert.equal(missing.ready,false);
+ assert.ok(missing.blockers.includes("BOOKING_COM_NOTICES_UNVERIFIED_IN_LIVE_OTA"));
+ const verified=evaluateProductionCutover({...input,reservationNotices:[notice],liveBookingComReservationIds:["1234567890"]});
+ assert.equal(verified.ready,true);
+});
+test("one unverified notification among several must block cutover",()=>{
+ const notices=[{identifier:"1234567890",source:"booking-com" as const,state:"new" as const},
+ {identifier:"1234567891",source:"booking-com" as const,state:"modify" as const}];
+ const result=evaluateProductionCutover({...input,reservationNotices:notices,liveBookingComReservationIds:["1234567890"]});
+ assert.equal(result.ready,false);
+});
