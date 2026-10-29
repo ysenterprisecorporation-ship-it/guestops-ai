@@ -1,8 +1,9 @@
-name: Verify Starter production
+name: Verify GuestOps production
 on:
   push:
     branches: [main]
     paths:
+      - 'docs/index.html'
       - 'docs/starter/order/index.html'
       - '.github/workflows/verify-starter-production.yml'
   workflow_dispatch:
@@ -12,22 +13,24 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-      - name: Compare live HTML with latest purchase page
+      - name: Check live landing and checkout pages
         shell: bash
         run: |
           set -euo pipefail
-          URL="https://ysenterprisecorporation-ship-it.github.io/guestops-ai/starter/order/?audit=${GITHUB_SHA}"
-          echo "Checking $URL"
-          for i in {1..12}; do
-            code=$(curl -L --silent --show-error --max-time 20 --output /tmp/starter-live.html --write-out '%{http_code}' -H 'Cache-Control: no-cache' "$URL" || true)
-            if [ "$code" = "200" ] && grep -Fq '購入後、最初に使う3つの場面' /tmp/starter-live.html && grep -Fq 'その迷いを、施設のルールに変える' /tmp/starter-live.html; then
-              echo "PASS: production shows updated headline and use-case section"
+          BASE="https://ysenterprisecorporation-ship-it.github.io/guestops-ai"
+          for i in {1..20}; do
+            code_main=$(curl -L --silent --show-error --max-time 20 --output /tmp/guestops-main.html --write-out '%{http_code}' -H 'Cache-Control: no-cache' "$BASE/?audit=${GITHUB_SHA}" || true)
+            code_order=$(curl -L --silent --show-error --max-time 20 --output /tmp/guestops-order.html --write-out '%{http_code}' -H 'Cache-Control: no-cache' "$BASE/starter/order/?audit=${GITHUB_SHA}" || true)
+            if [ "$code_main" = "200" ] && [ "$code_order" = "200" ] \
+              && grep -Fq '「誰に確認する？」を減らす施設運営へ。' /tmp/guestops-main.html \
+              && grep -Fq '9,800円/月' /tmp/guestops-main.html \
+              && grep -Fq '購入後、最初に使う3つの場面' /tmp/guestops-order.html \
+              && grep -Fq 'その迷いを、施設のルールに変える' /tmp/guestops-order.html; then
+              echo "PASS: live pages contain latest conversion copy and pricing"
               exit 0
             fi
-            echo "Attempt $i: HTTP $code; expected updated text not yet confirmed"
+            echo "Attempt $i: main HTTP $code_main, order HTTP $code_order; latest content not yet verified"
             sleep 15
           done
-          echo "::error::Latest Starter purchase content is not verified on GitHub Pages"
+          echo "::error::Live GitHub Pages content differs from expected main/order HTML"
           exit 1
