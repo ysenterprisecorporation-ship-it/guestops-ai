@@ -1,0 +1,33 @@
+name: Verify Starter production
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/starter/order/index.html'
+      - '.github/workflows/verify-starter-production.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Compare live HTML with latest purchase page
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="https://ysenterprisecorporation-ship-it.github.io/guestops-ai/starter/order/?audit=${GITHUB_SHA}"
+          echo "Checking $URL"
+          for i in {1..12}; do
+            code=$(curl -L --silent --show-error --max-time 20 --output /tmp/starter-live.html --write-out '%{http_code}' -H 'Cache-Control: no-cache' "$URL" || true)
+            if [ "$code" = "200" ] && grep -Fq '購入後、最初に使う3つの場面' /tmp/starter-live.html && grep -Fq 'その迷いを、施設のルールに変える' /tmp/starter-live.html; then
+              echo "PASS: production shows updated headline and use-case section"
+              exit 0
+            fi
+            echo "Attempt $i: HTTP $code; expected updated text not yet confirmed"
+            sleep 15
+          done
+          echo "::error::Latest Starter purchase content is not verified on GitHub Pages"
+          exit 1
