@@ -91,7 +91,7 @@ export function beds24PropertyBookingSnapshot() {
  requireReadOnly();
  const props=PropertiesService.getScriptProperties();
  const propertyId=props.getProperty("GTOS_BEDS24_TEST_PROPERTY_ID");
- if(!propertyId || !/^\\d+$/.test(propertyId)) throw new Error("BEDS24_TEST_PROPERTY_NOT_CONFIGURED");
+ if(!propertyId || !/^\d+$/.test(propertyId)) throw new Error("BEDS24_TEST_PROPERTY_NOT_CONFIGURED");
  const http=new GasPmsHttpClient();
  const token=new Beds24TokenManager(http,new GasBeds24TokenStore()).accessToken();
  // Never fetch all account reservations without a property filter.
