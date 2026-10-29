@@ -1,0 +1,38 @@
+name: Verify Starter Fulfillment Script
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ops/starter-fulfillment.gs'
+      - '.github/workflows/verify-fulfillment-script.yml'
+  workflow_dispatch:
+jobs:
+  static-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Syntax and safety checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp ops/starter-fulfillment.gs /tmp/guestops-fulfillment.js
+          node --check /tmp/guestops-fulfillment.js
+          node - <<'NODE'
+          const fs=require('fs');
+          const s=fs.readFileSync('ops/starter-fulfillment.gs','utf8');
+          const must=[
+            'LockService.getScriptLock()',
+            'lock.tryLock(30000)',
+            'starterFulfillmentPreview()',
+            'starterFulfillmentCreateVerifiedDrafts()',
+            "row[4]!=='確認済み'",
+            "row[5]!=='閲覧可'",
+            'GmailApp.createDraft(email,subject,body)',
+            'draft.deleteDraft()',
+            'sh.getRange(index+1,10).setValue',
+            'finally {if(!dryRun)lock.releaseLock()}'
+          ];
+          for(const marker of must)if(!s.includes(marker))throw Error('Missing invariant: '+marker);
+          if(/GmailApp\.sendEmail\s*\(/.test(s))throw Error('Automatic sending is not permitted in this stage');
+          console.log('PASS: syntactically valid, safety invariants retained');
+          NODE
