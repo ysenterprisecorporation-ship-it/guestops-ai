@@ -14,3 +14,13 @@ test("monthly protection requires every day, not just distant future calendar bl
  assert.equal(seasonProtected([{start:"2027-02-01",end:"2027-10-14",kind:"blocked",source:"airbnb"}]),false);
  assert.equal(seasonProtected([{start:"2027-01-01",end:"2027-04-01",kind:"blocked",source:"verified"}]),true);
 });
+
+test("duplicate intervals cannot conceal mismatched booking count",()=>{
+ assert.equal(reconcileIntervals([booked,booked],[booked]).matched,false);
+ assert.equal(reconcileIntervals([booked],[booked,booked]).matched,false);
+});
+test("impossible dates are invalid and do not count toward monthly protection",()=>{
+ const invalid={start:"2027-02-30",end:"2027-03-02",kind:"blocked" as const,source:"feed"};
+ assert.equal(reconcileIntervals([invalid],[invalid]).matched,false);
+ assert.equal(seasonProtected([invalid]),false);
+});
