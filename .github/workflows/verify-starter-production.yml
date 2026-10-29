@@ -24,7 +24,10 @@ jobs:
             if [ "$code_main" = "200" ] && [ "$code_order" = "200" ] \
               && grep -Fq '「誰に確認する？」を減らす施設運営へ。' /tmp/guestops-main.html \
               && grep -Fq '9,800円/月' /tmp/guestops-main.html \
+              && grep -Fq 'id="apply-guestops"' /tmp/guestops-main.html \
+              && grep -Fq 'id="guestops-inquiry-form"' /tmp/guestops-main.html \
               && grep -Fq '購入後、最初に使う3つの場面' /tmp/guestops-order.html \
+              && grep -Fq '../../#apply-guestops' /tmp/guestops-order.html \
               && grep -Fq 'その迷いを、施設のルールに変える' /tmp/guestops-order.html; then
               echo "PASS: live pages contain latest conversion copy and pricing"
               exit 0
