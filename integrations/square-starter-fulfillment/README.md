@@ -68,3 +68,10 @@
 - 読取専用 `auditStarterFulfillment()` に `rejectedPayments` と内訳（`refundedPayments`、`missingBuyerEmail`、`unsettledPayments`、`otherRejectedPayments`）を追加。購入者のメールアドレス・氏名・注文番号をログ出力しない。
 - 集計は**拒否理由を優先順位で一つに分類**するため、個別の理由が複数ある注文も内訳の合計は `rejectedPayments` と一致する。対象決済が複数ある同一注文は `eligiblePayments` と `uniqueEligibleOrders` が異なり得る。
 - GitHub上の模擬テストに、拒否理由4種、異常レスポンス3種、正常な空レスポンス、異常レスポンス時の送信・記録ゼロを追加。本番Squareへのアクセスや実購入者への送信は実施していない。
+
+## 2026-10-30 07時台：異常JSON・ページネーション停止条件
+
+- Squareの決済一覧がHTTP 200でも、トップレベルがJSON配列、`errors` が配列以外、`payments` がnullなど、API仕様外の応答なら**納品処理を例外停止**する。空の `payments: []` と `errors: []` は正常として扱う。
+- Squareが同一のページネーション `cursor` を繰り返した場合、納品処理と読み取り専用監査の両方を停止する。これにより同一ページを延々と取得する状態を防止する。
+- GitHub上の `test-fulfillment.cjs` に異常JSONと繰返しcursorの回帰テストを追加。
+- 今回は取得した最新版 `Code.gs` をJavaScript実行環境に読み込み、**既存18適格性チェックと新規6回帰チェックの成功**、模擬Square取得4回、Gmail送信0件、Script Properties書込0件を確認。GitHub Actionsジョブの成功・Square本番接続・GAS本番配備は未確認。
