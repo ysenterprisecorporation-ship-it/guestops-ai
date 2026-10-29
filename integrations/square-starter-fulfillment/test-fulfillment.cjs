@@ -17,6 +17,7 @@ const props = new Map(Object.entries({
 }));
 const sent = [];
 let failNextSend = false;
+let failPaymentPropertyOnce = false;
 const payment = (id) => ({
   id, status: 'COMPLETED', location_id: 'L1', order_id: 'O1',
   amount_money: {amount: 9800, currency: 'JPY'},
@@ -36,7 +37,14 @@ const ctx = vm.createContext({
   LockService: {getScriptLock: () => ({tryLock: () => true, releaseLock: () => {}})},
   PropertiesService: {getScriptProperties: () => ({
     getProperty: (key) => props.get(key) || null,
-    setProperties: (entries) => Object.entries(entries).forEach(([key, val]) => props.set(key, val))
+    setProperties: (entries) => Object.entries(entries).forEach(([key, val]) => props.set(key, val)),
+    setProperty: (key, val) => {
+      if (failPaymentPropertyOnce && key.startsWith('TEST_P')) {
+        failPaymentPropertyOnce = false;
+        throw Error('simulated payment-key write failure');
+      }
+      props.set(key, val);
+    }
   })},
   GmailApp: {sendEmail: (to, subject, body) => {if (failNextSend) throw Error('simulated Gmail failure'); sent.push({to, subject, body});}},
   UrlFetchApp: {fetch: () => {throw Error('External Square request attempted in test');}}
@@ -80,6 +88,17 @@ assert.match(props.get('TEST_ORDER:O2'), /^PENDING /);
 failNextSend = false;
 run();
 assert.equal(sent.length, 1, 'Gmail failure must not trigger automatic resend');
+// A partial Script Properties write must never allow Gmail send or duplicate delivery.
+ctx.__payments = [{...payment('P6'), order_id: 'O4'}];
+ctx.__order = {...order, id: 'O4'};
+failPaymentPropertyOnce = true;
+const beforePartialWrite = sent.length;
+assert.throws(run, /simulated payment-key write failure/);
+assert.match(props.get('TEST_ORDER:O4'), /^PENDING /, 'order guard written first');
+assert.equal(props.has('TEST_P6'), false, 'payment guard write was interrupted');
+assert.equal(sent.length, beforePartialWrite, 'no mail after interrupted guard write');
+run();
+assert.equal(sent.length, beforePartialWrite, 'order PENDING prevents retry after partial write');
 // Read-only audit must not send, even when live sending is enabled.
 ctx.__payments = [{...payment('P4'), order_id: 'O3'}, {...payment('P5'), order_id: 'O3'}];
 ctx.__order = {...order, id: 'O3'};
@@ -107,5 +126,5 @@ audit = vm.runInContext('auditStarterFulfillment()', ctx);
 assert.equal(audit.invalidOrders, 1, 'canceled order excluded');
 assert.equal(audit.readyToDeliver, 0);
 assert.equal(sent.length, sentBeforeAudit, 'audit remains send-free');
-console.log('PASS: 18 eligibility checks + idempotency, retries, dry-run, Gmail failure, read-only audit');
+console.log('PASS: 18 eligibility checks + idempotency, retries, dry-run, Gmail failure, partial-write safety, read-only audit');
 
