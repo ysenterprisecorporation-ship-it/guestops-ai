@@ -9,7 +9,7 @@ const evidence:CutoverEvidence={
 };
 const input:ProductionCutoverInput={evidence,expectedPropertyId:"364051",otaBookings:[],beds24Bookings:[],
  otaInventory:[],beds24Inventory:[],beds24SeasonalBlocks:[{start:"2027-01-01",end:"2027-04-01",kind:"blocked",source:"verified"}],
- snapshotsComplete:true,otaSourcesVerified:{bookingCom:true,airbnbStay:true,airbnbMonthly:true,beds24:true},sourceEvidenceTimestamp:"2026-10-29T19:00:00+09:00"};
+ snapshotsComplete:true,otaSourcesVerified:{bookingCom:true,airbnbStay:true,airbnbMonthly:true,beds24:true},sourceEvidenceTimestamp:"2026-10-29T19:00:00+09:00",evaluatedAt:"2026-10-29T19:10:00+09:00"};
 test("preflight blocks incomplete real-source snapshots despite approval",()=>{
  const result=evaluateProductionCutover({...input,snapshotsComplete:false});
  assert.equal(result.ready,false);
@@ -53,4 +53,12 @@ test("one unverified notification among several must block cutover",()=>{
  {identifier:"1234567891",source:"booking-com" as const,state:"modify" as const}];
  const result=evaluateProductionCutover({...input,reservationNotices:notices,liveBookingComReservationIds:["1234567890"]});
  assert.equal(result.ready,false);
+});
+
+test("a stale or future snapshot cannot authorize a production cutover",()=>{
+ const stale=evaluateProductionCutover({...input,evaluatedAt:"2026-10-29T20:00:00+09:00"});
+ assert.equal(stale.ready,false);
+ assert.ok(stale.blockers.includes("SOURCE_EVIDENCE_STALE_OR_FUTURE"));
+ const future=evaluateProductionCutover({...input,evaluatedAt:"2026-10-29T18:59:00+09:00"});
+ assert.equal(future.ready,false);
 });
