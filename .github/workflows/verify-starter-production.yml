@@ -67,7 +67,8 @@ jobs:
               && grep -Fq '顧客への案内文（編集して使用可能）' /tmp/guestops-partner.html \
               && grep -Fq 'href="partners/"' /tmp/guestops-main.html \
               && grep -Fq '購入後、最初に使う3つの場面' /tmp/guestops-order.html
-              && grep -Fq '決済から利用開始まで' /tmp/guestops-order.html \ \
+              && grep -Fq '決済から利用開始まで' /tmp/guestops-order.html
+              && grep -Fq '購入前のチェックリスト' /tmp/guestops-order.html \ \ \
               && grep -Fq '../../#apply-guestops' /tmp/guestops-order.html \
               && grep -Fq 'その迷いを、施設のルールに変える' /tmp/guestops-order.html; then
               echo "PASS: live pages contain latest conversion copy and pricing"
