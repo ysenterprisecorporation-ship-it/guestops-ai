@@ -134,7 +134,10 @@ function runStarterFulfillment() {
         // Mark PENDING before Gmail send to fail closed on interrupted execution.
         // An unresolved PENDING record must be reviewed before any manual retry.
         const pendingAt = 'PENDING ' + new Date().toISOString();
-        props.setProperties({[key]: pendingAt, [orderKey]: pendingAt});
+        // Write the order guard FIRST. If the payment-key write fails,
+        // the order remains blocked and no email is sent.
+        props.setProperty(orderKey, pendingAt);
+        props.setProperty(key, pendingAt);
         const subject = '【GuestOps AI】Starter Kit 教材のご案内';
         try {
           GmailApp.sendEmail(payment.buyer_email_address, subject,
@@ -142,7 +145,9 @@ function runStarterFulfillment() {
               name: 'GuestOps AI', replyTo: GO_SENDER
             });
           const sentAt = 'SENT ' + new Date().toISOString();
-          props.setProperties({[key]: sentAt, [orderKey]: sentAt});
+          // Keep the order guard authoritative even if the second write fails.
+          props.setProperty(orderKey, sentAt);
+          props.setProperty(key, sentAt);
           console.log('SENT payment suffix: ' + payment.id.slice(-8));
         } catch (e) {
           // Keep PENDING: an API exception does not prove that mail was unsent.
