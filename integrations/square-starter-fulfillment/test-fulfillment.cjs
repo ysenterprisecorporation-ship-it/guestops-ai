@@ -18,6 +18,7 @@ const props = new Map(Object.entries({
 const sent = [];
 let failNextSend = false;
 let failPaymentPropertyOnce = false;
+let failOrderPropertyOnce = false;
 const payment = (id) => ({
   id, status: 'COMPLETED', location_id: 'L1', order_id: 'O1',
   amount_money: {amount: 9800, currency: 'JPY'},
@@ -39,6 +40,10 @@ const ctx = vm.createContext({
     getProperty: (key) => props.get(key) || null,
     setProperties: (entries) => Object.entries(entries).forEach(([key, val]) => props.set(key, val)),
     setProperty: (key, val) => {
+      if (failOrderPropertyOnce && key.startsWith('TEST_ORDER:')) {
+        failOrderPropertyOnce = false;
+        throw Error('simulated order-key write failure');
+      }
       if (failPaymentPropertyOnce && key.startsWith('TEST_P')) {
         failPaymentPropertyOnce = false;
         throw Error('simulated payment-key write failure');
@@ -99,6 +104,15 @@ assert.equal(props.has('TEST_P6'), false, 'payment guard write was interrupted')
 assert.equal(sent.length, beforePartialWrite, 'no mail after interrupted guard write');
 run();
 assert.equal(sent.length, beforePartialWrite, 'order PENDING prevents retry after partial write');
+// If the first (order) guard write fails, delivery must not start.
+ctx.__payments = [{...payment('P7'), order_id: 'O5'}];
+ctx.__order = {...order, id: 'O5'};
+failOrderPropertyOnce = true;
+const beforeFirstWriteFailure = sent.length;
+assert.throws(run, /simulated order-key write failure/);
+assert.equal(props.has('TEST_ORDER:O5'), false);
+assert.equal(props.has('TEST_P7'), false);
+assert.equal(sent.length, beforeFirstWriteFailure, 'no email if order guard write fails');
 // Read-only audit must not send, even when live sending is enabled.
 ctx.__payments = [{...payment('P4'), order_id: 'O3'}, {...payment('P5'), order_id: 'O3'}];
 ctx.__order = {...order, id: 'O3'};
@@ -126,5 +140,5 @@ audit = vm.runInContext('auditStarterFulfillment()', ctx);
 assert.equal(audit.invalidOrders, 1, 'canceled order excluded');
 assert.equal(audit.readyToDeliver, 0);
 assert.equal(sent.length, sentBeforeAudit, 'audit remains send-free');
-console.log('PASS: 18 eligibility checks + idempotency, retries, dry-run, Gmail failure, partial-write safety, read-only audit');
+console.log('PASS: 18 eligibility checks + idempotency, retries, dry-run, Gmail failure, first/second guard write failures, read-only audit');
 
