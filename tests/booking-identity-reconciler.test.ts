@@ -11,3 +11,10 @@ test("unresolved identity and wrong property fail closed",()=>{
 });
 test("duplicate external booking IDs fail even if dates agree",()=>assert.equal(compareBookingSnapshots([ota,ota],[pms],"364051").safe,false));
 test("unaccounted PMS bookings prohibit cutover",()=>assert.equal(compareBookingSnapshots([], [pms],"364051").safe,false));
+
+test("OTA ID matching PMS ID by coincidence is not proof of mapping",()=>{
+ const incident={...ota,externalId:"B24-9",beds24Id:undefined};
+ const result=compareBookingSnapshots([incident],[pms],"364051");
+ assert.equal(result.safe,false);
+ assert.ok(result.blockers.some(x=>x.startsWith("OTA_BEDS24_MAPPING_MISSING")));
+});
