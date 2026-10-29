@@ -25,7 +25,7 @@ export function seasonProtected(blocks: Interval[], from="2027-01-01",to="2027-0
  const days=new Set<string>();
  for(const b of blocks) {
   if(b.kind==="unknown"||!dateRE.test(b.start)||!dateRE.test(b.end)||b.start>=b.end) continue;
-  let t=Date.parse(b.start+"T00:00:00Z"),end=Date.parse(b.end+"T00:00:00Z");
+  let t=Date.parse(b.start+"T00:00:00Z");\n  const end=Date.parse(b.end+"T00:00:00Z");
   if(!Number.isFinite(t)||!Number.isFinite(end)) continue;
   for(;t<end&&days.size<1000;t+=86400000) days.add(new Date(t).toISOString().slice(0,10));
  }
