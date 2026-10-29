@@ -27,7 +27,7 @@ const payment = (id) => ({
   created_at: '2026-10-30T00:00:00Z'
 });
 const order = {
-  id: 'O1', location_id: 'L1',
+  id: 'O1', state: 'COMPLETED', location_id: 'L1',
   total_money: {amount: 9800, currency: 'JPY'},
   line_items: [{catalog_object_id: 'VAR1', quantity: '1'}]
 };
@@ -159,6 +159,21 @@ audit = vm.runInContext('auditStarterFulfillment()', ctx);
 assert.equal(audit.invalidOrders, 1, 'canceled order excluded');
 assert.equal(audit.readyToDeliver, 0);
 assert.equal(sent.length, sentBeforeAudit, 'audit remains send-free');
+// Square OPEN orders can still be modified. Neither audit nor delivery may
+// treat an OPEN or state-less order as a completed sale.
+ctx.__order = {...order, id: 'O3', state: 'OPEN'};
+audit = vm.runInContext('auditStarterFulfillment()', ctx);
+assert.equal(audit.invalidOrders, 1, 'open order excluded by audit');
+assert.equal(audit.readyToDeliver, 0);
+run();
+assert.equal(sent.length, sentBeforeAudit, 'open order must never receive materials');
+assert.equal(props.has('TEST_ORDER:O3'), false, 'open order must not create delivery guard');
+ctx.__order = {...order, id: 'O3', state: undefined};
+audit = vm.runInContext('auditStarterFulfillment()', ctx);
+assert.equal(audit.invalidOrders, 1, 'missing order state excluded by audit');
+run();
+assert.equal(sent.length, sentBeforeAudit, 'missing state must not send');
+assert.equal(props.has('TEST_ORDER:O3'), false, 'missing state must not create guard');
 // Privacy-safe audit counts explain why a payment was rejected, without PII.
 ctx.__payments = [
   {...payment('PR1'), order_id: 'O7', status: 'APPROVED'},
@@ -221,5 +236,5 @@ assert.throws(() => vm.runInContext('auditStarterFulfillment()', ctx),
   /Repeated Square pagination cursor/);
 assert.equal(sent.length, beforeRepeatedCursor, 'repeated cursor must not send');
 assert.deepEqual(props, propsBeforeRepeatedCursor, 'repeated cursor must not write state');
-console.log('PASS: 18 eligibility checks + idempotency, retries, dry-run, Gmail failure, missing message ID, guard write failures, read-only audit, rejection breakdown, malformed Square responses, repeated cursor safety');
+console.log('PASS: 20 eligibility checks + idempotency, retries, dry-run, Gmail failure, missing message ID, guard write failures, read-only audit, rejection breakdown, malformed Square responses, repeated cursor safety');
 
