@@ -147,6 +147,8 @@ footer{font-size:14px;color:#516171}
 <p>施設数と現在の運用を入力すると、問い合わせメールの下書きを作成します。送信前に内容を確認できます。入力内容はこのページからサーバーへ送信・保存されず、課金も開始されません。</p>
 <form id="guestops-inquiry-form">
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px">
+<label>事業者・屋号（必須）<input id="go-operator" type="text" maxlength="100" required placeholder="例：○○宿泊運営" autocomplete="organization" style="display:block;width:100%;box-sizing:border-box;padding:10px"></label>
+<label>折り返し先メール（任意）<input id="go-reply" type="email" maxlength="254" placeholder="例：contact@example.com" autocomplete="email" style="display:block;width:100%;box-sizing:border-box;padding:10px"></label>
 <label>施設数（必須）<input id="go-count" type="number" min="1" max="10000" required placeholder="例：3" style="display:block;width:100%;box-sizing:border-box;padding:10px"></label>
 <label>現在の予約管理方法<select id="go-pms" style="display:block;width:100%;padding:10px"><option>未定・未導入</option><option>Beds24</option><option>AirHost</option><option>Lodgify</option><option>その他</option></select></label>
 <label>予約サイト<select id="go-ota" style="display:block;width:100%;padding:10px"><option>Booking.com</option><option>Airbnb</option><option>複数サイト</option><option>その他・未定</option></select></label>
@@ -176,13 +178,15 @@ const value=Number(this.value);
 pricePreview.textContent=this.value.trim()&&estimate(value)?estimate(value)+'。正式な料金・機能・開始日は契約前に確定します。':'施設数を入力すると月額目安が表示されます。契約・課金は開始されません。';
 });
 function inquiry(){
+const operator=document.getElementById('go-operator'),reply=document.getElementById('go-reply');
+if(!operator.reportValidity()||!reply.reportValidity())return null;
 const n=document.getElementById('go-count');
 if(!n.reportValidity())return null;
 const count=Number(n.value);
 if(!Number.isInteger(count)||count<1||count>10000){msg.textContent='施設数は1以上の整数を入力してください。';return null;}
 const plan=count===1?'1施設':count<=4?'2〜4施設':count<=9?'5〜9施設':'10施設以上';
 const works=[...document.querySelectorAll('input[name="go-work"]:checked')].map(x=>x.value).join('、')||'未指定';
-return 'GuestOps AI 月額導入相談\n希望プラン：'+plan+'\n導入施設数：'+count+'\n月額料金の目安：'+estimate(count)+'（正式な提供範囲・料金は契約前に確定）'+'\n予約管理方法：'+document.getElementById('go-pms').value+'\n予約サイト：'+document.getElementById('go-ota').value+'\n導入時期：'+document.getElementById('go-when').value+'\n優先課題：'+works+'\n連絡事項：\n\n提供範囲・費用・開始日をメールで確認したいです。\nhttps://ysenterprisecorporation-ship-it.github.io/guestops-ai/';
+return 'GuestOps AI 月額導入相談\n事業者・屋号：'+operator.value.trim()+'\n折り返し先：'+(reply.value.trim()||'メール送信元へ返信希望')+'\n希望プラン：'+plan+'\n導入施設数：'+count+'\n月額料金の目安：'+estimate(count)+'（正式な提供範囲・料金は契約前に確定）'+'\n予約管理方法：'+document.getElementById('go-pms').value+'\n予約サイト：'+document.getElementById('go-ota').value+'\n導入時期：'+document.getElementById('go-when').value+'\n優先課題：'+works+'\n連絡事項：\n\n提供範囲・費用・開始日をメールで確認したいです。\nhttps://ysenterprisecorporation-ship-it.github.io/guestops-ai/';
 }
 form.addEventListener('submit',function(e){e.preventDefault();const body=inquiry();if(!body)return;msg.textContent='メールアプリが開かない場合は「問い合わせ内容をコピー」をご利用ください。';window.location.href='mailto:minpaku.ai.kit@gmail.com?subject='+encodeURIComponent('GuestOps AI 月額導入相談')+'&body='+encodeURIComponent(body);});
 document.getElementById('go-copy').addEventListener('click',async function(){const body=inquiry();if(!body)return;try{await navigator.clipboard.writeText(body);msg.textContent='問い合わせ内容をコピーしました。minpaku.ai.kit@gmail.com 宛にお送りください。';}catch(e){msg.textContent='コピーできませんでした。メール作成ボタンをお使いください。';}});
