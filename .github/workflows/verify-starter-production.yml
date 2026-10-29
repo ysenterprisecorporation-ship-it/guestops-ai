@@ -55,6 +55,26 @@ jobs:
           grep -Fq "operator.value.trim()" docs/index.html
           grep -Fq "reply.reportValidity()" docs/index.html
           grep -Fq "事業者・屋号を入力してください。" docs/index.html
+      - name: Regression test monthly price calculations
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          page=Path("docs/index.html").read_text(encoding="utf-8")
+          begin=page.index("function estimate(count){")
+          end=page.index("const pricePreview=",begin)
+          function=page[begin:end]
+          assertions="""
+          const cases=[[1,'9,800円'],[2,'15,600円'],[4,'31,200円'],[5,'34,000円'],[9,'61,200円'],[10,'49,800〜59,800円']];
+          for(const [n,expected] of cases){const actual=estimate(n);if(!actual.includes(expected))throw new Error('Pricing mismatch: '+n+' '+actual);}
+          if(estimate(0)!=='')throw new Error('Count 0 should be rejected');
+          if(estimate(1.5)!=='')throw new Error('Fractional count should be rejected');
+          console.log('PASS: 6 price tiers and 2 invalid counts');
+          """
+          Path("/tmp/monthly-price-test.js").write_text(function+assertions,encoding="utf-8")
+          PY
+          node /tmp/monthly-price-test.js
       - name: Check live landing and checkout pages
         shell: bash
         run: |
