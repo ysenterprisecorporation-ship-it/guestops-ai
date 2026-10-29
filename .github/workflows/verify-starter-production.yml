@@ -47,6 +47,14 @@ jobs:
               Path(f"/tmp/guestops-script-{i}.js").write_text(script,encoding="utf-8")
           PY
           for script in /tmp/guestops-script-*.js; do node --check "$script"; done
+      - name: Check monthly inquiry validation in source
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'id="go-operator"' docs/index.html
+          grep -Fq "operator.value.trim()" docs/index.html
+          grep -Fq "reply.reportValidity()" docs/index.html
+          grep -Fq "事業者・屋号を入力してください。" docs/index.html
       - name: Check live landing and checkout pages
         shell: bash
         run: |
