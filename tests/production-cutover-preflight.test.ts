@@ -1,0 +1,35 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import {evaluateProductionCutover,ProductionCutoverInput} from "../src/pms/ProductionCutoverPreflight";
+import {CutoverEvidence} from "../src/pms/ProductionCutoverGate";
+const evidence:CutoverEvidence={
+ bookingChannelMapped:true,airbnbStayMapped:true,airbnbMonthlyMapped:true,
+ existingBookingReconciled:true,blockedDaysReconciled:true,seasonalMonthlyDatesProtected:true,
+ legacyGASOutboundDisconnected:true,oldIcalImportsDisconnected:true,authorizedByOwner:true
+};
+const input:ProductionCutoverInput={evidence,expectedPropertyId:"364051",otaBookings:[],beds24Bookings:[],
+ otaInventory:[],beds24Inventory:[],beds24SeasonalBlocks:[{start:"2027-01-01",end:"2027-04-01",kind:"blocked",source:"verified"}],
+ snapshotsComplete:true};
+test("preflight blocks incomplete real-source snapshots despite approval",()=>{
+ const result=evaluateProductionCutover({...input,snapshotsComplete:false});
+ assert.equal(result.ready,false);
+ assert.ok(result.blockers.includes("SOURCE_SNAPSHOTS_INCOMPLETE"));
+});
+test("preflight rejects invented manual reconciliation success",()=>{
+ const result=evaluateProductionCutover({...input,otaInventory:[{start:"2026-11-01",end:"2026-11-02",kind:"blocked",source:"airbnb"}]});
+ assert.equal(result.ready,false);
+ assert.ok(result.blockers.includes("BLOCKED_DATES_NOT_RECONCILED"));
+});
+test("preflight blocks unprotected January monthly days",()=>{
+ const result=evaluateProductionCutover({...input,beds24SeasonalBlocks:[{start:"2027-02-01",end:"2027-10-14",kind:"blocked",source:"import"}]});
+ assert.equal(result.ready,false);
+ assert.ok(result.blockers.includes("MONTHLY_2027_NOT_PROTECTED"));
+});
+test("preflight blocks unresolved booking mappings",()=>{
+ const result=evaluateProductionCutover({...input,otaBookings:[{provider:"airbnb-stay",externalId:"OTA1",propertyId:"364051",arrival:"2026-11-01",departure:"2026-11-03",status:"confirmed"}]});
+ assert.equal(result.ready,false);
+ assert.ok(result.bookingDifferences.some(x=>x.includes("UNRESOLVED_MAPPING")));
+});
+test("fully reconciled verified evidence can pass",()=>{
+ assert.equal(evaluateProductionCutover(input).ready,true);
+});
