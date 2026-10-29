@@ -61,10 +61,11 @@ function goSquareGet_(path, config) {
  * there are no matches, but a non-array payments field is not an empty page.
  */
 function goValidatePaymentPage_(response) {
-  if (!response || typeof response !== 'object' ||
+  if (!response || typeof response !== 'object' || Array.isArray(response) ||
       (response.payments !== undefined && !Array.isArray(response.payments)) ||
       (response.cursor !== undefined && typeof response.cursor !== 'string') ||
-      (Array.isArray(response.errors) && response.errors.length > 0)) {
+      (response.errors !== undefined &&
+        (!Array.isArray(response.errors) || response.errors.length > 0))) {
     throw new Error('Unexpected Square payment list response; no delivery attempted.');
   }
   return response;
@@ -126,7 +127,12 @@ function runStarterFulfillment() {
     const props = PropertiesService.getScriptProperties();
     const config = goRequiredConfig_(props);
     let cursor = '';
+    const seenCursors = {};
     for (let page = 0; page < 10; page++) {
+      if (cursor) {
+        if (seenCursors[cursor]) throw new Error('Repeated Square pagination cursor; stopped.');
+        seenCursors[cursor] = true;
+      }
       let query = 'payments?limit=100&sort_order=DESC&location_id=' +
         encodeURIComponent(config.location) + '&begin_time=' +
         encodeURIComponent(config.since);
@@ -205,7 +211,12 @@ function auditStarterFulfillment() {
     };
     const seenOrders = {};
     let cursor = '';
+    const seenCursors = {};
     for (let page = 0; page < 10; page++) {
+      if (cursor) {
+        if (seenCursors[cursor]) throw new Error('Repeated Square pagination cursor; stopped.');
+        seenCursors[cursor] = true;
+      }
       let query = 'payments?limit=100&sort_order=DESC&location_id=' +
         encodeURIComponent(config.location) + '&begin_time=' +
         encodeURIComponent(config.since);
