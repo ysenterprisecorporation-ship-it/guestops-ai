@@ -140,11 +140,18 @@ function runStarterFulfillment() {
         props.setProperty(key, pendingAt);
         const subject = '【GuestOps AI】Starter Kit 教材のご案内';
         try {
-          GmailApp.sendEmail(payment.buyer_email_address, subject,
+          // GmailDraft.send() returns a GmailMessage. Capture its message ID
+          // so a recorded SENT status has a concrete Gmail audit reference.
+          // The PENDING guards are already stored before draft creation.
+          const sentMessage = GmailApp.createDraft(payment.buyer_email_address, subject,
             goDeliveryBody_(payment, config), {
               name: 'GuestOps AI', replyTo: GO_SENDER
-            });
-          const sentAt = 'SENT ' + new Date().toISOString();
+            }).send();
+          const gmailId = sentMessage && sentMessage.getId();
+          if (typeof gmailId !== 'string' || !gmailId) {
+            throw new Error('Gmail sent without a usable message ID; manual review required.');
+          }
+          const sentAt = 'SENT ' + new Date().toISOString() + ' MSG:' + gmailId;
           // Keep the order guard authoritative even if the second write fails.
           props.setProperty(orderKey, sentAt);
           props.setProperty(key, sentAt);
