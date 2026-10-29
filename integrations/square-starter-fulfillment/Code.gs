@@ -1,0 +1,175 @@
+/**
+ * GuestOps Starter Kit (9,800 JPY) fulfillment candidate processor.
+ * GAS time-driven trigger: runStarterFulfillment.
+ * FAIL CLOSED: SEND_ENABLED defaults to false; no charge or Square mutation.
+ * Never publish access tokens or buyer delivery links in a public repository.
+ */
+const GO_SQUARE_API = 'https://connect.squareup.com/v2/';
+const GO_SQUARE_VERSION = '2026-08-19';
+const GO_SENDER = 'minpaku.ai.kit@gmail.com';
+const GO_PRICE_JPY = 9800;
+
+function goRequiredConfig_(props) {
+  const keys = [
+    'SQUARE_ACCESS_TOKEN', 'SQUARE_LOCATION_ID', 'STARTER_CATALOG_OBJECT_ID',
+    'FULFILL_SINCE_ISO', 'STARTER_GUIDE_URL',
+    'STARTER_PROMPT_URL', 'STARTER_SHEET_URL'
+  ];
+  const missing = keys.filter(k => !props.getProperty(k));
+  if (missing.length) throw new Error('Missing Script Properties: ' + missing.join(', '));
+  const since = props.getProperty('FULFILL_SINCE_ISO');
+  if (!/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?Z$/.test(since) ||
+      !Number.isFinite(Date.parse(since)) || Date.parse(since) > Date.now()) {
+    throw new Error('FULFILL_SINCE_ISO must be a valid UTC past timestamp.');
+  }
+  ['STARTER_GUIDE_URL', 'STARTER_PROMPT_URL', 'STARTER_SHEET_URL'].forEach(k => {
+    if (!/^https:\/\/docs\.google\.com\//.test(props.getProperty(k))) {
+      throw new Error(k + ' must be an HTTPS Google Docs URL.');
+    }
+  });
+  if (Session.getEffectiveUser().getEmail().toLowerCase() !== GO_SENDER) {
+    throw new Error('Wrong Google account: run only as ' + GO_SENDER);
+  }
+  return {
+    token: props.getProperty('SQUARE_ACCESS_TOKEN'),
+    location: props.getProperty('SQUARE_LOCATION_ID'),
+    catalogId: props.getProperty('STARTER_CATALOG_OBJECT_ID'),
+    since,
+    enabled: props.getProperty('SEND_ENABLED') === 'true',
+    guide: props.getProperty('STARTER_GUIDE_URL'),
+    prompt: props.getProperty('STARTER_PROMPT_URL'),
+    sheet: props.getProperty('STARTER_SHEET_URL')
+  };
+}
+
+function goSquareGet_(path, config) {
+  const res = UrlFetchApp.fetch(GO_SQUARE_API + path, {
+    method: 'get', muteHttpExceptions: true,
+    headers: {
+      Authorization: 'Bearer ' + config.token,
+      'Square-Version': GO_SQUARE_VERSION,
+      'Content-Type': 'application/json'
+    }
+  });
+  const status = res.getResponseCode();
+  if (status !== 200) throw new Error('Square GET failed: HTTP ' + status);
+  return JSON.parse(res.getContentText());
+}
+
+function goPaymentEligible_(p, config) {
+  return !!(p && p.id && p.status === 'COMPLETED' &&
+    p.location_id === config.location && p.order_id &&
+    p.amount_money && p.amount_money.currency === 'JPY' &&
+    Number(p.amount_money.amount) === GO_PRICE_JPY &&
+    (!p.refund_ids || p.refund_ids.length === 0) &&
+    (!p.refunded_money || Number(p.refunded_money.amount || 0) === 0) &&
+    p.created_at && Date.parse(p.created_at) >= Date.parse(config.since) &&
+    typeof p.buyer_email_address === 'string' &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.buyer_email_address) &&
+    p.buyer_email_address.toLowerCase() !== GO_SENDER);
+}
+
+function goOrderEligible_(order, payment, config) {
+  if (!order || order.id !== payment.order_id ||
+      order.location_id !== config.location ||
+      !order.total_money || order.total_money.currency !== 'JPY' ||
+      Number(order.total_money.amount) !== GO_PRICE_JPY ||
+      !Array.isArray(order.line_items) || order.line_items.length !== 1) return false;
+  const item = order.line_items[0];
+  return item.catalog_object_id === config.catalogId &&
+    String(item.quantity) === '1';
+}
+
+function goDeliveryBody_(payment, config) {
+  return [
+    'GuestOps Starter Kitのお申し込みありがとうございます。',
+    'Squareでの決済完了を確認しました。以下が購入者用教材です。',
+    '',
+    '1. 利用ガイド: ' + config.guide,
+    '2. 施設専用マスタープロンプト: ' + config.prompt,
+    '3. 施設情報設定・20場面判断・初回テスト: ' + config.sheet,
+    '',
+    'まず利用ガイドの「購入直後の動作確認」をお試しください。',
+    '実際のゲスト情報は匿名化し、AIの返信案は送信前に確認してください。',
+    'Starterは手動運用用です。PMS連携・予約サイト自動送信は含まれません。',
+    '',
+    '照合番号: ' + payment.id,
+    'お問い合わせ: ' + GO_SENDER,
+    'GuestOps AI 運営窓口'
+  ].join('\n');
+}
+
+function goKey_(paymentId) {
+  const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, paymentId);
+  return 'GO_SENT_' + Utilities.base64EncodeWebSafe(bytes).replace(/=+$/, '');
+}
+
+function runStarterFulfillment() {
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(20000)) throw new Error('Another fulfillment run is active.');
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const config = goRequiredConfig_(props);
+    let cursor = '';
+    for (let page = 0; page < 10; page++) {
+      let query = 'payments?limit=100&sort_order=DESC&location_id=' +
+        encodeURIComponent(config.location) + '&begin_time=' +
+        encodeURIComponent(config.since);
+      if (cursor) query += '&cursor=' + encodeURIComponent(cursor);
+      const response = goSquareGet_(query, config);
+      const payments = response.payments || [];
+      for (const payment of payments) {
+        if (!goPaymentEligible_(payment, config)) continue;
+        const key = goKey_(payment.id);
+        if (props.getProperty(key)) continue; // SENT or PENDING: no repeat send
+        const result = goSquareGet_('orders/' + encodeURIComponent(payment.order_id), config);
+        if (!goOrderEligible_(result.order, payment, config)) continue;
+        if (!config.enabled) {
+          console.log('DRY_RUN eligible payment suffix: ' + payment.id.slice(-8));
+          continue;
+        }
+        // Mark PENDING before Gmail send to fail closed on interrupted execution.
+        // An unresolved PENDING record must be reviewed before any manual retry.
+        props.setProperty(key, 'PENDING ' + new Date().toISOString());
+        const subject = '【GuestOps AI】Starter Kit 教材のご案内';
+        try {
+          GmailApp.sendEmail(payment.buyer_email_address, subject,
+            goDeliveryBody_(payment, config), {
+              name: 'GuestOps AI', replyTo: GO_SENDER
+            });
+          props.setProperty(key, 'SENT ' + new Date().toISOString());
+          console.log('SENT payment suffix: ' + payment.id.slice(-8));
+        } catch (e) {
+          // Keep PENDING: an API exception does not prove that mail was unsent.
+          console.error('Send needs manual review, payment suffix: ' + payment.id.slice(-8));
+          throw e;
+        }
+      }
+      cursor = response.cursor || '';
+      if (!cursor) return;
+    }
+    throw new Error('Payment pagination exceeded 10 pages; investigate before next run.');
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/** No API calls or emails. Run this first in Apps Script. */
+function testStarterFulfillmentRules() {
+  const c = {location:'L1',catalogId:'VAR1',since:'2026-10-29T00:00:00Z'};
+  const p = {id:'P1',status:'COMPLETED',location_id:'L1',order_id:'O1',
+    amount_money:{amount:9800,currency:'JPY'},buyer_email_address:'buyer@example.com',
+    created_at:'2026-10-30T00:00:00Z'};
+  const o = {id:'O1',location_id:'L1',total_money:{amount:9800,currency:'JPY'},
+    line_items:[{catalog_object_id:'VAR1',quantity:'1'}]};
+  function check(x, label) {if (!x) throw new Error('FAILED: ' + label);}
+  check(goPaymentEligible_(p,c), 'paid valid payment');
+  check(goOrderEligible_(o,p,c), 'correct product');
+  check(!goPaymentEligible_(Object.assign({},p,{status:'APPROVED'}),c), 'unsettled');
+  check(!goPaymentEligible_(Object.assign({},p,{amount_money:{amount:980,currency:'JPY'}}),c), 'amount');
+  check(!goPaymentEligible_(Object.assign({},p,{refund_ids:['R1']}),c), 'refund');
+  check(!goPaymentEligible_(Object.assign({},p,{buyer_email_address:''}),c), 'missing email');
+  check(!goOrderEligible_(Object.assign({},o,{line_items:[{catalog_object_id:'OTHER',quantity:'1'}]}),p,c), 'wrong item');
+  check(!goOrderEligible_(Object.assign({},o,{line_items:[{catalog_object_id:'VAR1',quantity:'2'}]}),p,c), 'quantity');
+  console.log('PASS: 8 safe fulfillment checks');
+}
