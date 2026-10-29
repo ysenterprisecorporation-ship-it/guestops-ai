@@ -28,7 +28,7 @@ test("preflight blocks unprotected January monthly days",()=>{
 test("preflight blocks unresolved booking mappings",()=>{
  const result=evaluateProductionCutover({...input,otaBookings:[{provider:"airbnb-stay",externalId:"OTA1",propertyId:"364051",arrival:"2026-11-01",departure:"2026-11-03",status:"confirmed"}]});
  assert.equal(result.ready,false);
- assert.ok(result.bookingDifferences.some(x=>x.includes("UNRESOLVED_MAPPING")));
+ assert.ok(result.bookingDifferences.some(x=>x.includes("OTA_BEDS24_MAPPING_MISSING")));
 });
 test("fully reconciled verified evidence can pass",()=>{
  assert.equal(evaluateProductionCutover(input).ready,true);
