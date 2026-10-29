@@ -100,14 +100,16 @@ export function beds24PropertyBookingSnapshot() {
  let recordCount=0;
  let pages=0;
  while(next && pages<20){
-  const endpoint=new URL(next);
-  if(endpoint.protocol!=="https:"||endpoint.hostname!=="beds24.com"||!endpoint.pathname.startsWith("/api/v2/bookings"))
+  // Apps Script V8 does not consistently expose the WHATWG URL global.
+  const endpoint=next;
+  if(!/^https:\/\/beds24\.com\/api\/v2\/bookings(?:\?|$)/.test(endpoint))
     throw new Error("BEDS24_UNTRUSTED_NEXT_PAGE");
-  if(endpoint.searchParams.get("propertyId")!==propertyId)
+  const match=endpoint.match(/[?&]propertyId=([^&]+)/);
+  if(!match || decodeURIComponent(match[1])!==propertyId)
     throw new Error("BEDS24_PAGINATION_PROPERTY_FILTER_LOST");
-  if(seen.has(endpoint.toString())) throw new Error("BEDS24_PAGINATION_LOOP");
-  seen.add(endpoint.toString());
-  const response=http.request("GET",endpoint.toString(),{token,accept:"application/json"});
+  if(seen.has(endpoint)) throw new Error("BEDS24_PAGINATION_LOOP");
+  seen.add(endpoint);
+  const response=http.request("GET",endpoint,{token,accept:"application/json"});
   if(response.status<200||response.status>=300) throw new Error("BEDS24_SNAPSHOT_HTTP_"+response.status);
   let parsed:unknown;
   try {parsed=JSON.parse(response.body);}catch{throw new Error("BEDS24_SNAPSHOT_JSON_INVALID");}
@@ -128,7 +130,7 @@ export function beds24PropertyBookingSnapshot() {
   if(value && value.nextPageLink!==undefined && value.nextPageLink!==null && typeof value.nextPageLink!=="string")
     throw new Error("BEDS24_SNAPSHOT_NEXT_LINK_INVALID");
   next=value && typeof value.nextPageLink==="string" && value.nextPageLink
-    ? new URL(value.nextPageLink,"https://beds24.com").toString():"";
+    ? value.nextPageLink.startsWith("/") ? "https://beds24.com"+value.nextPageLink : value.nextPageLink : "";
  }
  if(next)throw new Error("BEDS24_SNAPSHOT_PAGE_LIMIT_EXCEEDED");
  return {propertyId,readOnly:true,recordCount,statuses:counts,pages,complete:true,
