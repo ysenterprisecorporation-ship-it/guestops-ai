@@ -159,5 +159,44 @@ audit = vm.runInContext('auditStarterFulfillment()', ctx);
 assert.equal(audit.invalidOrders, 1, 'canceled order excluded');
 assert.equal(audit.readyToDeliver, 0);
 assert.equal(sent.length, sentBeforeAudit, 'audit remains send-free');
-console.log('PASS: 18 eligibility checks + idempotency, retries, dry-run, Gmail failure, missing message ID, first/second guard write failures, read-only audit');
+// Privacy-safe audit counts explain why a payment was rejected, without PII.
+ctx.__payments = [
+  {...payment('PR1'), order_id: 'O7', status: 'APPROVED'},
+  {...payment('PR2'), order_id: 'O7', buyer_email_address: ''},
+  {...payment('PR3'), order_id: 'O7', refund_ids: ['REF1']},
+  {...payment('PR4'), order_id: 'O7', location_id: 'OTHER'},
+  {...payment('PR5'), order_id: 'O7'}
+];
+ctx.__order = {...order, id: 'O7'};
+audit = vm.runInContext('auditStarterFulfillment()', ctx);
+assert.equal(audit.scannedPayments, 5);
+assert.equal(audit.eligiblePayments, 1);
+assert.equal(audit.rejectedPayments, 4);
+assert.equal(audit.refundedPayments, 1);
+assert.equal(audit.missingBuyerEmail, 1);
+assert.equal(audit.unsettledPayments, 1);
+assert.equal(audit.otherRejectedPayments, 1);
+assert.equal(audit.readyToDeliver, 1);
+assert.equal(sent.length, sentBeforeAudit, 'audit breakdown must never send Gmail');
+
+// An HTTP 200 response with a malformed page is not proof of zero payments.
+assert.throws(() => vm.runInContext('goValidatePaymentPage_({payments:{bad:true}})', ctx), /Unexpected Square payment list response/);
+assert.throws(() => vm.runInContext('goValidatePaymentPage_({cursor:123})', ctx), /Unexpected Square payment list response/);
+assert.throws(() => vm.runInContext('goValidatePaymentPage_({errors:[{code:"FAULT"}]})', ctx), /Unexpected Square payment list response/);
+assert.equal(vm.runInContext('goValidatePaymentPage_({}).payments === undefined', ctx), true,
+  'empty response may omit payments field');
+vm.runInContext(`
+  goSquareGet_ = function(url) {
+    if (url.startsWith('payments?')) return {payments:{unexpected:true}};
+    throw Error('Unexpected Square path: ' + url);
+  };
+`, ctx);
+const beforeMalformedPage = sent.length;
+const propsBeforeMalformedPage = new Map(props);
+assert.throws(run, /Unexpected Square payment list response/);
+assert.throws(() => vm.runInContext('auditStarterFulfillment()', ctx),
+  /Unexpected Square payment list response/);
+assert.equal(sent.length, beforeMalformedPage, 'malformed Square page must not send');
+assert.deepEqual(props, propsBeforeMalformedPage, 'malformed Square page must not write state');
+console.log('PASS: 18 eligibility checks + idempotency, retries, dry-run, Gmail failure, missing message ID, first/second guard write failures, read-only audit, rejection breakdown, malformed Square response');
 
