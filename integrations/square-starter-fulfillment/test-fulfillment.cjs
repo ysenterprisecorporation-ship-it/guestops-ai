@@ -16,6 +16,7 @@ const props = new Map(Object.entries({
   SEND_ENABLED: 'true'
 }));
 const sent = [];
+let failNextSend = false;
 const payment = (id) => ({
   id, status: 'COMPLETED', location_id: 'L1', order_id: 'O1',
   amount_money: {amount: 9800, currency: 'JPY'},
@@ -37,7 +38,7 @@ const ctx = vm.createContext({
     getProperty: (key) => props.get(key) || null,
     setProperties: (entries) => Object.entries(entries).forEach(([key, val]) => props.set(key, val))
   })},
-  GmailApp: {sendEmail: (to, subject, body) => sent.push({to, subject, body})},
+  GmailApp: {sendEmail: (to, subject, body) => {if (failNextSend) throw Error('simulated Gmail failure'); sent.push({to, subject, body});}},
   UrlFetchApp: {fetch: () => {throw Error('External Square request attempted in test');}}
 });
 vm.runInContext(code, ctx, {filename: 'Code.gs'});
@@ -68,4 +69,15 @@ props.set('SEND_ENABLED', 'false');
 run();
 assert.equal(sent.length, 1, 'dry run must never send');
 assert.equal(props.has('TEST_P1'), false, 'dry run must not create a PENDING record');
-console.log('PASS: 16 eligibility checks + order-level idempotency, repeat, PENDING and dry-run checks');
+// A Gmail API exception must preserve both PENDING keys and block automatic retries.
+ctx.__payments = [{...payment('P3'), order_id: 'O2'}];
+ctx.__order = {...order, id: 'O2'};
+props.set('SEND_ENABLED', 'true');
+failNextSend = true;
+assert.throws(run, /simulated Gmail failure/);
+assert.match(props.get('TEST_P3'), /^PENDING /);
+assert.match(props.get('TEST_ORDER:O2'), /^PENDING /);
+failNextSend = false;
+run();
+assert.equal(sent.length, 1, 'Gmail failure must not trigger automatic resend');
+console.log('PASS: 16 eligibility checks + order-level idempotency, repeat, PENDING, dry-run, Gmail failure checks');
