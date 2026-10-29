@@ -18,6 +18,8 @@ export interface ProductionCutoverInput {
   otaSourcesVerified?: { bookingCom: boolean; airbnbStay: boolean; airbnbMonthly: boolean; beds24: boolean };
   /** Distinct verified timestamp of the source snapshots. */
   sourceEvidenceTimestamp?: string;
+  /** Current evaluation instant, supplied by the caller; defaults to now. */
+  evaluatedAt?: string;
   /** Source notification history; IDs are not current booking states. */
   reservationNotices?: ReservationNotice[];
   /** Booking.com IDs independently confirmed in the provider's live data. */
@@ -43,7 +45,11 @@ export function evaluateProductionCutover(input: ProductionCutoverInput): Produc
   const blockers=[...gate.blockers];
   const sources=input.otaSourcesVerified;
   if(!sources || !sources.bookingCom || !sources.airbnbStay || !sources.airbnbMonthly || !sources.beds24) blockers.push("ALL_FOUR_SOURCE_EXPORTS_NOT_VERIFIED");
-  if(!input.sourceEvidenceTimestamp || !Number.isFinite(Date.parse(input.sourceEvidenceTimestamp))) blockers.push("SOURCE_EVIDENCE_TIMESTAMP_MISSING");
+  const evidenceAt=Date.parse(input.sourceEvidenceTimestamp??"");
+  const evaluatedAt=input.evaluatedAt===undefined?Date.now():Date.parse(input.evaluatedAt);
+  if(!Number.isFinite(evidenceAt)) blockers.push("SOURCE_EVIDENCE_TIMESTAMP_MISSING");
+  else if(!Number.isFinite(evaluatedAt) || evidenceAt>evaluatedAt || evaluatedAt-evidenceAt>30*60*1000)
+    blockers.push("SOURCE_EVIDENCE_STALE_OR_FUTURE");
   if(!input.snapshotsComplete) blockers.push("SOURCE_SNAPSHOTS_INCOMPLETE");
   if(!input.expectedPropertyId.trim()) blockers.push("PROPERTY_ID_MISSING");
   if(input.reservationNotices && input.reservationNotices.length){
