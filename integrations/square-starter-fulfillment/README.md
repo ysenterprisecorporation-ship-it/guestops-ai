@@ -62,3 +62,9 @@
 - 送信APIが成功してもメッセージIDが空の場合、送信済みを推定せず `PENDING` のまま停止する。手動確認前の再送は禁止。
 - モック実行で適格性18条件、送信IDの両ガード保存、再実行時の二重送信防止、ID欠落時の停止・再送防止を確認。**GAS本番実行・Gmail実送信・Square本番接続は未確認**。
 - 送信IDをGoogle Sheets台帳に転記する自動同期は未実装。現段階ではScript Propertiesの `GO_SENT_...` に記録される（キーは決済ID/注文IDのSHA-256）。
+
+## 2026-10-30 06時台：監査の診断力・異常応答停止を強化
+- Square Payments APIがHTTP 200でも `payments` に配列以外を返す、`cursor` が文字列でない、または `errors` 配列にエラーがある場合、**0件と誤認せず例外停止**。決済一覧が空で `payments` フィールドが省略される正常ケースは許容。
+- 読取専用 `auditStarterFulfillment()` に `rejectedPayments` と内訳（`refundedPayments`、`missingBuyerEmail`、`unsettledPayments`、`otherRejectedPayments`）を追加。購入者のメールアドレス・氏名・注文番号をログ出力しない。
+- 集計は**拒否理由を優先順位で一つに分類**するため、個別の理由が複数ある注文も内訳の合計は `rejectedPayments` と一致する。対象決済が複数ある同一注文は `eligiblePayments` と `uniqueEligibleOrders` が異なり得る。
+- GitHub上の模擬テストに、拒否理由4種、異常レスポンス3種、正常な空レスポンス、異常レスポンス時の送信・記録ゼロを追加。本番Squareへのアクセスや実購入者への送信は実施していない。
