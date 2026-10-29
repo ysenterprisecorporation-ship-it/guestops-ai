@@ -2,7 +2,7 @@
  * GuestOps Starter Kit fulfillment — Google Apps Script source (not deployed).
  * Bound spreadsheet: 1bHujnqRCmRwaHBs8AAoX_RLEzjIsHhtQpr7kWESAw4U
  * NO Square authentication: human/authorized sync must confirm payment in column E.
- * Trigger only manually after verifying Square receipt; never install a time trigger until approved.
+ * Trigger only manually after verifying Square receipt; never install a time trigger until approved.\n * This script CREATES DRAFTS; it does NOT send customer emails.
  */
 const STARTER_SHEET_ID='1bHujnqRCmRwaHBs8AAoX_RLEzjIsHhtQpr7kWESAw4U';
 const STARTER_TAB='注文・納品マスター';
@@ -15,7 +15,7 @@ const STARTER_DOCS=[
 function starterFulfillmentPreview(){
   return starterFulfillment_(true);
 }
-function starterFulfillmentSendVerified(){
+function starterFulfillmentCreateVerifiedDrafts(){
   // Requires authenticated account and verified customer access to all docs.
   return starterFulfillment_(false);
 }
