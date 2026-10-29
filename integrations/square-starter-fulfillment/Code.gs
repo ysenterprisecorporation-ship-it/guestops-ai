@@ -219,7 +219,7 @@ function auditStarterFulfillment() {
               (payment.refunded_money && Number(payment.refunded_money.amount || 0) > 0))) {
             summary.refundedPayments++;
           } else if (!payment || typeof payment.buyer_email_address !== 'string' ||
-              !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(payment.buyer_email_address) ||
+              !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payment.buyer_email_address) ||
               payment.buyer_email_address.toLowerCase() === GO_SENDER) {
             summary.missingBuyerEmail++;
           } else if (payment.status !== 'COMPLETED') {
