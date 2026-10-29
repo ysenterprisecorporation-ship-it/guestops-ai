@@ -2,7 +2,8 @@
  * GuestOps Starter Kit fulfillment — Google Apps Script source (not deployed).
  * Bound spreadsheet: 1bHujnqRCmRwaHBs8AAoX_RLEzjIsHhtQpr7kWESAw4U
  * NO Square authentication: human/authorized sync must confirm payment in column E.
- * Trigger only manually after verifying Square receipt; never install a time trigger until approved.\n * This script CREATES DRAFTS; it does NOT send customer emails.
+ * Trigger only manually after verifying Square receipt; never install a time trigger until approved.
+ * This script CREATES DRAFTS; it does NOT send customer emails.
  */
 const STARTER_SHEET_ID='1bHujnqRCmRwaHBs8AAoX_RLEzjIsHhtQpr7kWESAw4U';
 const STARTER_TAB='注文・納品マスター';
@@ -20,6 +21,9 @@ function starterFulfillmentCreateVerifiedDrafts(){
   return starterFulfillment_(false);
 }
 function starterFulfillment_(dryRun){
+  const lock=LockService.getScriptLock();
+  if(!dryRun&&!lock.tryLock(30000))throw Error('Fulfillment already running');
+  try {
   const sh=SpreadsheetApp.openById(STARTER_SHEET_ID).getSheetByName(STARTER_TAB);
   if(!sh)throw Error('Order sheet not found');
   const rows=sh.getDataRange().getValues();
@@ -34,7 +38,7 @@ function starterFulfillment_(dryRun){
     if(Number(row[3])!==STARTER_PRICE)reasons.push('wrong amount');
     if(row[4]!=='確認済み')reasons.push('payment not confirmed');
     if(row[5]!=='閲覧可')reasons.push('customer document access unverified');
-    if(row[6]==='納品済'||row[8])reasons.push('already delivered or message ID recorded');
+    if(row[6]==='納品済'||row[8]||String(row[9]||'').includes('納品下書き作成：'))reasons.push('already delivered, message ID recorded, or draft created');
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))reasons.push('invalid customer email');
     if(reasons.length){results.push({order,status:'HOLD',reasons});continue}
     if(dryRun){results.push({order,status:'READY_DRY_RUN'});continue}
@@ -51,4 +55,5 @@ function starterFulfillment_(dryRun){
   }
   Logger.log(JSON.stringify(results));
   return results;
+  } finally {if(!dryRun)lock.releaseLock()}
 }
