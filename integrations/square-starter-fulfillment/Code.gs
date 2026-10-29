@@ -86,7 +86,9 @@ function goPaymentEligible_(p, config) {
 
 function goOrderEligible_(order, payment, config) {
   if (!order || order.id !== payment.order_id ||
-      order.state === 'CANCELED' || order.state === 'DRAFT' ||
+      // OPEN orders remain mutable and are not confirmed fully paid. Require
+      // the terminal COMPLETED state before issuing buyer-only materials.
+      order.state !== 'COMPLETED' ||
       order.location_id !== config.location ||
       !order.total_money || order.total_money.currency !== 'JPY' ||
       Number(order.total_money.amount) !== GO_PRICE_JPY ||
@@ -279,7 +281,7 @@ function testStarterFulfillmentRules() {
   const p = {id:'P1',status:'COMPLETED',location_id:'L1',order_id:'O1',
     amount_money:{amount:9800,currency:'JPY'},buyer_email_address:'buyer@example.com',
     created_at:'2026-10-30T00:00:00Z'};
-  const o = {id:'O1',location_id:'L1',total_money:{amount:9800,currency:'JPY'},
+  const o = {id:'O1',state:'COMPLETED',location_id:'L1',total_money:{amount:9800,currency:'JPY'},
     line_items:[{catalog_object_id:'VAR1',quantity:'1'}]};
   function check(x, label) {if (!x) throw new Error('FAILED: ' + label);}
   check(goPaymentEligible_(p,c), 'paid valid payment');
@@ -300,5 +302,7 @@ function testStarterFulfillmentRules() {
   check(!goOrderEligible_(Object.assign({},o,{total_money:{amount:9700,currency:'JPY'}}),p,c), 'wrong order total');
   check(!goOrderEligible_(Object.assign({},o,{state:'CANCELED'}),p,c), 'canceled order');
   check(!goOrderEligible_(Object.assign({},o,{state:'DRAFT'}),p,c), 'draft order');
-  console.log('PASS: 18 safe fulfillment checks');
+  check(!goOrderEligible_(Object.assign({},o,{state:'OPEN'}),p,c), 'open order must not be fulfilled');
+  check(!goOrderEligible_(Object.assign({},o,{state:undefined}),p,c), 'missing order state must fail closed');
+  console.log('PASS: 20 safe fulfillment checks');
 }
