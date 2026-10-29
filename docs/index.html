@@ -180,6 +180,8 @@ pricePreview.textContent=this.value.trim()&&estimate(value)?estimate(value)+'。
 function inquiry(){
 const operator=document.getElementById('go-operator'),reply=document.getElementById('go-reply');
 if(!operator.reportValidity()||!reply.reportValidity())return null;
+if(!operator.value.trim()){msg.textContent='事業者・屋号を入力してください。';operator.focus();return null;}
+if(/[\r\n]/.test(operator.value)||/[\r\n]/.test(reply.value)){msg.textContent='改行を含む入力は利用できません。';return null;}
 const n=document.getElementById('go-count');
 if(!n.reportValidity())return null;
 const count=Number(n.value);
