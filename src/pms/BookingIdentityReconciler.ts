@@ -35,7 +35,8 @@ export function compareBookingSnapshots(ota:BookingSnapshot[],pms:BookingSnapsho
   if(id) byPms.set(id,[...(byPms.get(id)??[]),p]);
  }
  for(const b of ota){
-  const matching=byPms.get(b.beds24Id??b.externalId)??[];
+  if(!b.beds24Id?.trim()){blockers.push("OTA_BEDS24_MAPPING_MISSING:"+key(b));continue;}
+  const matching=byPms.get(b.beds24Id)??[];
   const distinct=Array.from(new Set(matching));
   if(distinct.length!==1){blockers.push("UNRESOLVED_MAPPING:"+key(b));continue;}
   const p=distinct[0];
@@ -44,7 +45,7 @@ export function compareBookingSnapshots(ota:BookingSnapshot[],pms:BookingSnapsho
  }
  // The system is fail closed when an unknown PMS booking is not accounted for.
  for(const p of pms){
-  const matching=ota.filter(b=>(b.beds24Id??b.externalId)===(p.beds24Id??p.externalId));
+  const matching=ota.filter(b=>!!b.beds24Id && b.beds24Id===(p.beds24Id??p.externalId));
   if(matching.length===0) blockers.push("UNACCOUNTED_PMS_BOOKING:"+key(p));
  }
  return {safe:blockers.length===0,blockers:Array.from(new Set(blockers))};
