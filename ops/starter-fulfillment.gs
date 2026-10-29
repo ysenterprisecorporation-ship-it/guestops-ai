@@ -39,6 +39,7 @@ function starterFulfillment_(dryRun){
     if(row[4]!=='確認済み')reasons.push('payment not confirmed');
     if(row[5]!=='閲覧可')reasons.push('customer document access unverified');
     if(row[6]==='納品済'||row[8]||String(row[9]||'').includes('納品下書き作成：'))reasons.push('already delivered, message ID recorded, or draft created');
+    if(String(row[9]||'').includes('送信済'))reasons.push('existing fulfillment audit indicates sent');
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))reasons.push('invalid customer email');
     if(reasons.length){results.push({order,status:'HOLD',reasons});continue}
     if(dryRun){results.push({order,status:'READY_DRY_RUN'});continue}
