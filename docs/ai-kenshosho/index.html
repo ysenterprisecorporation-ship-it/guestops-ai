@@ -52,7 +52,7 @@ footer{color:var(--muted);font-size:13px;padding-bottom:48px}
     <div class="hero-note">オンライン面談を前提にせず、初期確認はメールで完結します。</div>
   </section>
 
-  <section class="card" style="border:2px solid #2256d8">
+  <section id="oct2026-offer" class="card" style="border:2px solid #2256d8">
     <span class="tag">10/31まで</span>
     <h3 style="margin-top:10px">初回の判断マトリクスを無料で初期構築</h3>
     <p>2026年10月31日までに導入をご決定いただく場合、対象業務の「AI処理 / 人確認 / 責任者承認 / 停止条件」の初期マトリクスを追加費用なしで作成します。</p>
@@ -155,5 +155,13 @@ footer{color:var(--muted);font-size:13px;padding-bottom:48px}
   </section>
 </main>
 <footer>AI検証所 / ワイズエンタープライズコーポレーション</footer>
+<script>
+// Automatically hide an expired October 2026 offer after 2026-10-31 23:59 JST.
+// This does not change the contracted price or existing service scope.
+(function(){
+  const offer=document.getElementById("oct2026-offer");
+  if(offer && Date.now() >= Date.parse("2026-10-31T15:00:00Z")) offer.hidden=true;
+})();
+</script>
 </body>
 </html>
