@@ -4,7 +4,7 @@
 
 ## 動作
 - Square **Payments API（読み取り専用）**で決済一覧を取得し、**COMPLETED／JPY 9,800円／指定店舗／返金なし／設定開始日時以降**を検査。
-- Square **Orders API（読み取り専用）**で注文の**単一商品・数量1・指定catalog_object_id・合計9,800円・キャンセル／下書き注文の除外**を再検査。商品名の曖昧一致やメール通知の文字列だけで納品しない。
+- Square **Orders API（読み取り専用）**で注文の**単一商品・数量1・指定catalog_object_id・合計9,800円・注文状態 `COMPLETED` 必須（`OPEN`・`CANCELED`・`DRAFT`・状態欠落は除外）**を再検査。商品名の曖昧一致やメール通知の文字列だけで納品しない。
 - 購入者メールアドレスがPaymentに存在する場合だけ対象にする。未取得の場合は**自動納品をスキップ**（Square管理画面で別途確認）。
 - 送信前にScript Propertiesへ**注文IDを先に** `PENDING` として記録し、次に決済IDを記録する。注文ID側の記録が失敗した場合はメールを送らない。決済ID側の記録だけが失敗した場合も注文ID側の `PENDING` が残り、次回の二重納品を阻止する。Gmail下書きの送信後に返された**GmailメッセージID**を取得できた場合だけ、注文ID→決済IDの順で `SENT <UTC日時> MSG:<GmailメッセージID>` に更新する。IDが取得できない場合は `PENDING` のまま自動再送を禁止する。同一注文に複数の決済IDが存在しても二重納品しない。
 - 初期値は `SEND_ENABLED` 未設定＝**送信禁止（dry run）**。課金・注文変更・Square設定変更をするAPIは一切呼ばない。
@@ -25,7 +25,7 @@
 | `STARTER_SHEET_URL` | 既存の購入者用「施設情報設定・20場面判断・初回テスト」Google Sheets URL |
 | `SEND_ENABLED` | **最初は `false`**。Square照合結果・受取権限・実決済テストを確認できた後だけ `true` |
 
-4. `testStarterFulfillmentRules()` を実行し、18ケースの `PASS` を確認。GitHub Actionsでは `test-fulfillment.cjs` により、注文単位の二重納品防止・再実行・PENDING・dry runも自動検査する。
+4. `testStarterFulfillmentRules()` を実行し、20ケースの `PASS` を確認。GitHub Actionsでは `test-fulfillment.cjs` により、注文単位の二重納品防止・再実行・PENDING・dry runも自動検査する。
 5. **送信を有効化する前に** `auditStarterFulfillment()` を実行。これはSquareの決済・注文を読み取り、集計値だけをログに出す。`SEND_ENABLED=true` でもメール送信・Script Properties書込は行わない。`readyToDeliver` は送信候補数であり、実送信数ではない。`pendingReview` が1件でもあれば自動再送しない。`invalidOrders` は商品・金額・注文状態などが一致しない注文の件数。購入者メールアドレスやトークンはログに出さない。
 6. `runStarterFulfillment()` を**送信無効のまま**実行。実Squareデータの読取可否と対象商品の識別をログで確認する。
 7. 購入者用3ファイルが「リンクを知っている全員／閲覧者」であることを確認（2026-10-30にDrive APIで3件とも確認済み）。
@@ -75,3 +75,11 @@
 - Squareが同一のページネーション `cursor` を繰り返した場合、納品処理と読み取り専用監査の両方を停止する。これにより同一ページを延々と取得する状態を防止する。
 - GitHub上の `test-fulfillment.cjs` に異常JSONと繰返しcursorの回帰テストを追加。
 - 今回は取得した最新版 `Code.gs` をJavaScript実行環境に読み込み、**既存18適格性チェックと新規6回帰チェックの成功**、模擬Square取得4回、Gmail送信0件、Script Properties書込0件を確認。GitHub Actionsジョブの成功・Square本番接続・GAS本番配備は未確認。
+
+## 2026-10-30 08時台：注文状態の誤納品防止
+
+- Square公式のOrderState定義では、`OPEN` は更新可能な注文、`COMPLETED` は全額支払い済みの終端状態。決済単体が `COMPLETED` でも、注文側が `OPEN` または状態不明なら購入者教材を送らないよう、`goOrderEligible_` の判定を厳格化。
+- `testStarterFulfillmentRules()` の判定を18件から20件に増やし、`OPEN`・状態欠落を拒否するケースを追加。
+- Node.jsテストにも、`OPEN`・状態欠落の注文が監査で `invalidOrders` となり、送信処理を実行してもメールや納品ガードが作成されない回帰検証を追加。
+- 今回の実行環境で最新版 `Code.gs` をJavaScript実行し、20件の適格性チェック、`OPEN`・状態欠落の拒否、`COMPLETED` の模擬納品1件と再実行時の重複0件を確認。実Gmail送信は0件。GitHub Actionsジョブ自体の実行成功・本番Square接続は未確認。
+- 仕様参照: https://developer.squareup.com/reference/square/enums/OrderState
