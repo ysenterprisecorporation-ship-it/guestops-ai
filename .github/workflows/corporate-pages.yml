@@ -39,8 +39,9 @@ jobs:
           import os, time, urllib.request, urllib.parse
           base = os.environ["SITE_URL"].rstrip("/") + "/"
           checks = [
-              ("", ['id="pricing"', 'id="partners"']),
+              ("", ['id="pricing"', 'id="partners"', "GuestOps AIの月額プランを見る"]),
               ("starter/", ["GuestOps AI Starter"]),
+              ("field-guide/", ["3場面"]),
               ("starter/order/", ["20261029-direct-checkout-and-fulfillment", "その迷いを、施設のルールに変える"]),
               ("starter/upgrade/", ["diagnose()"]),
           ]
@@ -63,4 +64,12 @@ jobs:
                   if attempt == 11:
                       raise SystemExit("FAIL " + route + ": " + str(last))
                   time.sleep(5)
+          # A reachable checkout URL does not prove a successful payment or the configured amount.
+          square_url = "https://square.link/u/nwGxRxvm"
+          try:
+              req = urllib.request.Request(square_url, headers={"User-Agent": "Mozilla/5.0"})
+              with urllib.request.urlopen(req, timeout=15) as response:
+                  print("SQUARE_LINK_HTTP", response.status, "redirect", response.geturl().split("?")[0])
+          except Exception as exc:
+              print("SQUARE_LINK_UNVERIFIED", str(exc)[:200])
           PY
