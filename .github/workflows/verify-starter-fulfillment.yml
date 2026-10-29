@@ -1,0 +1,36 @@
+name: Verify Starter fulfillment safety
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'integrations/square-starter-fulfillment/**'
+      - '.github/workflows/verify-starter-fulfillment.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  safety-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Syntax check Apps Script
+        run: |
+          cp integrations/square-starter-fulfillment/Code.gs /tmp/guestops-starter-fulfillment.js
+          node --check /tmp/guestops-starter-fulfillment.js
+      - name: Test payment and order fail-closed checks
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const vm = require('vm');
+          const source = fs.readFileSync('integrations/square-starter-fulfillment/Code.gs', 'utf8');
+          const log = [];
+          const context = {console: {log: (...a) => log.push(a.join(' ')), error: (...a) => log.push(a.join(' '))}};
+          vm.runInNewContext(source + '\ntestStarterFulfillmentRules();', context);
+          if (!log.some(x => x.includes('PASS: 8 safe fulfillment checks'))) {
+            throw new Error('Safety test did not complete');
+          }
+          if (!source.includes("props.getProperty('SEND_ENABLED') === 'true'")) {
+            throw new Error('Fail-closed send toggle missing');
+          }
+          console.log(log.join('\n'));
+          NODE
