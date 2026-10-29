@@ -51,7 +51,13 @@ function starterFulfillment_(dryRun){
     // GmailApp.sendEmail has no guaranteed message-id return. Do not write fabricated send IDs.
     // Create a draft for manual final sending until a verified send-ID audit flow exists.
     const draft=GmailApp.createDraft(email,subject,body);
-    sh.getRange(index+1,10).setValue('納品下書き作成：'+draft.getId());
+    try {
+      sh.getRange(index+1,10).setValue('納品下書き作成：'+draft.getId());
+    } catch(err) {
+      // Avoid leaving an untracked draft after an audit-write failure.
+      try {draft.deleteDraft()} catch(cleanupErr) {Logger.log('DRAFT_CLEANUP_FAILED: '+draft.getId()+' '+cleanupErr)}
+      throw Error('Audit write failed for order '+order+': '+err);
+    }
     results.push({order,status:'DRAFT_CREATED',draftId:draft.getId()});
   }
   Logger.log(JSON.stringify(results));
