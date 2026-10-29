@@ -71,6 +71,7 @@ function goPaymentEligible_(p, config) {
 
 function goOrderEligible_(order, payment, config) {
   if (!order || order.id !== payment.order_id ||
+      order.state === 'CANCELED' || order.state === 'DRAFT' ||
       order.location_id !== config.location ||
       !order.total_money || order.total_money.currency !== 'JPY' ||
       Number(order.total_money.amount) !== GO_PRICE_JPY ||
@@ -158,6 +159,66 @@ function runStarterFulfillment() {
   }
 }
 
+/**
+ * Read-only prelaunch audit: checks Square orders but NEVER sends Gmail or writes
+ * Script Properties. Aggregates counts only; does not log buyer PII or tokens.
+ * Run under the authorized account after configuring Script Properties.
+ */
+function auditStarterFulfillment() {
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(20000)) throw new Error('Another fulfillment run is active.');
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const config = goRequiredConfig_(props);
+    const summary = {
+      scannedPayments: 0, eligiblePayments: 0, uniqueEligibleOrders: 0,
+      readyToDeliver: 0, recordedSent: 0, pendingReview: 0,
+      otherRecorded: 0, invalidOrders: 0
+    };
+    const seenOrders = {};
+    let cursor = '';
+    for (let page = 0; page < 10; page++) {
+      let query = 'payments?limit=100&sort_order=DESC&location_id=' +
+        encodeURIComponent(config.location) + '&begin_time=' +
+        encodeURIComponent(config.since);
+      if (cursor) query += '&cursor=' + encodeURIComponent(cursor);
+      const response = goSquareGet_(query, config);
+      for (const payment of (response.payments || [])) {
+        summary.scannedPayments++;
+        if (!goPaymentEligible_(payment, config)) continue;
+        summary.eligiblePayments++;
+        if (Object.prototype.hasOwnProperty.call(seenOrders, payment.order_id)) continue;
+        seenOrders[payment.order_id] = true;
+        summary.uniqueEligibleOrders++;
+        const key = goKey_(payment.id);
+        const orderKey = goKey_('ORDER:' + payment.order_id);
+        const status = [props.getProperty(key), props.getProperty(orderKey)]
+          .filter(Boolean).join(' ');
+        if (status) {
+          if (status.includes('PENDING')) summary.pendingReview++;
+          else if (status.includes('SENT')) summary.recordedSent++;
+          else summary.otherRecorded++;
+          continue;
+        }
+        const result = goSquareGet_('orders/' + encodeURIComponent(payment.order_id), config);
+        if (!goOrderEligible_(result.order, payment, config)) {
+          summary.invalidOrders++;
+          continue;
+        }
+        summary.readyToDeliver++;
+      }
+      cursor = response.cursor || '';
+      if (!cursor) {
+        console.log('FULFILLMENT_AUDIT ' + JSON.stringify(summary));
+        return summary;
+      }
+    }
+    throw new Error('Payment audit exceeded 10 pages; review pagination.');
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 /** No API calls or emails. Run this first in Apps Script. */
 function testStarterFulfillmentRules() {
   const c = {location:'L1',catalogId:'VAR1',since:'2026-10-29T00:00:00Z'};
@@ -183,5 +244,7 @@ function testStarterFulfillmentRules() {
   check(!goOrderEligible_(Object.assign({},o,{location_id:'OTHER'}),p,c), 'wrong order location');
   check(!goOrderEligible_(Object.assign({},o,{line_items:[o.line_items[0],o.line_items[0]]}),p,c), 'multiple items');
   check(!goOrderEligible_(Object.assign({},o,{total_money:{amount:9700,currency:'JPY'}}),p,c), 'wrong order total');
-  console.log('PASS: 16 safe fulfillment checks');
+  check(!goOrderEligible_(Object.assign({},o,{state:'CANCELED'}),p,c), 'canceled order');
+  check(!goOrderEligible_(Object.assign({},o,{state:'DRAFT'}),p,c), 'draft order');
+  console.log('PASS: 18 safe fulfillment checks');
 }
