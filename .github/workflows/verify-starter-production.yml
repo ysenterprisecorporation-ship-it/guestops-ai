@@ -13,6 +13,39 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Validate inline JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          class Scripts(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.active=False
+                  self.parts=[]
+                  self.scripts=[]
+              def handle_starttag(self,tag,attrs):
+                  if tag=="script":
+                      self.active=not dict(attrs).get("src")
+                      self.parts=[]
+              def handle_data(self,data):
+                  if self.active:
+                      self.parts.append(data)
+              def handle_endtag(self,tag):
+                  if tag=="script" and self.active:
+                      self.scripts.append("".join(self.parts))
+                      self.active=False
+          p=Scripts()
+          p.feed(Path("docs/index.html").read_text(encoding="utf-8"))
+          assert p.scripts, "No inline scripts to validate"
+          for i,script in enumerate(p.scripts):
+              Path(f"/tmp/guestops-script-{i}.js").write_text(script,encoding="utf-8")
+          PY
+          for script in /tmp/guestops-script-*.js; do node --check "$script"; done
       - name: Check live landing and checkout pages
         shell: bash
         run: |
@@ -26,6 +59,8 @@ jobs:
               && grep -Fq '9,800円/月' /tmp/guestops-main.html \
               && grep -Fq 'id="apply-guestops"' /tmp/guestops-main.html \
               && grep -Fq 'id="guestops-inquiry-form"' /tmp/guestops-main.html \
+              && grep -Fq 'id="go-price-preview"' /tmp/guestops-main.html \
+              && grep -Fq '月額料金の目安：' /tmp/guestops-main.html \
               && grep -Fq '購入後、最初に使う3つの場面' /tmp/guestops-order.html \
               && grep -Fq '../../#apply-guestops' /tmp/guestops-order.html \
               && grep -Fq 'その迷いを、施設のルールに変える' /tmp/guestops-order.html; then
