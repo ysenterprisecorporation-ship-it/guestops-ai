@@ -83,6 +83,24 @@ vm.runInContext(`
   };
 `, ctx);
 const run = () => vm.runInContext('runStarterFulfillment()', ctx);
+// The separate Deployment.gs is loaded in the same GAS project in production.
+// Mock its read-only buyer-material audit for the fulfillment harness.
+ctx.auditStarterMaterialAccess = () => ({ready: true});
+// A permission change or Drive outage must stop before any PENDING guard/Gmail.
+ctx.__payments = [{...payment('P_MATERIAL'), order_id: 'O_MATERIAL'}];
+ctx.__order = {...order, id: 'O_MATERIAL'};
+ctx.auditStarterMaterialAccess = () => ({ready: false});
+assert.throws(run, /Buyer material access failed/);
+assert.equal(sent.length, 0, 'private material must block Gmail');
+assert.equal(props.has('TEST_ORDER:O_MATERIAL'), false, 'private material must not reserve order');
+assert.equal(props.has('TEST_P_MATERIAL'), false, 'private material must not reserve payment');
+ctx.auditStarterMaterialAccess = () => {throw Error('Drive unavailable');};
+assert.throws(run, /Drive unavailable/);
+assert.equal(sent.length, 0, 'Drive outage must block Gmail');
+assert.equal(props.has('TEST_ORDER:O_MATERIAL'), false, 'Drive outage must not reserve order');
+ctx.auditStarterMaterialAccess = () => ({ready: true});
+ctx.__payments = [payment('P1'), payment('P2')];
+ctx.__order = order;
 // Malformed Square buyer emails must never reach Gmail's recipient parser.
 // These previously passed the permissive @/dot regex, despite including
 // delimiters or malformed mailbox syntax.
