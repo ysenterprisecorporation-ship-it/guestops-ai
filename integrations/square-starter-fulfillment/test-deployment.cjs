@@ -110,4 +110,51 @@ lockAvailable = true;
 assert.equal(propertyWrites, 2, 'pause can write immediately even with active lock');
 assert.equal(emails, 0);
 assert.equal(squareMutations, 0);
+
+
+// Read-only buyer-material access audit: checks real file type and link-view
+// permissions without changing Drive sharing, sending email or touching Square.
+const materialState = new Map([
+  ['guide', {mime: 'application/vnd.google-apps.document', access: 'ANYONE_WITH_LINK', permission: 'VIEW'}],
+  ['prompt', {mime: 'application/vnd.google-apps.document', access: 'ANYONE_WITH_LINK', permission: 'VIEW'}],
+  ['sheet', {mime: 'application/vnd.google-apps.spreadsheet', access: 'ANYONE_WITH_LINK', permission: 'VIEW'}]
+]);
+let driveReads = 0;
+ctx.DriveApp = {
+  Access: {ANYONE_WITH_LINK: 'ANYONE_WITH_LINK', ANYONE: 'ANYONE'},
+  Permission: {VIEW: 'VIEW'},
+  getFileById: id => {
+    driveReads++;
+    const file = materialState.get(id);
+    if (!file) throw Error('not found');
+    return {
+      getMimeType: () => file.mime,
+      getSharingAccess: () => file.access,
+      getSharingPermission: () => file.permission
+    };
+  }
+};
+const auditMaterials = () => run('auditStarterMaterialAccess()');
+assert.equal(auditMaterials().ready, true, 'all three buyer materials are link-view accessible');
+materialState.get('guide').mime = 'application/vnd.google-apps.spreadsheet';
+assert.equal(auditMaterials().checks[0].status, 'WRONG_FILE_TYPE');
+materialState.get('guide').mime = 'application/vnd.google-apps.document';
+materialState.get('prompt').access = 'PRIVATE';
+assert.equal(auditMaterials().checks[1].status, 'BUYER_CANNOT_OPEN_LINK');
+materialState.get('prompt').access = 'ANYONE_WITH_LINK';
+materialState.get('sheet').permission = 'EDIT';
+assert.equal(auditMaterials().checks[2].status, 'NOT_VIEW_ONLY');
+materialState.get('sheet').permission = 'VIEW';
+materialState.delete('guide');
+assert.equal(auditMaterials().checks[0].status, 'FILE_UNAVAILABLE');
+materialState.set('guide', {mime: 'application/vnd.google-apps.document', access: 'ANYONE_WITH_LINK', permission: 'VIEW'});
+props.set('STARTER_GUIDE_URL', 'https://invalid.example/guide');
+assert.equal(auditMaterials().checks[0].status, 'INVALID_URL');
+props.set('STARTER_GUIDE_URL', originalGuide);
+assert.equal(auditMaterials().ready, true);
+assert.ok(driveReads > 0);
+assert.equal(propertyWrites, 2, 'buyer-material audit must not change script properties');
+assert.equal(emails, 0, 'buyer-material audit must not send Gmail');
+assert.equal(squareMutations, 0, 'buyer-material audit must not mutate Square');
+
 console.log('PASS: dry-run deployment status, idempotent trigger install, send gate, pause, duplicates, wrong account, audit failure; no Gmail or Square mutation');
