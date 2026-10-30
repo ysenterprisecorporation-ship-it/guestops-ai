@@ -126,3 +126,77 @@ function auditStarterMaterialAccess() {
   console.log('STARTER_MATERIAL_AUDIT ' + JSON.stringify(result));
   return result;
 }
+
+/**
+ * Read-only go-live gate. Run after installing ONE dry-run trigger.
+ * This NEVER enables sending, changes Square, creates triggers, or sends mail.
+ * No tokens, file IDs, email addresses, or order identifiers are returned.
+ * A pass is a preflight result, NOT evidence of a live purchase or delivery.
+ */
+function auditStarterGoLiveReadiness() {
+  const blockers = [];
+  let status;
+  try {
+    status = getStarterDeploymentStatus();
+  } catch (e) {
+    const failed = {ready: false, blockers: ['DEPLOYMENT_STATUS_UNAVAILABLE'],
+      checkedAt: new Date().toISOString()};
+    console.log('STARTER_GO_LIVE_READINESS ' + JSON.stringify(failed));
+    return failed;
+  }
+  if (!status.authorizedAccount) blockers.push('WRONG_GOOGLE_ACCOUNT');
+  if (status.missingPropertyNames.length) blockers.push('MISSING_PROPERTIES');
+  if (status.sendEnabled) blockers.push('SEND_ALREADY_ENABLED');
+  if (status.triggerCount !== 1) blockers.push('EXPECTED_EXACTLY_ONE_TRIGGER');
+
+  let materialReady = false;
+  let paymentsAudited = false;
+  let pendingReview = null;
+  // Do not call Square with missing, invalid or unauthorized configuration.
+  if (status.authorizedAccount && status.missingPropertyNames.length === 0) {
+    let configValid = false;
+    try {
+      goRequiredConfig_(PropertiesService.getScriptProperties());
+      configValid = true;
+    } catch (e) {
+      blockers.push('INVALID_CONFIGURATION');
+    }
+    if (configValid) {
+      try {
+        const materials = auditStarterMaterialAccess();
+        materialReady = !!(materials && materials.ready === true);
+        if (!materialReady) blockers.push('BUYER_MATERIALS_NOT_READY');
+      } catch (e) {
+        blockers.push('BUYER_MATERIAL_AUDIT_FAILED');
+      }
+      if (materialReady) {
+        try {
+          const audit = auditStarterFulfillment();
+          if (!audit || !Number.isInteger(audit.pendingReview) ||
+              audit.pendingReview < 0) {
+            blockers.push('INVALID_SQUARE_AUDIT_RESULT');
+          } else {
+            paymentsAudited = true;
+            pendingReview = audit.pendingReview;
+            if (pendingReview > 0) blockers.push('PENDING_DELIVERY_REVIEW');
+          }
+        } catch (e) {
+          blockers.push('SQUARE_READ_ONLY_AUDIT_FAILED');
+        }
+      }
+    }
+  }
+  const result = {
+    ready: blockers.length === 0,
+    blockers: blockers,
+    authorizedAccount: status.authorizedAccount,
+    triggerCount: status.triggerCount,
+    sendEnabled: status.sendEnabled,
+    materialReady: materialReady,
+    paymentsAudited: paymentsAudited,
+    pendingReview: pendingReview,
+    checkedAt: new Date().toISOString()
+  };
+  console.log('STARTER_GO_LIVE_READINESS ' + JSON.stringify(result));
+  return result;
+}
