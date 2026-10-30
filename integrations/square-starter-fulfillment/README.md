@@ -28,7 +28,7 @@
 4. `testStarterFulfillmentRules()` を実行し、23ケースの `PASS` を確認。GitHub Actionsでは `test-fulfillment.cjs` により、注文単位の二重納品防止・再実行・PENDING・dry runも自動検査する。
 5. **送信を有効化する前に** `auditStarterFulfillment()` を実行。これはSquareの決済・注文を読み取り、集計値だけをログに出す。`SEND_ENABLED=true` でもメール送信・Script Properties書込は行わない。`readyToDeliver` は送信候補数であり、実送信数ではない。`pendingReview` が1件でもあれば自動再送しない。`invalidOrders` は商品・金額・注文状態などが一致しない注文の件数。購入者メールアドレスやトークンはログに出さない。
 6. `runStarterFulfillment()` を**送信無効のまま**実行。実Squareデータの読取可否と対象商品の識別をログで確認する。
-7. 購入者用3ファイルが「リンクを知っている全員／閲覧者」であることを確認（2026-10-30にDrive APIで3件とも確認済み）。
+7. 購入者用3ファイルが「リンクを知っている全員／閲覧者」であることを確認（2026-10-30にDrive APIで3件とも確認済み）。**「インターネット上の全員／閲覧者」（ANYONE）は不可**。公開範囲が広すぎる場合は `auditStarterMaterialAccess()` が `PUBLICLY_DISCOVERABLE` を返し、納品処理は送信前に停止する。共有設定の自動変更はしない。
 8. 本番接続・受取先・決済の整合性を検証後、`SEND_ENABLED=true` とし、`runStarterFulfillment` の時間主導型トリガー（15分毎など）を登録する。**この手順は未実行**。
 
 ## 安全停止と例外処理
