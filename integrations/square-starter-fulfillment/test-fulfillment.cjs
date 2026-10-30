@@ -146,6 +146,13 @@ ctx.__order = order;
 run();
 assert.equal(sent.length, 1, 'same Square order must be delivered only once');
 assert.equal(sent[0].to, 'buyer@example.com');
+// The real buyer email must explain how to copy view-only materials, include
+// the latest cleaning checklist, and never suggest Starter automates PMS.
+assert.match(sent[0].body, /コピーを作成/);
+assert.match(sent[0].body, /清掃・設備10項目/);
+assert.match(sent[0].body, /施設コード・点検日・責任者承認/);
+assert.match(sent[0].body, /PMS連携・予約サイト自動送信・料金自動変更は含まれません/);
+assert.doesNotMatch(sent[0].body, /square\\.(?:site|link)/i);
 assert.match(props.get('TEST_P1'), /^SENT .* MSG:mock-gmail-message-1$/);
 assert.match(props.get('TEST_ORDER:O1'), /^SENT .* MSG:mock-gmail-message-1$/);
 assert.equal(props.has('TEST_P2'), false, 'second payment should be skipped');
