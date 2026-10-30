@@ -213,6 +213,13 @@ function runStarterFulfillment() {
         if (!latestOrder || !goOrderEligible_(latestOrder.order, refreshed.payment, config)) {
           throw new Error('Order changed during fulfillment; no delivery attempted.');
         }
+        // Check buyer-material permissions at send time, not just at setup.
+        // A private, deleted or editable file must never be advertised as a
+        // working buyer-only delivery. The audit is read-only and fail-closed.
+        const materialAudit = auditStarterMaterialAccess();
+        if (!materialAudit || materialAudit.ready !== true) {
+          throw new Error('Buyer material access failed; no delivery attempted.');
+        }
         // A pause may be requested while Square API reads are in progress.
         // Re-read the live flag rather than trusting config.enabled from run start.
         if (props.getProperty('SEND_ENABLED') !== 'true') {
