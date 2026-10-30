@@ -1,4 +1,3 @@
-import { ReservationNotice } from "./ReservationNoticeAudit";
 export interface BookingNotificationRecord { id:string; arrival:string; receivedAt:string; kind:"new"|"cancel" }
 export interface BookingEvidenceRow { id:string; arrival:string; lastNotification:"new"|"cancel"; lastReceivedAt:string; liveStatus:"unverified"; }
 const validDate=(x:string)=>/^\d{4}-\d{2}-\d{2}$/.test(x)&&!Number.isNaN(Date.parse(x))&&new Date(x+"T00:00:00Z").toISOString().slice(0,10)===x;
