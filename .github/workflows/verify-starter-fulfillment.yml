@@ -32,7 +32,7 @@ jobs:
           const log = [];
           const context = {console: {log: (...a) => log.push(a.join(' ')), error: (...a) => log.push(a.join(' '))}};
           vm.runInNewContext(source + '\ntestStarterFulfillmentRules();', context);
-          if (!log.some(x => x.includes('PASS: 23 safe fulfillment checks'))) {
+          if (!log.some(x => x.includes('PASS: refund and fulfillment eligibility checks'))) {
             throw new Error('Safety test did not complete');
           }
           if (!source.includes("props.getProperty('SEND_ENABLED') === 'true'")) {
