@@ -175,6 +175,13 @@ function runStarterFulfillment() {
         if (!refreshed || !goPaymentStillEligible_(payment, refreshed.payment, config)) {
           throw new Error('Payment changed during fulfillment; no delivery attempted.');
         }
+        // Orders can be refunded, returned or canceled after the initial read.
+        // Re-fetch the order immediately before reserving the delivery guards.
+        // Never rely on the earlier eligible order snapshot for live sending.
+        const latestOrder = goSquareGet_('orders/' + encodeURIComponent(payment.order_id), config);
+        if (!latestOrder || !goOrderEligible_(latestOrder.order, refreshed.payment, config)) {
+          throw new Error('Order changed during fulfillment; no delivery attempted.');
+        }
         // Mark PENDING before Gmail send to fail closed on interrupted execution.
         // An unresolved PENDING record must be reviewed before any manual retry.
         const pendingAt = 'PENDING ' + new Date().toISOString();
