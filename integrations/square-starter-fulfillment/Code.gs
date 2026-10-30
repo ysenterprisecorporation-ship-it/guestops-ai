@@ -84,6 +84,14 @@ function goPaymentEligible_(p, config) {
     p.buyer_email_address.toLowerCase() !== GO_SENDER);
 }
 
+/** Re-read the payment immediately before delivery; reject refunds or changed buyers. */
+function goPaymentStillEligible_(listed, latest, config) {
+  return goPaymentEligible_(latest, config) &&
+    latest.id === listed.id &&
+    latest.order_id === listed.order_id &&
+    latest.buyer_email_address.toLowerCase() === listed.buyer_email_address.toLowerCase();
+}
+
 function goOrderEligible_(order, payment, config) {
   if (!order || order.id !== payment.order_id ||
       // OPEN orders remain mutable and are not confirmed fully paid. Require
@@ -159,6 +167,13 @@ function runStarterFulfillment() {
         if (!config.enabled) {
           console.log('DRY_RUN eligible payment suffix: ' + payment.id.slice(-8));
           continue;
+        }
+        // The listing is only a snapshot. Re-read this exact payment to avoid
+        // delivering after a refund or to a buyer address changed in Square.
+        // Any missing/malformed detail stops processing before PENDING or Gmail.
+        const refreshed = goSquareGet_('payments/' + encodeURIComponent(payment.id), config);
+        if (!refreshed || !goPaymentStillEligible_(payment, refreshed.payment, config)) {
+          throw new Error('Payment changed during fulfillment; no delivery attempted.');
         }
         // Mark PENDING before Gmail send to fail closed on interrupted execution.
         // An unresolved PENDING record must be reviewed before any manual retry.
