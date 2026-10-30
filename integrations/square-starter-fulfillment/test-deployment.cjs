@@ -142,6 +142,12 @@ materialState.get('guide').mime = 'application/vnd.google-apps.document';
 materialState.get('prompt').access = 'PRIVATE';
 assert.equal(auditMaterials().checks[1].status, 'BUYER_CANNOT_OPEN_LINK');
 materialState.get('prompt').access = 'ANYONE_WITH_LINK';
+// Public-to-everyone access must fail even when the file is view-only.
+materialState.get('guide').access = 'ANYONE';
+assert.equal(auditMaterials().ready, false);
+assert.equal(auditMaterials().checks[0].status, 'PUBLICLY_DISCOVERABLE');
+materialState.get('guide').access = 'ANYONE_WITH_LINK';
+assert.equal(auditMaterials().ready, true, 'link-only viewing remains valid');
 materialState.get('sheet').permission = 'EDIT';
 assert.equal(auditMaterials().checks[2].status, 'NOT_VIEW_ONLY');
 materialState.get('sheet').permission = 'VIEW';
