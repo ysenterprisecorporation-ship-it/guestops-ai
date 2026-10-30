@@ -22,6 +22,12 @@ jobs:
         with:
           node-version: '22'
       - name: Validate Apps Script syntax
-        run: cp integrations/square-starter-fulfillment/Code.gs /tmp/starter-fulfillment.js && node --check /tmp/starter-fulfillment.js
+        run: |-
+          cp integrations/square-starter-fulfillment/Code.gs /tmp/starter-fulfillment.js
+          cp integrations/square-starter-fulfillment/Deployment.gs /tmp/starter-deployment.js
+          node --check /tmp/starter-fulfillment.js
+          node --check /tmp/starter-deployment.js
       - name: Execute mocked Square and Gmail integration checks
-        run: node integrations/square-starter-fulfillment/test-fulfillment.cjs
+        run: |-
+          node integrations/square-starter-fulfillment/test-fulfillment.cjs
+          node integrations/square-starter-fulfillment/test-deployment.cjs
