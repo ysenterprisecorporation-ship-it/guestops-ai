@@ -115,3 +115,10 @@
 - 最初の注文取得後に返金・キャンセルされたケースは、Gmail送信・Script Propertiesの納品ガード作成前に例外停止する。注文状態が変わらなかった場合のみ既存の二重送信防止処理に進む。
 - `test-fulfillment.cjs` に送信直前の注文返金・キャンセル・正常注文の回帰ケースを追加。ソースの構文検査および実コードのモック実行では、返金・キャンセルでGmail送信0件、正常注文で模擬送信1件を確認。
 - 本番Square接続・GAS配備・実Gmail送信の成功を意味しない。外部APIとGmail送信は原子的な一取引ではないため、再取得後のごく短い時間差は残る。送信有効化には別途本番確認が必要。
+
+## 2026-10-30 15時台：購入者用教材リンクの取り違え防止とCI修正
+
+- `goRequiredConfig_` は、利用ガイド・マスタープロンプトを Google Docs の `/document/d/<fileId>`、施設情報設定シートを Google Sheets の `/spreadsheets/d/<fileId>` として検証する。3件で同一ファイルIDが重複する場合も、送信処理前に例外停止する。URLの型・IDの整合性検査であり、実際の閲覧権限やファイル内容を確認したことにはならない。
+- `test-deployment.cjs` に Docs/Sheets の種類の取り違えと、同一教材IDの二重指定を拒否する回帰ケースを追加。外部送信・決済変更は行わない。
+- GitHub Actions `verify-starter-fulfillment.yml` の完了メッセージ検査を、現在の `testStarterFulfillmentRules()` が実際に出力する文言へ修正。旧ワークフローの `PASS: 23 safe fulfillment checks` は現行コードのログと一致していなかった。
+- この更新はGitHubのコード・テスト・手順書の変更であり、GAS本番配備・Square本番API接続・実購入者へのメール送信ではない。GitHub Actionsの実ジョブ成功は別途確認する。
