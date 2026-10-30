@@ -150,3 +150,12 @@
 - `ready: true` かつ3件すべて `READY` の場合だけ、検査時点のリンク閲覧条件を満たす。異常時は `INVALID_URL`、`WRONG_FILE_TYPE`、`BUYER_CANNOT_OPEN_LINK`、`NOT_VIEW_ONLY`、`FILE_UNAVAILABLE` のいずれかを返す。
 - 監査ログにはファイルID・URL・アクセストークン・購入者情報を出力しない。共有設定は変更しない。
 - **重要：この監査は本番GASに自動配備されていない。送信処理を自動的に有効化・停止するゲートでもない。** 実際の購入者視点の閲覧試験、決済API接続、GAS配備、送信ID付きの納品確認は別工程。リンク閲覧設定は購入者限定配布を保証しない。
+
+
+## 2026-10-31 追記：未解決納品ガードの全件監査
+
+- `auditStarterDeliveryGuards()` は、Script Propertiesに残る `GO_SENT_` プレフィックスの納品ガードを全件読み取り、`PENDING`・形式不明・送信ID付き `SENT` の**ガード件数**のみを返す。注文ID・決済ID・購入者情報・認証情報は出力しない。読み取り専用。
+- 返金・キャンセル・監視期間外への移動でSquareの適格決済一覧に表示されなくなっても、過去の `PENDING` ガードは残り得る。従来の適格決済のみの `pendingReview` 集計ではこの未解決状態を見落とすため、`auditStarterGoLiveReadiness()` に独立した全件監査を追加した。
+- `UNRESOLVED_DELIVERY_GUARDS`、`UNRECOGNIZED_DELIVERY_GUARDS`、`DELIVERY_GUARD_AUDIT_FAILED` のいずれかがあれば `ready=false`。件数は注文数ではなくガードキー数（同一注文の決済・注文キーを重複計上する可能性あり）。
+- `SENT` と判定するにはタイムスタンプと `MSG:<Gmail送信ID>` が必要。形式不明の履歴は自動で削除・書換・再送しない。購入者への実送信有無をGmailと照合してから個別に扱う。
+- モック検証では、正常・残存PENDING・形式不明・送信ID付きSENT・プロパティ読み取り障害の5状態を確認。**本番GAS配備・Square本番接続・実購入者への送信は未完了**。
