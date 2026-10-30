@@ -109,8 +109,12 @@ function auditStarterMaterialAccess() {
         return {material: spec.key, status: 'WRONG_FILE_TYPE'};
       }
       const access = file.getSharingAccess();
-      if (access !== DriveApp.Access.ANYONE_WITH_LINK &&
-          access !== DriveApp.Access.ANYONE) {
+      // Public-to-everyone (ANYONE) can expose paid materials beyond the
+      // intended link recipients. Accept link-only sharing, never public.
+      if (access === DriveApp.Access.ANYONE) {
+        return {material: spec.key, status: 'PUBLICLY_DISCOVERABLE'};
+      }
+      if (access !== DriveApp.Access.ANYONE_WITH_LINK) {
         return {material: spec.key, status: 'BUYER_CANNOT_OPEN_LINK'};
       }
       if (file.getSharingPermission() !== DriveApp.Permission.VIEW) {
