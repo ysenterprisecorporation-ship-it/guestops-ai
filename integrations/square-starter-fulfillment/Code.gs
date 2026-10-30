@@ -76,8 +76,11 @@ function goPaymentEligible_(p, config) {
     p.location_id === config.location && p.order_id &&
     p.amount_money && p.amount_money.currency === 'JPY' &&
     Number(p.amount_money.amount) === GO_PRICE_JPY &&
-    (!p.refund_ids || p.refund_ids.length === 0) &&
-    (!p.refunded_money || Number(p.refunded_money.amount || 0) === 0) &&
+    (p.refund_ids === undefined || (Array.isArray(p.refund_ids) && p.refund_ids.length === 0)) &&
+    (p.refunded_money === undefined ||
+      (p.refunded_money && p.refunded_money.currency === 'JPY' &&
+       Number.isFinite(Number(p.refunded_money.amount)) &&
+       Number(p.refunded_money.amount) === 0)) &&
     p.created_at && Date.parse(p.created_at) >= Date.parse(config.since) &&
     typeof p.buyer_email_address === 'string' &&
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.buyer_email_address) &&
