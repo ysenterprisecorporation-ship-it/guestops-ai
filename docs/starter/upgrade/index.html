@@ -20,6 +20,7 @@ label.check{display:block;margin:12px 0;padding:12px;background:#f8fbfe;border-r
 .button.secondary{background:#e7f2ff;color:#0d5c96}
 .small{font-size:14px;color:#5c6d7d}.tag{display:inline-block;background:#e7f2ff;color:#0d5c96;border-radius:999px;padding:3px 9px;font-size:13px;font-weight:700}
 h1{line-height:1.35}ul{padding-left:22px}
+.consultation-fields{display:grid;gap:10px;margin:16px 0;padding:16px;background:#fff;border:1px solid #e5d5ae;border-radius:10px}.consultation-fields p{margin:0}.consultation-fields label{display:grid;gap:4px;font-weight:700}.consultation-fields input,.consultation-fields select{font:inherit;padding:10px;max-width:100%;border:1px solid #9fb3c4;border-radius:8px;background:#fff;color:#172638}
 </style>
 </head>
 <body>
@@ -104,6 +105,34 @@ h1{line-height:1.35}ul{padding-left:22px}
 <footer>GuestOps AI｜ワイズエンタープライズコーポレーション<br><span class="small">予約サイトにある便利な機能はそのまま使い、そこでは自動化しにくい確認・判断・効果的なレビュー返信を補います。</span></footer>
 
 <script>
+let goConsultationContext = null;
+function goConsultationMailto_(priority, count) {
+ const facilities = String(document.getElementById('goFacilities')?.value || '').trim().slice(0,3);
+ const pms = String(document.getElementById('goPms')?.value || '').trim().slice(0,40);
+ const timing = String(document.getElementById('goTiming')?.value || '').trim().slice(0,20);
+ function makeHref(limit) {
+   const body = ['GuestOps AI 月額導入相談（無料診断より）', '',
+     '導入予定施設数：' + facilities,
+     '現在利用している予約管理システム：' + pms,
+     '希望開始時期：' + timing, '',
+     '優先課題（上位' + limit + '件）：',
+     ...priority.slice(0,limit).map((x,i)=>(i+1)+'. '+x),
+     '', '選択した課題数：'+count+'件',
+     '相談内容・確認したいこと：'].join('\n');
+   return 'mailto:minpaku.ai.kit@gmail.com?subject=' +
+     encodeURIComponent('GuestOps AI 月額導入相談（無料診断）') +
+     '&body=' + encodeURIComponent(body);
+ }
+ let href = makeHref(3);
+ if (href.length > 1900) href = makeHref(2);
+ if (href.length > 1900) href = makeHref(1);
+ return href;
+}
+function goRefreshConsultationLink() {
+ if (!goConsultationContext) return;
+ const link = document.getElementById('goConsultationLink');
+ if (link) link.href = goConsultationMailto_(goConsultationContext.priority, goConsultationContext.count);
+}
 function diagnose(){
  const xs=[...document.querySelectorAll('input:checked')].map(x=>x.value);
  const r=document.getElementById('result');
@@ -137,32 +166,17 @@ function diagnose(){
    priority.map((x,i)=>(i+1)+'. '+x).join('<br>')+
    '<br><br><span class="small">選択した項目：'+xs.join(' / ')+'</span>';
 
- // Limit the prefilled mail body to three actionable priorities so that
- // mailto URLs stay manageable on mobile clients. The full result stays on-page.
- const mailBody = [
-   'GuestOps AI 月額導入相談（無料診断より）',
-   '',
-   '導入予定施設数：',
-   '現在利用している予約管理システム：',
-   '希望開始時期：',
-   '',
-   '優先課題（上位3件）：',
-   ...priority.slice(0,3).map((x,i)=>(i+1)+'. '+x),
-   '',
-   '選択した課題数：'+xs.length+'件',
-   '相談内容・確認したいこと：'
- ].join('\n');
- const consultationMailto = 'mailto:minpaku.ai.kit@gmail.com?subject='+
-   encodeURIComponent('GuestOps AI 月額導入相談（無料診断）')+
-   '&body='+encodeURIComponent(mailBody);
+ // Compose a mail draft; no data is sent by this page.
+ goConsultationContext = {priority, count:xs.length};
+ const consultationMailto = goConsultationMailto_(priority,xs.length);
 
  n.style.display='block';
  n.innerHTML=
    '<h3>2｜おすすめの進め方</h3>'+
    '<p><strong>GuestOps AIで自動化を検討する</strong></p>'+
    '<p>診断で見つかった確認・判断・レビュー返信・料金調整などについて、現行の仕組みと接続条件を確認したうえで提供範囲を決定します。全機能の自動化は保証していません。</p>'+
-   '<p><a class="button" href="'+consultationMailto+'">診断結果を添えて月額導入を相談</a> <a class="button secondary" href="../../#pricing">料金・提供条件を見る</a></p>'+
-   '<p class="small">メール作成画面が開きます。送信前に施設数・相談内容を確認してください。この診断ページから情報が自動送信されることはありません。</p>'+
+   '<div class="consultation-fields"><p><strong>任意：相談内容を先に入力（メール本文に反映）</strong></p>'+   '<label>導入予定施設数 <input id="goFacilities" type="number" min="1" max="999" inputmode="numeric" placeholder="例：3" oninput="goRefreshConsultationLink()"></label>'+   '<label>現在の予約管理システム <input id="goPms" type="text" maxlength="40" placeholder="例：Beds24／未導入" oninput="goRefreshConsultationLink()"></label>'+   '<label>導入希望時期 <select id="goTiming" onchange="goRefreshConsultationLink()"><option value="">未選択</option><option>すぐに</option><option>1か月以内</option><option>3か月以内</option><option>未定</option></select></label></div>'+   '<p><a id="goConsultationLink" class="button" href="'+consultationMailto+'">診断結果を添えて月額導入を相談</a> <a class="button secondary" href="../../#pricing">料金・提供条件を見る</a></p>'+
+   '<p class="small">メール作成画面が開きます。入力内容はメール本文に反映されますが、このページでは保存・送信されません。メールアプリが起動しない場合は minpaku.ai.kit@gmail.com 宛てに直接ご相談ください。</p>'+
    '<hr style="border:0;border-top:1px solid #e3d6b7;margin:20px 0">'+
    '<p><strong>まず小さく試すならStarter</strong></p>'+
    '<p>9,800円Starterは、施設情報・返信基準・判断ルールを整理して、GuestOps AIへ進む前段として使えます。</p>'+
