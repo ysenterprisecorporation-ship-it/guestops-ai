@@ -122,3 +122,12 @@
 - `test-deployment.cjs` に Docs/Sheets の種類の取り違えと、同一教材IDの二重指定を拒否する回帰ケースを追加。外部送信・決済変更は行わない。
 - GitHub Actions `verify-starter-fulfillment.yml` の完了メッセージ検査を、現在の `testStarterFulfillmentRules()` が実際に出力する文言へ修正。旧ワークフローの `PASS: 23 safe fulfillment checks` は現行コードのログと一致していなかった。
 - この更新はGitHubのコード・テスト・手順書の変更であり、GAS本番配備・Square本番API接続・実購入者へのメール送信ではない。GitHub Actionsの実ジョブ成功は別途確認する。
+
+## 2026-10-30 21時台：実行中の緊急停止を即時反映
+
+- 従来の `pauseStarterFulfillment()` は送信処理と同じScriptLockを待つため、処理中に停止指示を出しても当該実行が終わるまで `SEND_ENABLED=false` を保存できなかった。
+- 緊急停止関数はロック待ちをせず、Script Propertiesの `SEND_ENABLED=false` を直ちに保存する方式に修正した。価格・注文・Square API・トリガーは変更しない。
+- `runStarterFulfillment()` は送信有効フラグを開始時に一度読むだけでなく、**Square再照合後・納品ガード作成前**と、**PENDINGガード作成後・Gmail実送信前**に再取得する。停止指示を検知したら送信しない。
+- PENDING記録後に停止した注文は、誤再送防止のためガードを残す。再開時も自動送信せず、注文・送信履歴を照合してから個別判断する。**Gmail送信処理が既に開始した後の取消しは保証できない。**
+- 回帰テスト：実行中のロック保持状態での停止フラグ保存、PENDING記録直後の停止でGmail 0件・自動再送0件、決済再照合中の停止でPENDING 0件・Gmail 0件を追加。
+- GitHubへのソース反映は完了。本番GASプロジェクトへの配備・Square本番API通信・実購入者へのメール送信は**未実施**。実際の停止効果は配備後に検証する。
