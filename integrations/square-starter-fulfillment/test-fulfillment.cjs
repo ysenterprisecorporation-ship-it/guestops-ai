@@ -441,6 +441,7 @@ console.log('PASS: emergency pause before reservation and after PENDING blocks G
   ]);
   let triggerCount = 1, accountOk = true, configOk = true;
   let materialsOk = true, pendingCount = 0, squareThrows = false;
+  let guardScanFails = false;
   let writes = 0, sends = 0, auditCalls = 0;
   const required = [
     'SQUARE_ACCESS_TOKEN', 'SQUARE_LOCATION_ID', 'STARTER_CATALOG_OBJECT_ID',
@@ -456,6 +457,7 @@ console.log('PASS: emergency pause before reservation and after PENDING blocks G
       ({getHandlerFunction: () => 'runStarterFulfillment'}))},
     PropertiesService: {getScriptProperties: () => ({
       getProperty: (k) => gateProps.get(k) || null,
+      getProperties: () => {if (guardScanFails) throw Error('Guard scan unavailable'); return Object.fromEntries(gateProps);},
       setProperty: () => {writes++; throw Error('Unexpected property mutation');}
     })},
     GmailApp: {createDraft: () => {sends++; throw Error('Unexpected Gmail call');}},
@@ -498,11 +500,26 @@ console.log('PASS: emergency pause before reservation and after PENDING blocks G
   pendingCount = 2;
   assert.equal(has(check(), 'PENDING_DELIVERY_REVIEW'), true);
   pendingCount = 0;
+  // A PENDING guard from a now-refunded/absent payment is invisible to the
+  // Square eligible-payment audit. It must still block go-live.
+  gateProps.set('GO_SENT_staleOrder', 'PENDING 2026-10-30T00:00:00Z');
+  assert.equal(has(check(), 'UNRESOLVED_DELIVERY_GUARDS'), true);
+  gateProps.delete('GO_SENT_staleOrder');
+  // Corrupt/legacy statuses must not be silently treated as completed.
+  gateProps.set('GO_SENT_corrupt', 'UNKNOWN');
+  assert.equal(has(check(), 'UNRECOGNIZED_DELIVERY_GUARDS'), true);
+  gateProps.delete('GO_SENT_corrupt');
+  gateProps.set('GO_SENT_completed', 'SENT 2026-10-30T00:00:00Z MSG:mock-gmail-id');
+  assert.equal(check().ready, true, 'valid SENT guard does not block go-live');
+  gateProps.delete('GO_SENT_completed');
+  guardScanFails = true;
+  assert.equal(has(check(), 'DELIVERY_GUARD_AUDIT_FAILED'), true);
+  guardScanFails = false;
   squareThrows = true;
   assert.equal(has(check(), 'SQUARE_READ_ONLY_AUDIT_FAILED'), true);
   squareThrows = false;
   assert.equal(check().ready, true, 'gate recovers after all blockers clear');
   assert.equal(writes, 0, 'readiness audit never writes properties');
   assert.equal(sends, 0, 'readiness audit never sends Gmail');
-  console.log('PASS: go-live readiness gate, 11 scenarios, zero writes/sends');
+  console.log('PASS: go-live readiness gate, 15 scenarios, zero writes/sends');
 }
