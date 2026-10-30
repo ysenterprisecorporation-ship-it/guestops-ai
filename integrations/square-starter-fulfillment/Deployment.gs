@@ -146,9 +146,9 @@ function auditStarterDeliveryGuards() {
     const state = entries[key];
     if (typeof state !== 'string') {
       unrecognizedGuardCount++;
-    } else if (/^PENDING(?:\\s|$)/.test(state)) {
+    } else if (/^PENDING(?:\s|$)/.test(state)) {
       pendingGuardCount++;
-    } else if (/^SENT\\s+\\d{4}-\\d\\d-\\d\\dT[^\\s]+\\s+MSG:[^\\s]+$/.test(state)) {
+    } else if (/^SENT\s+\d{4}-\d\d-\d\dT[^\s]+\s+MSG:[^\s]+$/.test(state)) {
       sentGuardCount++;
     } else {
       unrecognizedGuardCount++;
