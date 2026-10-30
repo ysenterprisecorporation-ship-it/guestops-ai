@@ -79,3 +79,50 @@ function pauseStarterFulfillment() {
   console.log('STARTER_FULFILLMENT_PAUSED');
   return {sendEnabled: false};
 }
+
+/**
+ * Read-only prelaunch audit of the three buyer materials.
+ * A syntactically valid Docs URL does NOT guarantee a buyer can open it.
+ * Do not log file IDs, URLs, buyer data or tokens. No permission changes.
+ * A result of ready=true verifies link-view access at audit time only;
+ * it is not a guarantee of future access or proof of a paid delivery.
+ */
+function auditStarterMaterialAccess() {
+  const props = PropertiesService.getScriptProperties();
+  const specs = [
+    {key: 'STARTER_GUIDE_URL', type: 'document',
+      mime: 'application/vnd.google-apps.document'},
+    {key: 'STARTER_PROMPT_URL', type: 'document',
+      mime: 'application/vnd.google-apps.document'},
+    {key: 'STARTER_SHEET_URL', type: 'spreadsheets',
+      mime: 'application/vnd.google-apps.spreadsheet'}
+  ];
+  const checks = specs.map(spec => {
+    const url = props.getProperty(spec.key);
+    const pattern = new RegExp('^https://docs\\.google\\.com/' +
+      spec.type + '/d/([A-Za-z0-9_-]+)(?:/|$)');
+    const match = typeof url === 'string' ? url.match(pattern) : null;
+    if (!match) return {material: spec.key, status: 'INVALID_URL'};
+    try {
+      const file = DriveApp.getFileById(match[1]);
+      if (file.getMimeType() !== spec.mime) {
+        return {material: spec.key, status: 'WRONG_FILE_TYPE'};
+      }
+      const access = file.getSharingAccess();
+      if (access !== DriveApp.Access.ANYONE_WITH_LINK &&
+          access !== DriveApp.Access.ANYONE) {
+        return {material: spec.key, status: 'BUYER_CANNOT_OPEN_LINK'};
+      }
+      if (file.getSharingPermission() !== DriveApp.Permission.VIEW) {
+        return {material: spec.key, status: 'NOT_VIEW_ONLY'};
+      }
+      return {material: spec.key, status: 'READY'};
+    } catch (e) {
+      // Missing file, lost access, or Drive API error: fail closed.
+      return {material: spec.key, status: 'FILE_UNAVAILABLE'};
+    }
+  });
+  const result = {ready: checks.every(c => c.status === 'READY'), checks};
+  console.log('STARTER_MATERIAL_AUDIT ' + JSON.stringify(result));
+  return result;
+}
