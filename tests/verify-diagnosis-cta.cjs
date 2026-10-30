@@ -11,14 +11,14 @@ assert.ok(script, 'diagnosis script must exist');
 const checkboxValues = [...html.matchAll(/<input type="checkbox" value="([^"]+)"/g)].map(x => x[1]);
 assert.equal(checkboxValues.length, 12, 'diagnosis question count changed; update test deliberately');
 
-function diagnose(values) {
+function diagnose(values, fields = {}) {
   const result = {style: {}, innerHTML: '', scrollIntoView() {}};
   const next = {style: {}, innerHTML: ''};
   const document = {
     querySelectorAll: () => values.map(value => ({value})),
-    getElementById: id => id === 'result' ? result : next
+    getElementById: id => ({result, nextStep: next, ...fields})[id] || null
   };
-  vm.runInNewContext(script + '\ndiagnose();', {document});
+  vm.runInNewContext(script + '\ndiagnose(); goRefreshConsultationLink();', {document});
   return {result, next};
 }
 
@@ -40,10 +40,29 @@ assert.match(body, /\n1\. .*料金を調整する/);
 assert.match(body, /\n2\. .*低評価レビュー/);
 assert.match(body, /選択した課題数：2件/);
 
+const fields = {
+  goFacilities: {value: '4'},
+  goPms: {value: 'Beds24'},
+  goTiming: {value: '1か月以内'},
+  goConsultationLink: {href: ''}
+};
+const filled = diagnose(['価格運用'], fields);
+const filledHref = filled.next.innerHTML.match(/href="(mailto:[^"]+)"/)?.[1];
+assert.ok(filledHref, 'filled consultation mailto missing');
+assert.equal(fields.goConsultationLink.href, filledHref, 'input change must update consultation href');
+const filledBody = decodeURIComponent(filledHref.split('&body=')[1]);
+assert.match(filledBody, /導入予定施設数：4/);
+assert.match(filledBody, /現在利用している予約管理システム：Beds24/);
+assert.match(filledBody, /希望開始時期：1か月以内/);
+assert.match(filled.next.innerHTML, /メールアプリが起動しない場合/);
+assert.match(filled.next.innerHTML, /id="goFacilities"/);
+assert.match(filled.next.innerHTML, /id="goPms"/);
+assert.match(filled.next.innerHTML, /id="goTiming"/);
+
 const all = diagnose(checkboxValues);
 const fullHref = all.next.innerHTML.match(/href="(mailto:[^"]+)"/)?.[1];
 assert.ok(fullHref && fullHref.length < 2000, 'mailto exceeds conservative mobile URL budget');
 const fullBody = decodeURIComponent(fullHref.split('&body=')[1]);
 assert.equal((fullBody.match(/^\d\. /gm) || []).length, 3, 'include at most three priorities');
 assert.doesNotMatch(html, /fetch\s*\(|XMLHttpRequest|navigator\.sendBeacon/, 'diagnosis must not transmit data');
-console.log('PASS: GuestOps diagnosis email CTA, empty state, priority summary, mobile URL size, no auto-transmission');
+console.log('PASS: GuestOps diagnosis email CTA, empty state, priority summary, optional consultation inputs, mobile URL size, no auto-transmission');
