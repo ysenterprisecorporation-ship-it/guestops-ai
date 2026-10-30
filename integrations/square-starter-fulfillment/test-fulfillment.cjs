@@ -86,6 +86,26 @@ const run = () => vm.runInContext('runStarterFulfillment()', ctx);
 // The separate Deployment.gs is loaded in the same GAS project in production.
 // Mock its read-only buyer-material audit for the fulfillment harness.
 ctx.auditStarterMaterialAccess = () => ({ready: true});
+// Production includes Deployment.gs. Live sends must check its global guard
+// audit on EVERY trigger run, not only during the one-time go-live preflight.
+ctx.auditStarterDeliveryGuards = () => ({pendingGuardCount: 0, unrecognizedGuardCount: 0});
+const beforeGlobalGuardTest = new Map(props);
+for (const guards of [
+  {pendingGuardCount: 1, unrecognizedGuardCount: 0},
+  {pendingGuardCount: 0, unrecognizedGuardCount: 1},
+  {pendingGuardCount: undefined, unrecognizedGuardCount: 0},
+  {pendingGuardCount: -1, unrecognizedGuardCount: 0}
+]) {
+  ctx.auditStarterDeliveryGuards = () => guards;
+  assert.throws(run, /Unresolved or unreadable delivery guards/);
+  assert.equal(sent.length, 0, 'global guard issue must block all Gmail sends');
+  assert.deepEqual(props, beforeGlobalGuardTest, 'global guard issue must not write state');
+}
+ctx.auditStarterDeliveryGuards = () => {throw Error('global guard scan unavailable');};
+assert.throws(run, /global guard scan unavailable/);
+assert.equal(sent.length, 0, 'guard scan failure must block Gmail');
+assert.deepEqual(props, beforeGlobalGuardTest);
+ctx.auditStarterDeliveryGuards = () => ({pendingGuardCount: 0, unrecognizedGuardCount: 0});
 // A permission change or Drive outage must stop before any PENDING guard/Gmail.
 ctx.__payments = [{...payment('P_MATERIAL'), order_id: 'O_MATERIAL'}];
 ctx.__order = {...order, id: 'O_MATERIAL'};
