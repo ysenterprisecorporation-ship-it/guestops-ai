@@ -25,6 +25,7 @@ let auditCalls = 0;
 let propertyWrites = 0;
 let emails = 0;
 let squareMutations = 0;
+let lockAvailable = true;
 const ctx = vm.createContext({
   console: {log: () => {}},
   Session: {getEffectiveUser: () => ({getEmail: () => account})},
@@ -33,7 +34,7 @@ const ctx = vm.createContext({
     setProperty: (key, value) => {propertyWrites++; props.set(key, value);}
   })},
   LockService: {getScriptLock: () => ({
-    tryLock: () => true, releaseLock: () => {}
+    tryLock: () => lockAvailable, releaseLock: () => {}
   })},
   ScriptApp: {
     getProjectTriggers: () => triggers,
@@ -100,4 +101,13 @@ assert.equal(propertyWrites, 1, 'only explicit pause may write SEND_ENABLED');
 assert.equal(emails, 0);
 assert.equal(squareMutations, 0);
 assert.equal(auditCalls, 5);
+// Emergency pause must not wait for the fulfillment lock; it is a stop flag.
+lockAvailable = false;
+props.set('SEND_ENABLED', 'true');
+assert.equal(run('pauseStarterFulfillment().sendEnabled'), false);
+assert.equal(props.get('SEND_ENABLED'), 'false');
+lockAvailable = true;
+assert.equal(propertyWrites, 2, 'pause can write immediately even with active lock');
+assert.equal(emails, 0);
+assert.equal(squareMutations, 0);
 console.log('PASS: dry-run deployment status, idempotent trigger install, send gate, pause, duplicates, wrong account, audit failure; no Gmail or Square mutation');
