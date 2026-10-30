@@ -35,6 +35,7 @@ const ctx = vm.createContext({
   console,
   __payments: [payment('P1'), payment('P2')],
   __order: order,
+  __refreshedPaymentOverride: null,
   Session: {getEffectiveUser: () => ({getEmail: () => 'minpaku.ai.kit@gmail.com'})},
   LockService: {getScriptLock: () => ({tryLock: () => true, releaseLock: () => {}})},
   PropertiesService: {getScriptProperties: () => ({
@@ -67,6 +68,10 @@ vm.runInContext(`
   goKey_ = function(id) {return 'TEST_' + id;};
   goSquareGet_ = function(url) {
     if (url.startsWith('payments?')) return {payments: __payments};
+    if (url.startsWith('payments/')) {
+      return {payment: __refreshedPaymentOverride ||
+        __payments.find(p => p.id === decodeURIComponent(url.slice('payments/'.length)))};
+    }
     if (url.startsWith('orders/')) return {order: __order};
     throw Error('Unexpected Square path: ' + url);
   };
@@ -259,3 +264,36 @@ assert.equal(sent.length, beforeRepeatedCursor, 'repeated cursor must not send')
 assert.deepEqual(props, propsBeforeRepeatedCursor, 'repeated cursor must not write state');
 console.log('PASS: 23 eligibility checks + idempotency, retries, dry-run, Gmail failure, missing message ID, guard write failures, read-only audit, rejection breakdown, malformed Square responses, repeated cursor safety');
 
+
+// Payment listing can become stale before Gmail delivery. A fresh refund,
+// changed recipient or missing payment must stop without guards or email.
+ctx.__payments = [{...payment('PRACE'), order_id:'ORACE'}];
+ctx.__order = {...order, id:'ORACE'};
+vm.runInContext(`
+  goSquareGet_ = function(url) {
+    if (url.startsWith('payments?')) return {payments: __payments};
+    if (url.startsWith('payments/')) return {payment: __refreshedPaymentOverride};
+    if (url.startsWith('orders/')) return {order: __order};
+    throw Error('Unexpected Square path: ' + url);
+  };
+`, ctx);
+const beforeRace = sent.length;
+ctx.__refreshedPaymentOverride = {...payment('PRACE'), order_id:'ORACE', refund_ids:['REFUND']};
+assert.throws(run, /Payment changed during fulfillment/);
+assert.equal(sent.length, beforeRace, 'refunded payment must not send');
+assert.equal(props.has('TEST_ORDER:ORACE'), false, 'refunded payment must not reserve order');
+ctx.__refreshedPaymentOverride = {...payment('PRACE'), order_id:'ORACE',
+  buyer_email_address:'changed@example.com'};
+assert.throws(run, /Payment changed during fulfillment/);
+assert.equal(sent.length, beforeRace, 'changed recipient must not send');
+assert.equal(props.has('TEST_ORDER:ORACE'), false);
+ctx.__refreshedPaymentOverride = null;
+assert.throws(run, /Payment changed during fulfillment/);
+assert.equal(sent.length, beforeRace, 'missing payment detail must not send');
+assert.equal(props.has('TEST_ORDER:ORACE'), false);
+ctx.__refreshedPaymentOverride = {...payment('PRACE'), order_id:'ORACE'};
+run();
+assert.equal(sent.length, beforeRace + 1, 'unchanged rechecked payment is delivered once');
+run();
+assert.equal(sent.length, beforeRace + 1, 'rechecked payment is not resent');
+console.log('PASS: payment re-read prevents refund race, changed buyer and missing payment detail');
