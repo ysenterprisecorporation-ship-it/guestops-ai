@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports -- standalone Node CommonJS test */
 'use strict';
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
