@@ -427,3 +427,82 @@ assert.equal(sent.length, beforeEarlyPause);
 assert.equal(props.has('TEST_ORDER:OPAUSEEARLY'), false);
 assert.equal(props.has('TEST_PPAUSEEARLY'), false);
 console.log('PASS: emergency pause before reservation and after PENDING blocks Gmail and automatic retry');
+
+
+// Production handoff gate: isolated, read-only regression scenarios.
+// No real Square, Drive, Gmail or Script Properties API is invoked.
+{
+  const deploymentCode = fs.readFileSync(path.join(__dirname, 'Deployment.gs'), 'utf8');
+  const gateProps = new Map([
+    ['SQUARE_ACCESS_TOKEN', 'fake-token'], ['SQUARE_LOCATION_ID', 'fake-location'],
+    ['STARTER_CATALOG_OBJECT_ID', 'fake-item'], ['FULFILL_SINCE_ISO', '2026-10-29T00:00:00Z'],
+    ['STARTER_GUIDE_URL', 'fake-guide'], ['STARTER_PROMPT_URL', 'fake-prompt'],
+    ['STARTER_SHEET_URL', 'fake-sheet'], ['SEND_ENABLED', 'false']
+  ]);
+  let triggerCount = 1, accountOk = true, configOk = true;
+  let materialsOk = true, pendingCount = 0, squareThrows = false;
+  let writes = 0, sends = 0, auditCalls = 0;
+  const required = [
+    'SQUARE_ACCESS_TOKEN', 'SQUARE_LOCATION_ID', 'STARTER_CATALOG_OBJECT_ID',
+    'FULFILL_SINCE_ISO', 'STARTER_GUIDE_URL', 'STARTER_PROMPT_URL',
+    'STARTER_SHEET_URL'
+  ];
+  const gateCtx = vm.createContext({
+    console: {log: () => {}},
+    GO_SENDER: 'minpaku.ai.kit@gmail.com',
+    Session: {getEffectiveUser: () => ({getEmail: () =>
+      accountOk ? 'minpaku.ai.kit@gmail.com' : 'wrong@example.com'})},
+    ScriptApp: {getProjectTriggers: () => Array.from({length: triggerCount}, () =>
+      ({getHandlerFunction: () => 'runStarterFulfillment'}))},
+    PropertiesService: {getScriptProperties: () => ({
+      getProperty: (k) => gateProps.get(k) || null,
+      setProperty: () => {writes++; throw Error('Unexpected property mutation');}
+    })},
+    GmailApp: {createDraft: () => {sends++; throw Error('Unexpected Gmail call');}},
+    goRequiredConfig_: () => {if (!configOk) throw Error('bad config');}
+  });
+  vm.runInContext(deploymentCode, gateCtx, {filename: 'Deployment.gs'});
+  gateCtx.auditStarterMaterialAccess = () => ({ready: materialsOk});
+  gateCtx.auditStarterFulfillment = () => {
+    auditCalls++;
+    if (squareThrows) throw Error('Square offline');
+    return {pendingReview: pendingCount};
+  };
+  const check = () => vm.runInContext('auditStarterGoLiveReadiness()', gateCtx);
+  const has = (result, code) => result.blockers.includes(code);
+  assert.equal(check().ready, true, 'fully configured dry-run gate passes');
+  triggerCount = 0;
+  assert.equal(has(check(), 'EXPECTED_EXACTLY_ONE_TRIGGER'), true);
+  triggerCount = 2;
+  assert.equal(has(check(), 'EXPECTED_EXACTLY_ONE_TRIGGER'), true);
+  triggerCount = 1;
+  gateProps.set('SEND_ENABLED', 'true');
+  assert.equal(has(check(), 'SEND_ALREADY_ENABLED'), true);
+  gateProps.set('SEND_ENABLED', 'false');
+  accountOk = false;
+  const callsBeforeWrongAccount = auditCalls;
+  assert.equal(has(check(), 'WRONG_GOOGLE_ACCOUNT'), true);
+  assert.equal(auditCalls, callsBeforeWrongAccount, 'wrong account must skip Square');
+  accountOk = true;
+  gateProps.delete('STARTER_GUIDE_URL');
+  const callsBeforeMissing = auditCalls;
+  assert.equal(has(check(), 'MISSING_PROPERTIES'), true);
+  assert.equal(auditCalls, callsBeforeMissing, 'missing config must skip Square');
+  gateProps.set('STARTER_GUIDE_URL', 'fake-guide');
+  configOk = false;
+  assert.equal(has(check(), 'INVALID_CONFIGURATION'), true);
+  configOk = true;
+  materialsOk = false;
+  assert.equal(has(check(), 'BUYER_MATERIALS_NOT_READY'), true);
+  materialsOk = true;
+  pendingCount = 2;
+  assert.equal(has(check(), 'PENDING_DELIVERY_REVIEW'), true);
+  pendingCount = 0;
+  squareThrows = true;
+  assert.equal(has(check(), 'SQUARE_READ_ONLY_AUDIT_FAILED'), true);
+  squareThrows = false;
+  assert.equal(check().ready, true, 'gate recovers after all blockers clear');
+  assert.equal(writes, 0, 'readiness audit never writes properties');
+  assert.equal(sends, 0, 'readiness audit never sends Gmail');
+  console.log('PASS: go-live readiness gate, 10 scenarios, zero writes/sends');
+}
