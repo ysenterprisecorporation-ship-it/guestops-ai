@@ -539,6 +539,23 @@ console.log('PASS: emergency pause before reservation and after PENDING blocks G
   gateProps.set('GO_SENT_completed', 'SENT 2026-10-30T00:00:00Z MSG:mock-gmail-id');
   assert.equal(check().ready, true, 'valid SENT guard does not block go-live');
   gateProps.delete('GO_SENT_completed');
+  // A broken audit returning missing, fractional, negative or nonnumeric
+  // counts must NEVER produce a green production readiness result.
+  const realGuardAudit = gateCtx.auditStarterDeliveryGuards;
+  for (const badGuards of [
+    null,
+    {pendingGuardCount: undefined, unrecognizedGuardCount: 0},
+    {pendingGuardCount: -1, unrecognizedGuardCount: 0},
+    {pendingGuardCount: 0.5, unrecognizedGuardCount: 0},
+    {pendingGuardCount: 0, unrecognizedGuardCount: '0'},
+    {pendingGuardCount: 0, unrecognizedGuardCount: Number.NaN}
+  ]) {
+    gateCtx.auditStarterDeliveryGuards = () => badGuards;
+    const result = check();
+    assert.equal(result.ready, false, 'malformed guard audit cannot pass');
+    assert.equal(has(result, 'DELIVERY_GUARD_AUDIT_FAILED'), true);
+  }
+  gateCtx.auditStarterDeliveryGuards = realGuardAudit;
   guardScanFails = true;
   assert.equal(has(check(), 'DELIVERY_GUARD_AUDIT_FAILED'), true);
   guardScanFails = false;
