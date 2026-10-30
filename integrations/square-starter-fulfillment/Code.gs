@@ -80,6 +80,26 @@ function goValidatePaymentPage_(response) {
   return response;
 }
 
+/**
+ * Accept one plain ASCII mailbox only. Gmail's recipient parser treats commas,
+ * semicolons and display-name syntax as address lists; never trust a loose
+ * "contains @ and dot" check for buyer-only delivery.
+ * Internationalized domains must arrive as ASCII/Punycode; otherwise manual review.
+ */
+function goBuyerEmailValid_(email) {
+  if (typeof email !== 'string' || email.length > 254) return false;
+  const parts = email.split('@');
+  if (parts.length !== 2 || parts[0].length > 64) return false;
+  const local = parts[0];
+  const domain = parts[1];
+  const atom = /^[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+$/;
+  if (!local.split('.').every(part => part && atom.test(part))) return false;
+  if (domain.length > 253 || !domain.includes('.')) return false;
+  return domain.split('.').every(label =>
+    label.length >= 1 && label.length <= 63 &&
+    /^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?$/.test(label));
+}
+
 function goPaymentEligible_(p, config) {
   return !!(p && p.id && p.status === 'COMPLETED' &&
     p.location_id === config.location && p.order_id &&
@@ -91,8 +111,7 @@ function goPaymentEligible_(p, config) {
        Number.isFinite(Number(p.refunded_money.amount)) &&
        Number(p.refunded_money.amount) === 0)) &&
     p.created_at && Date.parse(p.created_at) >= Date.parse(config.since) &&
-    typeof p.buyer_email_address === 'string' &&
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.buyer_email_address) &&
+    goBuyerEmailValid_(p.buyer_email_address) &&
     p.buyer_email_address.toLowerCase() !== GO_SENDER);
 }
 
@@ -282,8 +301,7 @@ function auditStarterFulfillment() {
           if (payment && ((Array.isArray(payment.refund_ids) && payment.refund_ids.length) ||
               (payment.refunded_money && Number(payment.refunded_money.amount || 0) > 0))) {
             summary.refundedPayments++;
-          } else if (!payment || typeof payment.buyer_email_address !== 'string' ||
-              !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payment.buyer_email_address) ||
+          } else if (!payment || !goBuyerEmailValid_(payment.buyer_email_address) ||
               payment.buyer_email_address.toLowerCase() === GO_SENDER) {
             summary.missingBuyerEmail++;
           } else if (payment.status !== 'COMPLETED') {
@@ -344,6 +362,14 @@ function testStarterFulfillmentRules() {
   check(!goPaymentEligible_(Object.assign({},p,{refunded_money:{amount:'invalid',currency:'JPY'}}),c), 'malformed refunded amount');
   check(!goPaymentEligible_(Object.assign({},p,{refunded_money:{amount:0,currency:'USD'}}),c), 'refunded currency mismatch');
   check(!goPaymentEligible_(Object.assign({},p,{buyer_email_address:''}),c), 'missing email');
+  check(goBuyerEmailValid_('buyer+tag@example.com'), 'single valid tagged mailbox');
+  check(!goBuyerEmailValid_('buyer@example.com,other@example.com'), 'recipient list blocked');
+  check(!goBuyerEmailValid_('Buyer <buyer@example.com>'), 'display-name syntax blocked');
+  check(!goBuyerEmailValid_('buyer@example.com;other'), 'semicolon delimiter blocked');
+  check(!goBuyerEmailValid_('buyer..double@example.com'), 'invalid dot atom blocked');
+  check(!goBuyerEmailValid_('buyer@example..com'), 'invalid domain blocked');
+  check(!goPaymentEligible_(Object.assign({},p,{buyer_email_address:'buyer@example.com,other'}),c), 'malformed recipient rejected');
+
   check(!goOrderEligible_(Object.assign({},o,{line_items:[{catalog_object_id:'OTHER',quantity:'1'}]}),p,c), 'wrong item');
   check(!goOrderEligible_(Object.assign({},o,{line_items:[{catalog_object_id:'VAR1',quantity:'2'}]}),p,c), 'quantity');
   check(!goPaymentEligible_(Object.assign({},p,{refunded_money:{amount:9800,currency:'JPY'}}),c), 'refunded amount');
