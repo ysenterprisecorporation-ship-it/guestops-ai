@@ -109,6 +109,9 @@ function diagnose(){
  const r=document.getElementById('result');
  const n=document.getElementById('nextStep');
 
+ // Compose a user-controlled mailto only when the visitor clicks the CTA.
+ // Nothing is sent or stored by the diagnosis page itself.
+
 
  if(!xs.length){
    r.style.display='block';
@@ -134,12 +137,32 @@ function diagnose(){
    priority.map((x,i)=>(i+1)+'. '+x).join('<br>')+
    '<br><br><span class="small">選択した項目：'+xs.join(' / ')+'</span>';
 
+ // Limit the prefilled mail body to three actionable priorities so that
+ // mailto URLs stay manageable on mobile clients. The full result stays on-page.
+ const mailBody = [
+   'GuestOps AI 月額導入相談（無料診断より）',
+   '',
+   '導入予定施設数：',
+   '現在利用している予約管理システム：',
+   '希望開始時期：',
+   '',
+   '優先課題（上位3件）：',
+   ...priority.slice(0,3).map((x,i)=>(i+1)+'. '+x),
+   '',
+   '選択した課題数：'+xs.length+'件',
+   '相談内容・確認したいこと：'
+ ].join('\\n');
+ const consultationMailto = 'mailto:minpaku.ai.kit@gmail.com?subject='+
+   encodeURIComponent('GuestOps AI 月額導入相談（無料診断）')+
+   '&body='+encodeURIComponent(mailBody);
+
  n.style.display='block';
  n.innerHTML=
    '<h3>2｜おすすめの進め方</h3>'+
    '<p><strong>GuestOps AIで自動化を検討する</strong></p>'+
    '<p>診断で見つかった確認・判断・レビュー返信・料金調整などについて、現行の仕組みと接続条件を確認したうえで提供範囲を決定します。全機能の自動化は保証していません。</p>'+
-   '<p><a class="button" href="../../#pricing">GuestOps AIを見る</a></p>'+
+   '<p><a class="button" href="'+consultationMailto+'">診断結果を添えて月額導入を相談</a> <a class="button secondary" href="../../#pricing">料金・提供条件を見る</a></p>'+
+   '<p class="small">メール作成画面が開きます。送信前に施設数・相談内容を確認してください。この診断ページから情報が自動送信されることはありません。</p>'+
    '<hr style="border:0;border-top:1px solid #e3d6b7;margin:20px 0">'+
    '<p><strong>まず小さく試すならStarter</strong></p>'+
    '<p>9,800円Starterは、施設情報・返信基準・判断ルールを整理して、GuestOps AIへ進む前段として使えます。</p>'+
