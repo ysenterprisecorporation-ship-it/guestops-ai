@@ -194,6 +194,11 @@ function runStarterFulfillment() {
         if (!latestOrder || !goOrderEligible_(latestOrder.order, refreshed.payment, config)) {
           throw new Error('Order changed during fulfillment; no delivery attempted.');
         }
+        // A pause may be requested while Square API reads are in progress.
+        // Re-read the live flag rather than trusting config.enabled from run start.
+        if (props.getProperty('SEND_ENABLED') !== 'true') {
+          throw new Error('Fulfillment paused before reserving delivery; no Gmail attempted.');
+        }
         // Mark PENDING before Gmail send to fail closed on interrupted execution.
         // An unresolved PENDING record must be reviewed before any manual retry.
         const pendingAt = 'PENDING ' + new Date().toISOString();
@@ -201,6 +206,11 @@ function runStarterFulfillment() {
         // the order remains blocked and no email is sent.
         props.setProperty(orderKey, pendingAt);
         props.setProperty(key, pendingAt);
+        // A pause after reservation must prevent Gmail. Keep both PENDING
+        // guards for manual review; never automatically retry this order.
+        if (props.getProperty('SEND_ENABLED') !== 'true') {
+          throw new Error('Fulfillment paused before Gmail; PENDING retained for manual review.');
+        }
         const subject = '【GuestOps AI】Starter Kit 教材のご案内';
         try {
           // GmailDraft.send() returns a GmailMessage. Capture its message ID
