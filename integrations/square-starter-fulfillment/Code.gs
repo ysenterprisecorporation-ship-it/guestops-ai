@@ -92,6 +92,13 @@ function goOrderEligible_(order, payment, config) {
       order.location_id !== config.location ||
       !order.total_money || order.total_money.currency !== 'JPY' ||
       Number(order.total_money.amount) !== GO_PRICE_JPY ||
+      // A completed payment alone is insufficient if the order has been
+      // refunded or returned through another tender or a later operation.
+      // Missing arrays are normal; malformed/nonempty arrays fail closed.
+      (order.refunds !== undefined &&
+        (!Array.isArray(order.refunds) || order.refunds.length > 0)) ||
+      (order.returns !== undefined &&
+        (!Array.isArray(order.returns) || order.returns.length > 0)) ||
       !Array.isArray(order.line_items) || order.line_items.length !== 1) return false;
   const item = order.line_items[0];
   return item.catalog_object_id === config.catalogId &&
@@ -304,5 +311,8 @@ function testStarterFulfillmentRules() {
   check(!goOrderEligible_(Object.assign({},o,{state:'DRAFT'}),p,c), 'draft order');
   check(!goOrderEligible_(Object.assign({},o,{state:'OPEN'}),p,c), 'open order must not be fulfilled');
   check(!goOrderEligible_(Object.assign({},o,{state:undefined}),p,c), 'missing order state must fail closed');
-  console.log('PASS: 20 safe fulfillment checks');
+  check(!goOrderEligible_(Object.assign({},o,{refunds:[{id:'REF1'}]}),p,c), 'refunded order blocked');
+  check(!goOrderEligible_(Object.assign({},o,{returns:[{id:'RETURN1'}]}),p,c), 'returned order blocked');
+  check(!goOrderEligible_(Object.assign({},o,{refunds:{unexpected:true}}),p,c), 'malformed refunds blocked');
+  console.log('PASS: 23 safe fulfillment checks');
 }
