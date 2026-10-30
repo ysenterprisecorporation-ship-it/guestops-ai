@@ -97,3 +97,14 @@
 - コードに模擬決済の直前返金、宛先変更、再取得結果欠落、正常な再取得後の一度だけの納品を検査する回帰テストを追加。
 - **検証範囲：** GitHub上の更新後 Code.gs を再取得し、V8上の模擬Square/Gmail環境で既存23判定、返金・宛先変更・再取得欠落の送信阻止、正常時1件・再実行時0件を確認。実Gmail送信0件。Node.jsの test-fulfillment.cjs 全体およびGitHub Actions実ジョブの成功はこの実行では未確認。
 - 送信前の再取得でも、外部システムの変更と送信を完全に原子的にはできない。GAS本番配備、Square本番接続、購入者への実納品は依然未完了。
+
+## 2026-10-30 11時台：GASのdry-runトリガーを1操作で設定する補助機能
+
+- `Deployment.gs` を `Code.gs` と同じApps Scriptプロジェクトへ追加すると、`getStarterDeploymentStatus()` で**不足する設定キー名・送信フラグ・トリガー数**のみを確認できる。トークン値や購入者情報は出力しない。
+- `installStarterDryRunTrigger()` は、`SEND_ENABLED=false` を必須とし、**Squareの読み取り専用監査が成功した場合に限り**、15分間隔の `runStarterFulfillment` トリガーを最大1個作成する。同じ関数を再実行しても重複作成しない。複数トリガーが既存の場合は停止し、自動削除しない。
+- `pauseStarterFulfillment()` は実行中処理との競合を避けるためロック取得後に `SEND_ENABLED=false` を保存する。Square・決済・価格・既存トリガーを変更しない。
+- **本番自動送信は有効化しない。** トリガー設置後も `SEND_ENABLED=false` の間はdry run。実購入者への自動納品の開始は、決済・受取権限・送信先の本番検証後に別途判断する。
+- `test-deployment.cjs` に初回設置、二重設置防止、送信有効時の設置拒否、緊急停止、既存トリガー重複、実行アカウント不一致、監査失敗を追加。GitHub Actionsにも組み込んだ。**GitHubへの実装とGAS本番配備は別工程であり、本番トリガーは未作成。**
+- `.github/workflows/verify-starter-fulfillment.yml` に残っていた旧テスト件数「8」を、現在の23件に修正。これまでの古い固定値による誤失敗を解消するための修正であり、GitHub Actions実行成功は別途確認が必要。
+
+**本番導入の順序：** ①既存GASに2つの `.gs` ファイルを追加 → ②Script Propertiesを設定（`SEND_ENABLED=false`）→ ③`getStarterDeploymentStatus()` → ④`installStarterDryRunTrigger()` → ⑤監査結果と実決済・教材受取条件を確認。**⑤が終わるまで送信フラグは変更しない。**
