@@ -321,6 +321,9 @@ function testStarterFulfillmentRules() {
   check(!goPaymentEligible_(Object.assign({},p,{status:'APPROVED'}),c), 'unsettled');
   check(!goPaymentEligible_(Object.assign({},p,{amount_money:{amount:980,currency:'JPY'}}),c), 'amount');
   check(!goPaymentEligible_(Object.assign({},p,{refund_ids:['R1']}),c), 'refund');
+  check(!goPaymentEligible_(Object.assign({},p,{refund_ids:{length:0}}),c), 'malformed refund IDs');
+  check(!goPaymentEligible_(Object.assign({},p,{refunded_money:{amount:'invalid',currency:'JPY'}}),c), 'malformed refunded amount');
+  check(!goPaymentEligible_(Object.assign({},p,{refunded_money:{amount:0,currency:'USD'}}),c), 'refunded currency mismatch');
   check(!goPaymentEligible_(Object.assign({},p,{buyer_email_address:''}),c), 'missing email');
   check(!goOrderEligible_(Object.assign({},o,{line_items:[{catalog_object_id:'OTHER',quantity:'1'}]}),p,c), 'wrong item');
   check(!goOrderEligible_(Object.assign({},o,{line_items:[{catalog_object_id:'VAR1',quantity:'2'}]}),p,c), 'quantity');
@@ -339,5 +342,5 @@ function testStarterFulfillmentRules() {
   check(!goOrderEligible_(Object.assign({},o,{refunds:[{id:'REF1'}]}),p,c), 'refunded order blocked');
   check(!goOrderEligible_(Object.assign({},o,{returns:[{id:'RETURN1'}]}),p,c), 'returned order blocked');
   check(!goOrderEligible_(Object.assign({},o,{refunds:{unexpected:true}}),p,c), 'malformed refunds blocked');
-  console.log('PASS: 23 safe fulfillment checks');
+  console.log('PASS: refund and fulfillment eligibility checks');
 }
