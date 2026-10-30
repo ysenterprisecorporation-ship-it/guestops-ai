@@ -200,6 +200,14 @@ function auditStarterGoLiveReadiness() {
     if (configValid) {
       try {
         const guards = auditStarterDeliveryGuards();
+        // Never report go-live READY if the guard audit returns malformed
+        // counts. Live fulfillment already rejects them; preflight must agree.
+        if (!guards ||
+            !Number.isSafeInteger(guards.pendingGuardCount) ||
+            !Number.isSafeInteger(guards.unrecognizedGuardCount) ||
+            guards.pendingGuardCount < 0 || guards.unrecognizedGuardCount < 0) {
+          throw new Error('Invalid delivery guard audit counts.');
+        }
         pendingGuardCount = guards.pendingGuardCount;
         unrecognizedGuardCount = guards.unrecognizedGuardCount;
         if (pendingGuardCount > 0) blockers.push('UNRESOLVED_DELIVERY_GUARDS');
