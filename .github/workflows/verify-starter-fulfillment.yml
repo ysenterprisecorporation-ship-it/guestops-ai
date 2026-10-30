@@ -17,6 +17,10 @@ jobs:
         run: |
           cp integrations/square-starter-fulfillment/Code.gs /tmp/guestops-starter-fulfillment.js
           node --check /tmp/guestops-starter-fulfillment.js
+          cp integrations/square-starter-fulfillment/Deployment.gs /tmp/guestops-starter-deployment.js
+          node --check /tmp/guestops-starter-deployment.js
+      - name: Test dry-run deployment safeguards
+        run: node integrations/square-starter-fulfillment/test-deployment.cjs
       - name: Test payment and order fail-closed checks
         run: |
           node <<'NODE'
@@ -26,7 +30,7 @@ jobs:
           const log = [];
           const context = {console: {log: (...a) => log.push(a.join(' ')), error: (...a) => log.push(a.join(' '))}};
           vm.runInNewContext(source + '\ntestStarterFulfillmentRules();', context);
-          if (!log.some(x => x.includes('PASS: 8 safe fulfillment checks'))) {
+          if (!log.some(x => x.includes('PASS: 23 safe fulfillment checks'))) {
             throw new Error('Safety test did not complete');
           }
           if (!source.includes("props.getProperty('SEND_ENABLED') === 'true'")) {
