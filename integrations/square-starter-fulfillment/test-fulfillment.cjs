@@ -83,6 +83,28 @@ vm.runInContext(`
   };
 `, ctx);
 const run = () => vm.runInContext('runStarterFulfillment()', ctx);
+// Malformed Square buyer emails must never reach Gmail's recipient parser.
+// These previously passed the permissive @/dot regex, despite including
+// delimiters or malformed mailbox syntax.
+for (const [index, buyerEmail] of [
+  'buyer@example.com,attacker',
+  'buyer@example.com;attacker',
+  'buyer@example.com>',
+  'buyer..double@example.com',
+  'buyer@example..com'
+].entries()) {
+  const id = 'P_BAD_' + index;
+  const orderId = 'O_BAD_' + index;
+  ctx.__payments = [{...payment(id), order_id: orderId, buyer_email_address: buyerEmail}];
+  ctx.__order = {...order, id: orderId};
+  const before = sent.length;
+  run();
+  assert.equal(sent.length, before, 'malformed buyer email must never send');
+  assert.equal(props.has('TEST_' + id), false, 'malformed email must not reserve payment');
+  assert.equal(props.has('TEST_ORDER:' + orderId), false, 'malformed email must not reserve order');
+}
+ctx.__payments = [payment('P1'), payment('P2')];
+ctx.__order = order;
 run();
 assert.equal(sent.length, 1, 'same Square order must be delivered only once');
 assert.equal(sent[0].to, 'buyer@example.com');
