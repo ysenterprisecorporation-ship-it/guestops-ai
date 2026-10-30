@@ -504,5 +504,5 @@ console.log('PASS: emergency pause before reservation and after PENDING blocks G
   assert.equal(check().ready, true, 'gate recovers after all blockers clear');
   assert.equal(writes, 0, 'readiness audit never writes properties');
   assert.equal(sends, 0, 'readiness audit never sends Gmail');
-  console.log('PASS: go-live readiness gate, 10 scenarios, zero writes/sends');
+  console.log('PASS: go-live readiness gate, 11 scenarios, zero writes/sends');
 }
