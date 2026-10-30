@@ -25,7 +25,7 @@
 | `STARTER_SHEET_URL` | 既存の購入者用「施設情報設定・20場面判断・初回テスト」Google Sheets URL |
 | `SEND_ENABLED` | **最初は `false`**。Square照合結果・受取権限・実決済テストを確認できた後だけ `true` |
 
-4. `testStarterFulfillmentRules()` を実行し、20ケースの `PASS` を確認。GitHub Actionsでは `test-fulfillment.cjs` により、注文単位の二重納品防止・再実行・PENDING・dry runも自動検査する。
+4. `testStarterFulfillmentRules()` を実行し、23ケースの `PASS` を確認。GitHub Actionsでは `test-fulfillment.cjs` により、注文単位の二重納品防止・再実行・PENDING・dry runも自動検査する。
 5. **送信を有効化する前に** `auditStarterFulfillment()` を実行。これはSquareの決済・注文を読み取り、集計値だけをログに出す。`SEND_ENABLED=true` でもメール送信・Script Properties書込は行わない。`readyToDeliver` は送信候補数であり、実送信数ではない。`pendingReview` が1件でもあれば自動再送しない。`invalidOrders` は商品・金額・注文状態などが一致しない注文の件数。購入者メールアドレスやトークンはログに出さない。
 6. `runStarterFulfillment()` を**送信無効のまま**実行。実Squareデータの読取可否と対象商品の識別をログで確認する。
 7. 購入者用3ファイルが「リンクを知っている全員／閲覧者」であることを確認（2026-10-30にDrive APIで3件とも確認済み）。
@@ -81,5 +81,11 @@
 - Square公式のOrderState定義では、`OPEN` は更新可能な注文、`COMPLETED` は全額支払い済みの終端状態。決済単体が `COMPLETED` でも、注文側が `OPEN` または状態不明なら購入者教材を送らないよう、`goOrderEligible_` の判定を厳格化。
 - `testStarterFulfillmentRules()` の判定を18件から20件に増やし、`OPEN`・状態欠落を拒否するケースを追加。
 - Node.jsテストにも、`OPEN`・状態欠落の注文が監査で `invalidOrders` となり、送信処理を実行してもメールや納品ガードが作成されない回帰検証を追加。
-- 今回の実行環境で最新版 `Code.gs` をJavaScript実行し、20件の適格性チェック、`OPEN`・状態欠落の拒否、`COMPLETED` の模擬納品1件と再実行時の重複0件を確認。実Gmail送信は0件。GitHub Actionsジョブ自体の実行成功・本番Square接続は未確認。
+- 今回の実行環境で最新版 `Code.gs` をJavaScript実行し、23件の適格性チェック、`OPEN`・状態欠落の拒否、`COMPLETED` の模擬納品1件と再実行時の重複0件を確認。実Gmail送信は0件。GitHub Actionsジョブ自体の実行成功・本番Square接続は未確認。
 - 仕様参照: https://developer.squareup.com/reference/square/enums/OrderState
+
+
+## 2026-10-30 09時台：注文全体の返金・返品チェック
+- Square Paymentが`COMPLETED`でも、同じ注文に別決済の返金や後日の返品が記録される可能性を考慮し、Orderの`refunds`・`returns`が非空なら納品候補から除外する。両フィールドが欠落する正常な注文は従来どおり扱う。フィールドの型が不正な場合も納品しない。
+- GASの適格性チェックを23条件に拡張し、モック統合テストに返金注文・返品注文・不正な返金フィールドの監査除外とGmail送信阻止を追加。
+- この変更はSquareの返金・注文データを変更しない。GitHubでのコード・テスト更新と、Square本番環境での動作確認は区別する。
