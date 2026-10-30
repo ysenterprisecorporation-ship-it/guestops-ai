@@ -68,15 +68,14 @@ function installStarterDryRunTrigger() {
   }
 }
 
-/** Emergency pause; does not remove unrelated triggers or alter Square. */
+/**
+ * Emergency pause without waiting for the running fulfillment lock.
+ * The sender re-reads SEND_ENABLED before reservation and before Gmail send.
+ * A Gmail operation already in progress cannot be recalled; PENDING must be
+ * reconciled before any restart. No Square/price/trigger mutation occurs.
+ */
 function pauseStarterFulfillment() {
-  const lock = LockService.getScriptLock();
-  if (!lock.tryLock(20000)) throw new Error('Another fulfillment run is active.');
-  try {
-    PropertiesService.getScriptProperties().setProperty('SEND_ENABLED', 'false');
-    console.log('STARTER_FULFILLMENT_PAUSED');
-    return {sendEnabled: false};
-  } finally {
-    lock.releaseLock();
-  }
+  PropertiesService.getScriptProperties().setProperty('SEND_ENABLED', 'false');
+  console.log('STARTER_FULFILLMENT_PAUSED');
+  return {sendEnabled: false};
 }
