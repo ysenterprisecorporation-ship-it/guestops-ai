@@ -22,10 +22,19 @@ function goRequiredConfig_(props) {
       !Number.isFinite(Date.parse(since)) || Date.parse(since) > Date.now()) {
     throw new Error('FULFILL_SINCE_ISO must be a valid UTC past timestamp.');
   }
-  ['STARTER_GUIDE_URL', 'STARTER_PROMPT_URL', 'STARTER_SHEET_URL'].forEach(k => {
-    if (!/^https:\/\/docs\.google\.com\//.test(props.getProperty(k))) {
-      throw new Error(k + ' must be an HTTPS Google Docs URL.');
-    }
+  // Buyer materials must be the intended Google file types, not just any
+  // URL on docs.google.com. Reject a duplicated file ID before sending.
+  const materialPaths = {
+    STARTER_GUIDE_URL: /^https:\/\/docs\.google\.com\/document\/d\/([A-Za-z0-9_-]+)(?:\/|$)/,
+    STARTER_PROMPT_URL: /^https:\/\/docs\.google\.com\/document\/d\/([A-Za-z0-9_-]+)(?:\/|$)/,
+    STARTER_SHEET_URL: /^https:\/\/docs\.google\.com\/spreadsheets\/d\/([A-Za-z0-9_-]+)(?:\/|$)/
+  };
+  const materialIds = {};
+  Object.keys(materialPaths).forEach(k => {
+    const match = props.getProperty(k).match(materialPaths[k]);
+    if (!match) throw new Error(k + ' must be a matching Google Docs/Sheets file URL.');
+    if (materialIds[match[1]]) throw new Error('Duplicate buyer material file ID; no delivery.');
+    materialIds[match[1]] = true;
   });
   if (Session.getEffectiveUser().getEmail().toLowerCase() !== GO_SENDER) {
     throw new Error('Wrong Google account: run only as ' + GO_SENDER);
