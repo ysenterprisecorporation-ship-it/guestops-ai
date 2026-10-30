@@ -20,6 +20,7 @@ let failNextSend = false;
 let failNextMessageId = false;
 let failPaymentPropertyOnce = false;
 let failOrderPropertyOnce = false;
+let pauseOnPaymentGuardOnce = false;
 const payment = (id) => ({
   id, status: 'COMPLETED', location_id: 'L1', order_id: 'O1',
   amount_money: {amount: 9800, currency: 'JPY'},
@@ -51,6 +52,11 @@ const ctx = vm.createContext({
         throw Error('simulated payment-key write failure');
       }
       props.set(key, val);
+      // Simulate an emergency pause racing with the payment PENDING write.
+      if (pauseOnPaymentGuardOnce && key === 'TEST_PPAUSE') {
+        pauseOnPaymentGuardOnce = false;
+        props.set('SEND_ENABLED', 'false');
+      }
     }
   })},
   GmailApp: {createDraft: (to, subject, body) => ({send: () => {
@@ -344,3 +350,40 @@ run();
 assert.equal(ctx.__orderReads, 0, 'sent order must not be fetched again');
 assert.equal(sent.length, beforeOrderRace + 1, 'no duplicate Gmail after successful delivery');
 console.log('PASS: Order re-read race regression: late refund/cancel blocked, unchanged order sent once');
+
+// Emergency pause during an active run: after the payment guard is saved,
+// the live flag must be re-read before Gmail. PENDING blocks automatic retry.
+setOrderRace('PPAUSE', 'OPAUSE', {});
+props.set('SEND_ENABLED', 'true');
+pauseOnPaymentGuardOnce = true;
+const beforeEmergencyPause = sent.length;
+assert.throws(run, /Fulfillment paused before Gmail/);
+assert.equal(sent.length, beforeEmergencyPause, 'pause after PENDING must block Gmail');
+assert.match(props.get('TEST_ORDER:OPAUSE'), /^PENDING /);
+assert.match(props.get('TEST_PPAUSE'), /^PENDING /);
+props.set('SEND_ENABLED', 'true');
+ctx.__orderReads = 0;
+run();
+assert.equal(ctx.__orderReads, 0, 'unresolved PENDING blocks even after re-enabling');
+assert.equal(sent.length, beforeEmergencyPause, 'no automatic retry after emergency pause');
+
+// Pause before any PENDING write must not reserve the order or send Gmail.
+setOrderRace('PPAUSEEARLY', 'OPAUSEEARLY', {});
+props.set('SEND_ENABLED', 'true');
+vm.runInContext(`
+  goSquareGet_ = function(url) {
+    if (url.startsWith('payments?')) return {payments: __payments};
+    if (url.startsWith('payments/')) {
+      PropertiesService.getScriptProperties().setProperty('SEND_ENABLED', 'false');
+      return {payment: __payments[0]};
+    }
+    if (url.startsWith('orders/')) return {order: __firstOrder};
+    throw Error('Unexpected Square path: ' + url);
+  };
+`, ctx);
+const beforeEarlyPause = sent.length;
+assert.throws(run, /Fulfillment paused before reserving delivery/);
+assert.equal(sent.length, beforeEarlyPause);
+assert.equal(props.has('TEST_ORDER:OPAUSEEARLY'), false);
+assert.equal(props.has('TEST_PPAUSEEARLY'), false);
+console.log('PASS: emergency pause before reservation and after PENDING blocks Gmail and automatic retry');
