@@ -174,6 +174,20 @@ function runStarterFulfillment() {
   try {
     const props = PropertiesService.getScriptProperties();
     const config = goRequiredConfig_(props);
+    // The go-live audit is not enough: each enabled trigger run must reject
+    // unresolved guards left by ANY prior order, including refunded orders
+    // that no longer appear in the Square payment listing. Do this before
+    // fetching payments or reserving another delivery.
+    if (config.enabled) {
+      const guards = auditStarterDeliveryGuards();
+      if (!guards ||
+          !Number.isSafeInteger(guards.pendingGuardCount) ||
+          !Number.isSafeInteger(guards.unrecognizedGuardCount) ||
+          guards.pendingGuardCount < 0 || guards.unrecognizedGuardCount < 0 ||
+          guards.pendingGuardCount > 0 || guards.unrecognizedGuardCount > 0) {
+        throw new Error('Unresolved or unreadable delivery guards; sending blocked.');
+      }
+    }
     let cursor = '';
     const seenCursors = {};
     for (let page = 0; page < 10; page++) {
