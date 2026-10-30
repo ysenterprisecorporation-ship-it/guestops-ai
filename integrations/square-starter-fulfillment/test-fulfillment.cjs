@@ -174,6 +174,27 @@ assert.equal(audit.invalidOrders, 1, 'missing order state excluded by audit');
 run();
 assert.equal(sent.length, sentBeforeAudit, 'missing state must not send');
 assert.equal(props.has('TEST_ORDER:O3'), false, 'missing state must not create guard');
+// A completed payment may coexist with a refunded/returned Square order.
+// Do not issue materials based solely on the payment's earlier status.
+ctx.__order = {...order, id: 'O3', refunds: [{id: 'REF1'}]};
+audit = vm.runInContext('auditStarterFulfillment()', ctx);
+assert.equal(audit.invalidOrders, 1, 'refunded order excluded from audit');
+assert.equal(audit.readyToDeliver, 0);
+run();
+assert.equal(sent.length, sentBeforeAudit, 'refunded order must not send');
+assert.equal(props.has('TEST_ORDER:O3'), false, 'refunded order must not create guard');
+ctx.__order = {...order, id: 'O3', returns: [{id: 'RETURN1'}]};
+audit = vm.runInContext('auditStarterFulfillment()', ctx);
+assert.equal(audit.invalidOrders, 1, 'returned order excluded from audit');
+run();
+assert.equal(sent.length, sentBeforeAudit, 'returned order must not send');
+assert.equal(props.has('TEST_ORDER:O3'), false, 'returned order must not create guard');
+ctx.__order = {...order, id: 'O3', refunds: {unexpected: true}};
+audit = vm.runInContext('auditStarterFulfillment()', ctx);
+assert.equal(audit.invalidOrders, 1, 'malformed order refund field excluded');
+run();
+assert.equal(sent.length, sentBeforeAudit, 'malformed refund field must not send');
+
 // Privacy-safe audit counts explain why a payment was rejected, without PII.
 ctx.__payments = [
   {...payment('PR1'), order_id: 'O7', status: 'APPROVED'},
@@ -236,5 +257,5 @@ assert.throws(() => vm.runInContext('auditStarterFulfillment()', ctx),
   /Repeated Square pagination cursor/);
 assert.equal(sent.length, beforeRepeatedCursor, 'repeated cursor must not send');
 assert.deepEqual(props, propsBeforeRepeatedCursor, 'repeated cursor must not write state');
-console.log('PASS: 20 eligibility checks + idempotency, retries, dry-run, Gmail failure, missing message ID, guard write failures, read-only audit, rejection breakdown, malformed Square responses, repeated cursor safety');
+console.log('PASS: 23 eligibility checks + idempotency, retries, dry-run, Gmail failure, missing message ID, guard write failures, read-only audit, rejection breakdown, malformed Square responses, repeated cursor safety');
 
