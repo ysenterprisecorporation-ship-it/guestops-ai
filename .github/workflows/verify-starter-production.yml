@@ -52,6 +52,10 @@ jobs:
         run: |
           set -euo pipefail
           grep -Fq 'id="go-operator"' docs/index.html
+          grep -Fq 'id="go-gmail"' docs/index.html
+          grep -Fq 'mail.google.com/mail/?' docs/index.html
+          grep -Fq "window.location.href='mailto:" docs/index.html
+          grep -Fq 'id="go-copy"' docs/index.html
           grep -Fq "operator.value.trim()" docs/index.html
           grep -Fq "reply.reportValidity()" docs/index.html
           grep -Fq "事業者・屋号を入力してください。" docs/index.html
