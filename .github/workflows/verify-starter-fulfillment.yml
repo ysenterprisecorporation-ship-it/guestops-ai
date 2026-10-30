@@ -21,6 +21,8 @@ jobs:
           node --check /tmp/guestops-starter-deployment.js
       - name: Test dry-run deployment safeguards
         run: node integrations/square-starter-fulfillment/test-deployment.cjs
+      - name: Test full fulfillment flow, refund races and idempotency
+        run: node integrations/square-starter-fulfillment/test-fulfillment.cjs
       - name: Test payment and order fail-closed checks
         run: |
           node <<'NODE'
