@@ -297,3 +297,50 @@ assert.equal(sent.length, beforeRace + 1, 'unchanged rechecked payment is delive
 run();
 assert.equal(sent.length, beforeRace + 1, 'rechecked payment is not resent');
 console.log('PASS: payment re-read prevents refund race, changed buyer and missing payment detail');
+
+// Order re-read race regression: a payment can remain COMPLETED even when
+// the order is refunded or canceled between its first read and Gmail send.
+ctx.__orderReads = 0;
+ctx.__firstOrder = null;
+ctx.__secondOrder = null;
+vm.runInContext(`
+  goSquareGet_ = function(url) {
+    if (url.startsWith('payments?')) return {payments: __payments};
+    if (url.startsWith('payments/')) return {payment: __payments[0]};
+    if (url.startsWith('orders/')) {
+      __orderReads++;
+      return {order: __orderReads === 1 ? __firstOrder : __secondOrder};
+    }
+    throw Error('Unexpected Square path: ' + url);
+  };
+`, ctx);
+function setOrderRace(paymentId, orderId, latestChanges) {
+  ctx.__payments = [{...payment(paymentId), order_id: orderId}];
+  ctx.__firstOrder = {...order, id: orderId};
+  ctx.__secondOrder = {...ctx.__firstOrder, ...latestChanges};
+  ctx.__orderReads = 0;
+}
+const beforeOrderRace = sent.length;
+setOrderRace('PORDERREFUND', 'OORDERREFUND', {refunds: [{id:'REFUND_AFTER_FIRST_READ'}]});
+assert.throws(run, /Order changed during fulfillment/);
+assert.equal(ctx.__orderReads, 2, 'both order reads must occur before send');
+assert.equal(sent.length, beforeOrderRace, 'late refund must block Gmail');
+assert.equal(props.has('TEST_ORDER:OORDERREFUND'), false, 'late refund must not reserve order');
+assert.equal(props.has('TEST_PORDERREFUND'), false, 'late refund must not reserve payment');
+
+setOrderRace('PORDERCANCEL', 'OORDERCANCEL', {state:'CANCELED'});
+assert.throws(run, /Order changed during fulfillment/);
+assert.equal(ctx.__orderReads, 2);
+assert.equal(sent.length, beforeOrderRace, 'late cancel must block Gmail');
+assert.equal(props.has('TEST_ORDER:OORDERCANCEL'), false);
+
+setOrderRace('PORDEROK', 'OORDEROK', {});
+run();
+assert.equal(ctx.__orderReads, 2, 'normal delivery also re-reads the order');
+assert.equal(sent.length, beforeOrderRace + 1, 'unchanged order delivered exactly once');
+assert.match(props.get('TEST_ORDER:OORDEROK'), /^SENT .* MSG:mock-gmail-message-/);
+ctx.__orderReads = 0;
+run();
+assert.equal(ctx.__orderReads, 0, 'sent order must not be fetched again');
+assert.equal(sent.length, beforeOrderRace + 1, 'no duplicate Gmail after successful delivery');
+console.log('PASS: Order re-read race regression: late refund/cancel blocked, unchanged order sent once');
