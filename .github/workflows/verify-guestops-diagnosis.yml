@@ -1,0 +1,21 @@
+name: Verify GuestOps diagnosis conversion
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/starter/upgrade/index.html'
+      - 'tests/verify-diagnosis-cta.cjs'
+      - '.github/workflows/verify-guestops-diagnosis.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  diagnosis-cta:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check diagnosis conversion and privacy
+        run: node tests/verify-diagnosis-cta.cjs
