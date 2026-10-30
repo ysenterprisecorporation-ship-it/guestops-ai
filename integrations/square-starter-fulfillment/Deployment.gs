@@ -128,6 +128,36 @@ function auditStarterMaterialAccess() {
 }
 
 /**
+ * Inspect ALL local delivery guards, not only payments still returned as
+ * eligible by Square. A refunded, canceled or out-of-window payment can leave
+ * an unresolved PENDING guard that the payment-list audit would never count.
+ * No buyer identifiers, tokens, or guard keys are logged or returned.
+ */
+function auditStarterDeliveryGuards() {
+  const entries = PropertiesService.getScriptProperties().getProperties();
+  if (!entries || typeof entries !== 'object' || Array.isArray(entries)) {
+    throw new Error('Cannot inspect delivery guards.');
+  }
+  let pendingGuardCount = 0;
+  let unrecognizedGuardCount = 0;
+  let sentGuardCount = 0;
+  Object.keys(entries).forEach(key => {
+    if (!/^GO_SENT_[A-Za-z0-9_-]+$/.test(key)) return;
+    const state = entries[key];
+    if (typeof state !== 'string') {
+      unrecognizedGuardCount++;
+    } else if (/^PENDING(?:\\s|$)/.test(state)) {
+      pendingGuardCount++;
+    } else if (/^SENT\\s+\\d{4}-\\d\\d-\\d\\dT[^\\s]+\\s+MSG:[^\\s]+$/.test(state)) {
+      sentGuardCount++;
+    } else {
+      unrecognizedGuardCount++;
+    }
+  });
+  return {pendingGuardCount, unrecognizedGuardCount, sentGuardCount};
+}
+
+/**
  * Read-only go-live gate. Run after installing ONE dry-run trigger.
  * This NEVER enables sending, changes Square, creates triggers, or sends mail.
  * No tokens, file IDs, email addresses, or order identifiers are returned.
@@ -152,6 +182,8 @@ function auditStarterGoLiveReadiness() {
   let materialReady = false;
   let paymentsAudited = false;
   let pendingReview = null;
+  let pendingGuardCount = null;
+  let unrecognizedGuardCount = null;
   // Do not call Square with missing, invalid or unauthorized configuration.
   if (status.authorizedAccount && status.missingPropertyNames.length === 0) {
     let configValid = false;
@@ -162,6 +194,15 @@ function auditStarterGoLiveReadiness() {
       blockers.push('INVALID_CONFIGURATION');
     }
     if (configValid) {
+      try {
+        const guards = auditStarterDeliveryGuards();
+        pendingGuardCount = guards.pendingGuardCount;
+        unrecognizedGuardCount = guards.unrecognizedGuardCount;
+        if (pendingGuardCount > 0) blockers.push('UNRESOLVED_DELIVERY_GUARDS');
+        if (unrecognizedGuardCount > 0) blockers.push('UNRECOGNIZED_DELIVERY_GUARDS');
+      } catch (e) {
+        blockers.push('DELIVERY_GUARD_AUDIT_FAILED');
+      }
       try {
         const materials = auditStarterMaterialAccess();
         materialReady = !!(materials && materials.ready === true);
@@ -195,6 +236,8 @@ function auditStarterGoLiveReadiness() {
     materialReady: materialReady,
     paymentsAudited: paymentsAudited,
     pendingReview: pendingReview,
+    pendingGuardCount: pendingGuardCount,
+    unrecognizedGuardCount: unrecognizedGuardCount,
     checkedAt: new Date().toISOString()
   };
   console.log('STARTER_GO_LIVE_READINESS ' + JSON.stringify(result));
