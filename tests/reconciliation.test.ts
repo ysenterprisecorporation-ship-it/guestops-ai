@@ -74,6 +74,19 @@ test("unknown product and price mismatch never enqueue", () => {
   );
   assert.equal(called, false);
 });
+test("partially refunded COMPLETED payment never enters delivery queue", () => {
+  const f = fixture();
+  f.payment.refunded_money = { amount: 1, currency: "JPY" };
+  let enqueued = false;
+  const result = reconcilePaymentPage([f.payment], f.api, "loc", () => {
+    enqueued = true;
+    return true;
+  });
+  assert.equal(enqueued, false);
+  assert.equal(result.queued, 0);
+  assert.equal(result.review, 1);
+  assert.equal(result.customerRevenueVerified, false);
+});
 test("temporary API failure aborts recovery rather than skipping payment", () => {
   const f = fixture();
   assert.throws(
