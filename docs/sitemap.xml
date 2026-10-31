@@ -1,2 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://ysenterprisecorporation-ship-it.github.io/guestops-ai/</loc><lastmod>2026-10-15</lastmod></url></urlset>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://ysenterprisecorporation-ship-it.github.io/guestops-ai/</loc></url>
+  <url><loc>https://ysenterprisecorporation-ship-it.github.io/guestops-ai/starter/</loc></url>
+  <url><loc>https://ysenterprisecorporation-ship-it.github.io/guestops-ai/starter/order/</loc></url>
+  <url><loc>https://ysenterprisecorporation-ship-it.github.io/guestops-ai/starter/upgrade/</loc></url>
+  <url><loc>https://ysenterprisecorporation-ship-it.github.io/guestops-ai/partners/</loc></url>
+</urlset>
