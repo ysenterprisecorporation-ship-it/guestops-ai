@@ -143,6 +143,10 @@ assert.equal(auditMaterials(buyer).ready, false, 'unshared buyer must be blocked
 assert.equal(auditMaterials(buyer).checks[0].status, 'BUYER_ACCESS_NOT_VIEW_ONLY');
 for (const file of materialState.values()) file.grantedTo = buyer;
 assert.equal(auditMaterials(buyer).ready, true, 'exact buyer VIEW permits delivery');
+const originalPrompt = props.get('STARTER_PROMPT_URL');
+props.set('STARTER_PROMPT_URL', originalGuide);
+assert.equal(auditMaterials(buyer).checks[1].status, 'DUPLICATE_MATERIAL', 'reused buyer file ID must fail closed');
+props.set('STARTER_PROMPT_URL', originalPrompt);
 assert.equal(auditMaterials('other@example.com').ready, false, 'wrong buyer blocked');
 assert.equal(auditMaterials('bad,mail@example.com').ready, false, 'invalid buyer blocked');
 materialState.get('guide').mime = 'application/vnd.google-apps.spreadsheet';
