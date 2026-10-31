@@ -89,6 +89,37 @@ ctx.auditStarterMaterialAccess = () => ({ready: true});
 // Production includes Deployment.gs. Live sends must check its global guard
 // audit on EVERY trigger run, not only during the one-time go-live preflight.
 ctx.auditStarterDeliveryGuards = () => ({pendingGuardCount: 0, unrecognizedGuardCount: 0});
+// Monetary values must match Square's integer-unit schema exactly. JavaScript
+// Number(...) would incorrectly accept arrays, exponent strings, empty strings
+// and null as a paid 9,800 JPY order or an unrefunded 0 JPY payment.
+ctx.__moneyConfig = {location: 'L1', catalogId: 'VAR1', since: '2026-10-29T00:00:00Z'};
+for (const amount of [9800, '9800']) {
+  ctx.__moneyPayment = {...payment('P_MONEY'), amount_money: {amount, currency: 'JPY'}};
+  assert.equal(vm.runInContext('goPaymentEligible_(__moneyPayment, __moneyConfig)', ctx),
+    true, 'canonical Square monetary amount must be accepted');
+  ctx.__moneyOrder = {...order, total_money: {amount, currency: 'JPY'}};
+  assert.equal(vm.runInContext('goOrderEligible_(__moneyOrder, __moneyPayment, __moneyConfig)', ctx),
+    true, 'canonical Square order amount must be accepted');
+}
+for (const badAmount of ['9.8e3', '9800.0', '09800', ' 9800', [9800], null, true, 9800.5]) {
+  ctx.__moneyPayment = {...payment('P_MONEY'), amount_money: {amount: badAmount, currency: 'JPY'}};
+  assert.equal(vm.runInContext('goPaymentEligible_(__moneyPayment, __moneyConfig)', ctx),
+    false, 'malformed payment amount must be rejected: ' + String(badAmount));
+  ctx.__moneyOrder = {...order, total_money: {amount: badAmount, currency: 'JPY'}};
+  assert.equal(vm.runInContext('goOrderEligible_(__moneyOrder, __moneyPayment, __moneyConfig)', ctx),
+    false, 'malformed order amount must be rejected: ' + String(badAmount));
+}
+for (const badRefund of ['', null, [], false, '0.0', '0e0', '00']) {
+  ctx.__moneyPayment = {...payment('P_MONEY'), refunded_money: {amount: badRefund, currency: 'JPY'}};
+  assert.equal(vm.runInContext('goPaymentEligible_(__moneyPayment, __moneyConfig)', ctx),
+    false, 'malformed refund amount must be rejected: ' + String(badRefund));
+}
+ctx.__moneyPayment = {...payment('P_MONEY'), refunded_money: {amount: '0', currency: 'JPY'}};
+assert.equal(vm.runInContext('goPaymentEligible_(__moneyPayment, __moneyConfig)', ctx),
+  true, 'canonical string zero refund must be accepted');
+delete ctx.__moneyPayment;
+delete ctx.__moneyOrder;
+delete ctx.__moneyConfig;
 const beforeGlobalGuardTest = new Map(props);
 for (const guards of [
   {pendingGuardCount: 1, unrecognizedGuardCount: 0},
