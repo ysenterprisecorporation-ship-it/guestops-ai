@@ -17,5 +17,9 @@ jobs:
       - run: npm run check
       - run: npm run lint
       - run: npm test
+      - name: Starter Kit payment and buyer-access regression tests
+        run: |
+          node integrations/square-starter-fulfillment/test-fulfillment.cjs
+          node integrations/square-starter-fulfillment/test-deployment.cjs
       - run: npm run build
       - run: git diff --exit-code -- dist
