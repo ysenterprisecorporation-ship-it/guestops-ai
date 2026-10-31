@@ -22,6 +22,8 @@ export interface ProductionCutoverInput {
   evaluatedAt?: string;
   /** Source notification history; IDs are not current booking states. */
   reservationNotices?: ReservationNotice[];
+  /** Explicit proof that notification collection was completed; missing list is never treated as empty. */
+  notificationHistoryVerified?: boolean;
   /** Booking.com IDs independently confirmed in the provider's live data. */
   liveBookingComReservationIds?: string[];
 }
@@ -52,6 +54,7 @@ export function evaluateProductionCutover(input: ProductionCutoverInput): Produc
     blockers.push("SOURCE_EVIDENCE_STALE_OR_FUTURE");
   if(!input.snapshotsComplete) blockers.push("SOURCE_SNAPSHOTS_INCOMPLETE");
   if(!input.expectedPropertyId.trim()) blockers.push("PROPERTY_ID_MISSING");
+  if(input.notificationHistoryVerified!==true || !input.reservationNotices) blockers.push("BOOKING_NOTIFICATION_HISTORY_NOT_VERIFIED");
   if(input.reservationNotices && input.reservationNotices.length){
     const audit=reviewReservationNotices(input.reservationNotices);
     const verified=new Set(input.liveBookingComReservationIds??[]);
