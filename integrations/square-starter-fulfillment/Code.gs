@@ -252,7 +252,12 @@ function runStarterFulfillment() {
         // Check buyer-material permissions at send time, not just at setup.
         // A publicly link-shared, missing, or non-buyer-viewable file must never be advertised as a
         // working buyer-only delivery. The audit is read-only and fail-closed.
-        const materialAudit = auditStarterMaterialAccess(refreshed.payment.buyer_email_address);
+        // With opt-in provisioning, first verify all files are private.
+        // Buyer-specific VIEW grants happen only AFTER both PENDING guards
+        // have been reserved. Without opt-in, require pre-existing VIEW.
+        const autoGrant = props.getProperty('AUTO_GRANT_BUYER_ACCESS') === 'true';
+        const materialAudit = auditStarterMaterialAccess(
+          autoGrant ? undefined : refreshed.payment.buyer_email_address);
         if (!materialAudit || materialAudit.ready !== true) {
           throw new Error('Buyer material access failed; no delivery attempted.');
         }
@@ -268,6 +273,19 @@ function runStarterFulfillment() {
         // the order remains blocked and no email is sent.
         props.setProperty(orderKey, pendingAt);
         props.setProperty(key, pendingAt);
+        if (autoGrant) {
+          // A verified buyer may receive VIEW access to the three private
+          // materials. Any partial failure retains PENDING and blocks Gmail.
+          if (props.getProperty('AUTO_GRANT_BUYER_ACCESS') !== 'true') {
+            throw new Error('Buyer access provisioning disabled; PENDING retained.');
+          }
+          goGrantStarterBuyerAccess_(refreshed.payment.buyer_email_address);
+          const buyerAccess = auditStarterMaterialAccess(
+            refreshed.payment.buyer_email_address);
+          if (!buyerAccess || buyerAccess.ready !== true) {
+            throw new Error('Buyer access not verified; PENDING retained.');
+          }
+        }
         // A pause after reservation must prevent Gmail. Keep both PENDING
         // guards for manual review; never automatically retry this order.
         if (props.getProperty('SEND_ENABLED') !== 'true') {
