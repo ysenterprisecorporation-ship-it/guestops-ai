@@ -57,7 +57,12 @@ export function evaluateProductionCutover(input: ProductionCutoverInput): Produc
   if(!input.snapshotsComplete) blockers.push("SOURCE_SNAPSHOTS_INCOMPLETE");
   if(!input.expectedPropertyId.trim()) blockers.push("PROPERTY_ID_MISSING");
   if(input.notificationHistoryVerified!==true || !input.reservationNotices) blockers.push("BOOKING_NOTIFICATION_HISTORY_NOT_VERIFIED");
+  if(input.notificationHistoryVerified===true && !input.notificationEvidenceRows) blockers.push("BOOKING_NOTIFICATION_LEDGER_MISSING");
   if(input.notificationEvidenceRows?.some(row=>row.arrivalConflict)) blockers.push("BOOKING_NOTIFICATION_ARRIVAL_CONFLICT_UNRESOLVED");
+  if(input.reservationNotices && input.notificationEvidenceRows){
+    const ledgerIds=new Set(input.notificationEvidenceRows.map(row=>row.id));
+    if(input.reservationNotices.some(n=>!ledgerIds.has(n.identifier))) blockers.push("BOOKING_NOTIFICATION_LEDGER_INCOMPLETE");
+  }
   if(input.reservationNotices && input.reservationNotices.length){
     const audit=reviewReservationNotices(input.reservationNotices);
     const verified=new Set(input.liveBookingComReservationIds??[]);
