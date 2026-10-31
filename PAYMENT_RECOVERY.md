@@ -1,6 +1,9 @@
 # 決済通知漏れの補完（初期停止・手動実行）
 既存Squareの商品・価格・決済リンク、GAS直接構成を維持する。新しい決済、メール送信、返金、Webhook変更をこの関数では行わない。
 
+## 重要：9,800円Starter Kitには適用しない
+この復旧処理が参照する `src/ProductCatalog.ts` と `src/Config.ts` は既存のA/P3/P10/P30・差額商品向けです。2026-10-31時点のカタログには **GuestOps Starter Kit（9,800円）** の商品variation・納品先設定がありません。このスクリプトをStarter Kitの決済照合・自動納品の完成品として使用・案内しないでください。9,800円の注文は既存Squareの実注文記録と購入者用非公開教材台帳を個別照合し、`docs/starter/fulfillment-ops.md` の手順に従って対応します。Starter専用の本番GAS/API接続・実納品は別途検証が完了するまで「未完了」です。価格・決済リンク・契約条件を変更する指示ではありません。
+
 ## 対象と手順
 実GASへ更新されたdist/Code.jsとdist/Entrypoints.jsを同期してから使用する。既存Script Propertiesの設定が必要。
 AUTOMATION_ENABLED=true、WEBHOOK_VERIFICATION_MODE=API_RECHECK、RECONCILIATION_ENABLED=trueがすべて必要。既存の停止設定をコードで変更しない。RECONCILIATION_ENABLED未設定では停止する。
