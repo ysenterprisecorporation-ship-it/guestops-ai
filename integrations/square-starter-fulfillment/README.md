@@ -2,6 +2,8 @@
 
 **状態（2026-10-30 JST）:** ソース実装・単体検査済み。Square本番接続・GAS配備・トリガー登録・実メール納品は**未実施**。無断で課金・料金変更・送信しません。
 
+> **2026-10-31 セキュリティ重要変更：** 以前の「リンクを知っている全員／閲覧者」を許可する仕様を廃止しました。公開Git履歴に教材URLが残っているため、旧教材は販売納品に使用しません。購入者ごとに制限付きファイルの閲覧権限を個別付与するまで `SEND_ENABLED=false` を維持します。旧共有権限の解除は未完了です。
+
 ## 動作
 - Square **Payments API（読み取り専用）**で決済一覧を取得し、**COMPLETED／JPY 9,800円／指定店舗／返金なし／設定開始日時以降**を検査。
 - Square **Orders API（読み取り専用）**で注文の**単一商品・数量1・指定catalog_object_id・合計9,800円・注文状態 `COMPLETED` 必須（`OPEN`・`CANCELED`・`DRAFT`・状態欠落は除外）**を再検査。商品名の曖昧一致やメール通知の文字列だけで納品しない。
@@ -28,7 +30,7 @@
 4. `testStarterFulfillmentRules()` を実行し、23ケースの `PASS` を確認。GitHub Actionsでは `test-fulfillment.cjs` により、注文単位の二重納品防止・再実行・PENDING・dry runも自動検査する。
 5. **送信を有効化する前に** `auditStarterFulfillment()` を実行。これはSquareの決済・注文を読み取り、集計値だけをログに出す。`SEND_ENABLED=true` でもメール送信・Script Properties書込は行わない。`readyToDeliver` は送信候補数であり、実送信数ではない。`pendingReview` が1件でもあれば自動再送しない。`invalidOrders` は商品・金額・注文状態などが一致しない注文の件数。購入者メールアドレスやトークンはログに出さない。
 6. `runStarterFulfillment()` を**送信無効のまま**実行。実Squareデータの読取可否と対象商品の識別をログで確認する。
-7. 購入者用3ファイルが「リンクを知っている全員／閲覧者」であることを確認（2026-10-30にDrive APIで3件とも確認済み）。**「インターネット上の全員／閲覧者」（ANYONE）は不可**。公開範囲が広すぎる場合は `auditStarterMaterialAccess()` が `PUBLICLY_DISCOVERABLE` を返し、納品処理は送信前に停止する。共有設定の自動変更はしない。
+7. **2026-10-31変更：旧教材3ファイルはリンクを知る全員が閲覧可能で、過去の公開Git履歴にもリンクが残るため使用しない。** 新しく作成した限定共有版3ファイルをScript Propertiesの `STARTER_GUIDE_URL`・`STARTER_PROMPT_URL`・`STARTER_SHEET_URL` に設定する（URL・IDは公開GitHubへ記載しない）。`auditStarterMaterialAccess()` は3ファイルが **PRIVATE（制限付き）** であることを確認する。自動送信直前にはSquareで照合済みの購入者メールに対する各ファイルの **VIEW（閲覧者）個別権限** も必須とする。共有設定の自動変更はしない。旧ファイルと旧フォルダの anyone:reader は別途解除が必要であり、コピー作成だけでは旧リンクの公開を止められない。
 8. 本番接続・受取先・決済の整合性を検証後、`SEND_ENABLED=true` とし、`runStarterFulfillment` の時間主導型トリガー（15分毎など）を登録する。**この手順は未実行**。
 
 ## 安全停止と例外処理
