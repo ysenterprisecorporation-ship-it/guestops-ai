@@ -103,6 +103,7 @@ function auditStarterMaterialAccess(buyerEmail) {
   if (buyerEmail !== undefined && !goBuyerEmailValid_(buyerEmail)) {
     return {ready: false, checks: [{material: 'BUYER', status: 'INVALID_BUYER_EMAIL'}]};
   }
+  const seenMaterialIds = new Set();
   const checks = specs.map(spec => {
     const url = props.getProperty(spec.key);
     const pattern = new RegExp('^https://docs\\.google\\.com/' +
@@ -117,6 +118,8 @@ function auditStarterMaterialAccess(buyerEmail) {
       '1X5qCRw7wOjsusOUVopX2_735z0r-WMwUDC2-Hp7Zb8c'
     ];
     if (retiredIds.includes(match[1])) return {material: spec.key, status: 'RETIRED_PUBLIC_MATERIAL'};
+    if (seenMaterialIds.has(match[1])) return {material: spec.key, status: 'DUPLICATE_MATERIAL'};
+    seenMaterialIds.add(match[1]);
     try {
       const file = DriveApp.getFileById(match[1]);
       if (file.getMimeType() !== spec.mime) {
