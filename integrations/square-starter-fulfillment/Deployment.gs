@@ -81,13 +81,16 @@ function pauseStarterFulfillment() {
 }
 
 /**
- * Read-only prelaunch audit of the three buyer materials.
- * A syntactically valid Docs URL does NOT guarantee a buyer can open it.
- * Do not log file IDs, URLs, buyer data or tokens. No permission changes.
- * A result of ready=true verifies link-view access at audit time only;
- * it is not a guarantee of future access or proof of a paid delivery.
+ * Read-only audit of paid Starter materials.
+ *
+ * The old "anyone with the link" permission is NOT acceptable: these URLs
+ * were previously committed to a public Git repository and remain in history.
+ * Require PRIVATE files and, when a buyer is supplied, explicit VIEW access
+ * for that exact Square-verified mailbox. No permission changes are made.
+ *
+ * Do not log file IDs, URLs, or buyer email addresses.
  */
-function auditStarterMaterialAccess() {
+function auditStarterMaterialAccess(buyerEmail) {
   const props = PropertiesService.getScriptProperties();
   const specs = [
     {key: 'STARTER_GUIDE_URL', type: 'document',
@@ -97,6 +100,9 @@ function auditStarterMaterialAccess() {
     {key: 'STARTER_SHEET_URL', type: 'spreadsheets',
       mime: 'application/vnd.google-apps.spreadsheet'}
   ];
+  if (buyerEmail !== undefined && !goBuyerEmailValid_(buyerEmail)) {
+    return {ready: false, checks: [{material: 'BUYER', status: 'INVALID_BUYER_EMAIL'}]};
+  }
   const checks = specs.map(spec => {
     const url = props.getProperty(spec.key);
     const pattern = new RegExp('^https://docs\\.google\\.com/' +
@@ -108,21 +114,16 @@ function auditStarterMaterialAccess() {
       if (file.getMimeType() !== spec.mime) {
         return {material: spec.key, status: 'WRONG_FILE_TYPE'};
       }
-      const access = file.getSharingAccess();
-      // Public-to-everyone (ANYONE) can expose paid materials beyond the
-      // intended link recipients. Accept link-only sharing, never public.
-      if (access === DriveApp.Access.ANYONE) {
-        return {material: spec.key, status: 'PUBLICLY_DISCOVERABLE'};
+      // Both ANYONE and ANYONE_WITH_LINK are unsafe after historical leakage.
+      if (file.getSharingAccess() !== DriveApp.Access.PRIVATE) {
+        return {material: spec.key, status: 'PUBLIC_LINK_ACCESS'};
       }
-      if (access !== DriveApp.Access.ANYONE_WITH_LINK) {
-        return {material: spec.key, status: 'BUYER_CANNOT_OPEN_LINK'};
-      }
-      if (file.getSharingPermission() !== DriveApp.Permission.VIEW) {
-        return {material: spec.key, status: 'NOT_VIEW_ONLY'};
+      if (buyerEmail !== undefined &&
+          file.getAccess(buyerEmail) !== DriveApp.Permission.VIEW) {
+        return {material: spec.key, status: 'BUYER_ACCESS_NOT_VIEW_ONLY'};
       }
       return {material: spec.key, status: 'READY'};
     } catch (e) {
-      // Missing file, lost access, or Drive API error: fail closed.
       return {material: spec.key, status: 'FILE_UNAVAILABLE'};
     }
   });
