@@ -122,6 +122,9 @@ function goPaymentEligible_(p, config) {
     (p.refund_ids === undefined || (Array.isArray(p.refund_ids) && p.refund_ids.length === 0)) &&
     (p.refunded_money === undefined ||
       goMoneyEquals_(p.refunded_money, 0)) &&
+    // An explicit tip must be zero JPY. A tip must not be silently treated
+    // as part of the fixed-price 9,800 JPY Starter purchase.
+    (p.tip_money === undefined || goMoneyEquals_(p.tip_money, 0)) &&
     p.created_at && Date.parse(p.created_at) >= Date.parse(config.since) &&
     goBuyerEmailValid_(p.buyer_email_address) &&
     p.buyer_email_address.toLowerCase() !== GO_SENDER);
@@ -401,6 +404,10 @@ function testStarterFulfillmentRules() {
   check(!goPaymentEligible_(Object.assign({},p,{refund_ids:{length:0}}),c), 'malformed refund IDs');
   check(!goPaymentEligible_(Object.assign({},p,{refunded_money:{amount:'invalid',currency:'JPY'}}),c), 'malformed refunded amount');
   check(!goPaymentEligible_(Object.assign({},p,{refunded_money:{amount:0,currency:'USD'}}),c), 'refunded currency mismatch');
+  check(goPaymentEligible_(Object.assign({},p,{tip_money:{amount:0,currency:'JPY'}}),c), 'zero JPY tip allowed');
+  check(!goPaymentEligible_(Object.assign({},p,{tip_money:{amount:100,currency:'JPY'}}),c), 'nonzero tip blocked');
+  check(!goPaymentEligible_(Object.assign({},p,{tip_money:{amount:0,currency:'USD'}}),c), 'tip currency mismatch blocked');
+  check(!goPaymentEligible_(Object.assign({},p,{tip_money:{amount:[0],currency:'JPY'}}),c), 'malformed tip blocked');
   check(!goPaymentEligible_(Object.assign({},p,{buyer_email_address:''}),c), 'missing email');
   check(goBuyerEmailValid_('buyer+tag@example.com'), 'single valid tagged mailbox');
   check(!goBuyerEmailValid_('buyer@example.com,other@example.com'), 'recipient list blocked');
