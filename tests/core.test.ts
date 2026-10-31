@@ -68,6 +68,34 @@ test("価格違い", () => {
     /PRICE_MISMATCH/,
   );
 });
+test("返金済みのCOMPLETED決済は納品しない", () => {
+  const f = fixture();
+  f.payment.refunded_money = { amount: 1, currency: "JPY" };
+  assert.throws(
+    () => validateOrder(f.payment, f.order, "location"),
+    /PAYMENT_REFUNDED/,
+  );
+});
+test("返金0円のCOMPLETED決済は従来どおり通す", () => {
+  const f = fixture();
+  f.payment.refunded_money = { amount: 0, currency: "JPY" };
+  assert.equal(validateOrder(f.payment, f.order, "location").orderId, "order-1");
+});
+test("不正な返金情報を納品許可に変換しない", () => {
+  for (const refunded of [
+    { amount: "0", currency: "JPY" },
+    { amount: 0, currency: "USD" },
+    null,
+    { amount: -1, currency: "JPY" },
+  ]) {
+    const f = fixture();
+    f.payment.refunded_money = refunded as Payment["refunded_money"];
+    assert.throws(
+      () => validateOrder(f.payment, f.order, "location"),
+      /PAYMENT_REFUNDED/,
+    );
+  }
+});
 test("商品なし", () => {
   const f = fixture();
   f.order.line_items = [];
