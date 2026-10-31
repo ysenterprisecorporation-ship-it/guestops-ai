@@ -18,11 +18,15 @@ jobs:
           cp integrations/square-starter-fulfillment/Code.gs /tmp/guestops-starter-fulfillment.js
           node --check /tmp/guestops-starter-fulfillment.js
           cp integrations/square-starter-fulfillment/Deployment.gs /tmp/guestops-starter-deployment.js
+          cp integrations/square-starter-fulfillment/BuyerAccess.gs /tmp/guestops-starter-buyer-access.js
           node --check /tmp/guestops-starter-deployment.js
+          node --check /tmp/guestops-starter-buyer-access.js
       - name: Test dry-run deployment safeguards
         run: node integrations/square-starter-fulfillment/test-deployment.cjs
       - name: Test full fulfillment flow, refund races and idempotency
         run: node integrations/square-starter-fulfillment/test-fulfillment.cjs
+      - name: Test buyer-only Drive access grants
+        run: node integrations/square-starter-fulfillment/test-buyer-access.cjs
       - name: Test payment and order fail-closed checks
         run: |
           node <<'NODE'
