@@ -25,9 +25,12 @@ jobs:
         run: |-
           cp integrations/square-starter-fulfillment/Code.gs /tmp/starter-fulfillment.js
           cp integrations/square-starter-fulfillment/Deployment.gs /tmp/starter-deployment.js
+          cp integrations/square-starter-fulfillment/BuyerAccess.gs /tmp/starter-buyer-access.js
           node --check /tmp/starter-fulfillment.js
           node --check /tmp/starter-deployment.js
+          node --check /tmp/starter-buyer-access.js
       - name: Execute mocked Square and Gmail integration checks
         run: |-
           node integrations/square-starter-fulfillment/test-fulfillment.cjs
           node integrations/square-starter-fulfillment/test-deployment.cjs
+          node integrations/square-starter-fulfillment/test-buyer-access.cjs
