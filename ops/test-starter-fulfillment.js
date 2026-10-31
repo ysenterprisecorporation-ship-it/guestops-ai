@@ -2,9 +2,9 @@
 // public buyer-material links and lacked per-buyer Drive access validation.
 // This test performs NO Square requests, Drive mutations, or Gmail sends.
 'use strict';
-const fs = require('fs');
-const vm = require('vm');
-const assert = require('assert');
+import fs from 'node:fs';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
 const source = fs.readFileSync('ops/starter-fulfillment.gs', 'utf8');
 const context = {};
 vm.createContext(context);
