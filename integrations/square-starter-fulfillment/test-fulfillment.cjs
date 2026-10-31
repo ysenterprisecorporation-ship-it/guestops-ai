@@ -117,6 +117,24 @@ for (const badRefund of ['', null, [], false, '0.0', '0e0', '00']) {
 ctx.__moneyPayment = {...payment('P_MONEY'), refunded_money: {amount: '0', currency: 'JPY'}};
 assert.equal(vm.runInContext('goPaymentEligible_(__moneyPayment, __moneyConfig)', ctx),
   true, 'canonical string zero refund must be accepted');
+// A completed 9,800 JPY payment with a nonzero or malformed tip is not a
+// fixed-price Starter Kit sale. Reject it before any Gmail/Drive operation.
+for (const tip of [
+  {amount: 100, currency: 'JPY'},
+  {amount: '1', currency: 'JPY'},
+  {amount: 0, currency: 'USD'},
+  {amount: [0], currency: 'JPY'},
+  {amount: null, currency: 'JPY'}
+]) {
+  ctx.__moneyPayment = {...payment('P_TIP'), tip_money: tip};
+  assert.equal(vm.runInContext('goPaymentEligible_(__moneyPayment, __moneyConfig)', ctx),
+    false, 'nonzero, wrong-currency or malformed tip must not trigger delivery');
+}
+for (const tip of [{amount: 0, currency: 'JPY'}, {amount: '0', currency: 'JPY'}]) {
+  ctx.__moneyPayment = {...payment('P_TIP'), tip_money: tip};
+  assert.equal(vm.runInContext('goPaymentEligible_(__moneyPayment, __moneyConfig)', ctx),
+    true, 'canonical zero JPY tip must preserve legitimate delivery');
+}
 delete ctx.__moneyPayment;
 delete ctx.__moneyOrder;
 // Square line-item quantity must not be coerced from arrays/objects into '1'.
