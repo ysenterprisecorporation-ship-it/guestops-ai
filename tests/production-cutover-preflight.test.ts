@@ -9,7 +9,7 @@ const evidence:CutoverEvidence={
 };
 const input:ProductionCutoverInput={evidence,expectedPropertyId:"364051",otaBookings:[],beds24Bookings:[],
  otaInventory:[],beds24Inventory:[],beds24SeasonalBlocks:[{start:"2027-01-01",end:"2027-04-01",kind:"blocked",source:"verified"}],
- snapshotsComplete:true,otaSourcesVerified:{bookingCom:true,airbnbStay:true,airbnbMonthly:true,beds24:true},sourceEvidenceTimestamp:"2026-10-29T19:00:00+09:00",evaluatedAt:"2026-10-29T19:10:00+09:00"};
+ snapshotsComplete:true,notificationHistoryVerified:true,reservationNotices:[],otaSourcesVerified:{bookingCom:true,airbnbStay:true,airbnbMonthly:true,beds24:true},sourceEvidenceTimestamp:"2026-10-29T19:00:00+09:00",evaluatedAt:"2026-10-29T19:10:00+09:00"};
 test("preflight blocks incomplete real-source snapshots despite approval",()=>{
  const result=evaluateProductionCutover({...input,snapshotsComplete:false});
  assert.equal(result.ready,false);
@@ -42,7 +42,7 @@ test("empty source arrays must be backed by individual verified exports",()=>{
 
 test("Booking.com reservation notification blocks cutover until its live OTA ID is verified",()=>{
  const notice={identifier:"1234567890",source:"booking-com" as const,state:"new" as const};
- const missing=evaluateProductionCutover({...input,reservationNotices:[notice]});
+ const missing=evaluateProductionCutover({...input,notificationHistoryVerified:true,reservationNotices:[notice]});
  assert.equal(missing.ready,false);
  assert.ok(missing.blockers.includes("BOOKING_COM_NOTICES_UNVERIFIED_IN_LIVE_OTA"));
  const verified=evaluateProductionCutover({...input,reservationNotices:[notice],liveBookingComReservationIds:["1234567890"]});
@@ -51,7 +51,7 @@ test("Booking.com reservation notification blocks cutover until its live OTA ID 
 test("one unverified notification among several must block cutover",()=>{
  const notices=[{identifier:"1234567890",source:"booking-com" as const,state:"new" as const},
  {identifier:"1234567891",source:"booking-com" as const,state:"modify" as const}];
- const result=evaluateProductionCutover({...input,reservationNotices:notices,liveBookingComReservationIds:["1234567890"]});
+ const result=evaluateProductionCutover({...input,notificationHistoryVerified:true,reservationNotices:notices,liveBookingComReservationIds:["1234567890"]});
  assert.equal(result.ready,false);
 });
 
@@ -61,4 +61,10 @@ test("a stale or future snapshot cannot authorize a production cutover",()=>{
  assert.ok(stale.blockers.includes("SOURCE_EVIDENCE_STALE_OR_FUTURE"));
  const future=evaluateProductionCutover({...input,evaluatedAt:"2026-10-29T18:59:00+09:00"});
  assert.equal(future.ready,false);
+});
+
+test("cutover fails closed when mail notification evidence is omitted",()=>{
+ const r=evaluateProductionCutover({...input,notificationHistoryVerified:false,reservationNotices:undefined});
+ assert.equal(r.ready,false);
+ assert.ok(r.blockers.includes("BOOKING_NOTIFICATION_HISTORY_NOT_VERIFIED"));
 });
