@@ -26,6 +26,10 @@ let grants = 0;
 let failAt = -1;
 let pauseAt = -1;
 const buyer = 'buyer@example.com';
+const orderGuardKey = 'GO_SENT_' + 'a'.repeat(43);
+const paymentGuardKey = 'GO_SENT_' + 'b'.repeat(43);
+props.set(orderGuardKey, 'PENDING 2026-10-31T00:00:00.000Z');
+props.set(paymentGuardKey, 'PENDING 2026-10-31T00:00:00.000Z');
 const getFileById = id => {
   const f = files.get(id);
   if (!f) throw Error('File unavailable');
@@ -56,7 +60,7 @@ const ctx = vm.createContext({
 });
 vm.runInContext(code + '\n' + deployment + '\n' + buyerAccess, ctx);
 const run = expression => vm.runInContext(expression, ctx);
-const provision = () => run('goGrantStarterBuyerAccess_("buyer@example.com")');
+const provision = () => run('goGrantStarterBuyerAccess_("buyer@example.com", ' + JSON.stringify(orderGuardKey) + ', ' + JSON.stringify(paymentGuardKey) + ')');
 const reset = () => {
   for (const f of files.values()) { f.sharing = 'PRIVATE'; f.buyerAccess = 'NONE'; }
   props.set('SEND_ENABLED', 'true');
@@ -76,8 +80,21 @@ props.set('AUTO_GRANT_BUYER_ACCESS', 'false');
 assert.throws(provision, /not enabled/);
 assert.equal(grants, 0);
 props.set('AUTO_GRANT_BUYER_ACCESS', 'true');
-assert.throws(() => run('goGrantStarterBuyerAccess_("buyer@example.com,other@example.com")'), /Invalid buyer/);
+assert.throws(() => run('goGrantStarterBuyerAccess_("buyer@example.com,other@example.com", ' + JSON.stringify(orderGuardKey) + ', ' + JSON.stringify(paymentGuardKey) + ')'), /Invalid buyer/);
 assert.equal(grants, 0);
+
+// A caller must not grant to an arbitrary address without BOTH PENDING guards.
+props.delete(orderGuardKey);
+assert.throws(provision, /Two valid PENDING/);
+assert.equal(grants, 0);
+props.set(orderGuardKey, 'SENT 2026-10-31T00:00:00Z MSG:123');
+assert.throws(provision, /Two valid PENDING/);
+assert.equal(grants, 0);
+props.set(orderGuardKey, 'PENDING 2026-10-31T00:00:00.000Z');
+props.set(paymentGuardKey, 'SENT 2026-10-31T00:00:00Z MSG:456');
+assert.throws(provision, /Two valid PENDING/);
+assert.equal(grants, 0);
+props.set(paymentGuardKey, 'PENDING 2026-10-31T00:00:00.000Z');
 
 files.get(ids[2]).sharing = 'ANYONE_WITH_LINK';
 assert.throws(provision, /not a private/);
@@ -116,7 +133,7 @@ assert.equal(grants, 3);
 
 const orderGuard = code.indexOf('props.setProperty(orderKey, pendingAt);');
 const paymentGuard = code.indexOf('props.setProperty(key, pendingAt);', orderGuard);
-const provisionCall = code.indexOf('goGrantStarterBuyerAccess_(refreshed.payment.buyer_email_address);');
+const provisionCall = code.indexOf('goGrantStarterBuyerAccess_(refreshed.payment.buyer_email_address, orderKey, key);');
 const sendCall = code.indexOf('GmailApp.createDraft(', provisionCall);
 assert.ok(orderGuard >= 0 && paymentGuard > orderGuard &&
   provisionCall > paymentGuard && sendCall > provisionCall,
