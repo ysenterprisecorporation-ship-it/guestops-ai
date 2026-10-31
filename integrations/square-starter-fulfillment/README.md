@@ -13,7 +13,7 @@
 
 ## 既存環境への最短導入
 1. 民泊AI実務キット運営窓口（`minpaku.ai.kit@gmail.com`）で**既存のApps Scriptプロジェクト**を開く。別のGoogleアカウントでの実行はコード側で拒否。
-2. `Code.gs` の内容を**既存コードを消さない別ファイル**（例：`StarterFulfillment.gs`）として追加する。同名関数がある場合は統合時に確認。
+2. `Code.gs`、`Deployment.gs`、`BuyerAccess.gs` を**既存コードを消さない別ファイル**として同じGASプロジェクトに追加する。同名関数がある場合は統合時に確認。`BuyerAccess.gs` はデフォルトでは権限変更しない。
 3. プロジェクト設定 → スクリプト プロパティへ次のキーを登録（**トークンや購入者用URLをGitHubにコミットしない**）。
 
 | キー | 設定内容 |
@@ -26,12 +26,14 @@
 | `STARTER_PROMPT_URL` | 既存の購入者用「施設専用マスタープロンプト」のGoogle Docs URL |
 | `STARTER_SHEET_URL` | 既存の購入者用「施設情報設定・20場面判断・初回テスト」Google Sheets URL |
 | `SEND_ENABLED` | **最初は `false`**。Square照合結果・受取権限・実決済テストを確認できた後だけ `true` |
+| `AUTO_GRANT_BUYER_ACCESS` | **最初は `false`**。`true` の場合だけSquare決済・注文を再検証し、二重 `PENDING` ガード記録後に購入者へ限定共有教材の閲覧権限を自動付与。失敗時は送信禁止 |
 
 4. `testStarterFulfillmentRules()` を実行し、23ケースの `PASS` を確認。GitHub Actionsでは `test-fulfillment.cjs` により、注文単位の二重納品防止・再実行・PENDING・dry runも自動検査する。
 5. **送信を有効化する前に** `auditStarterFulfillment()` を実行。これはSquareの決済・注文を読み取り、集計値だけをログに出す。`SEND_ENABLED=true` でもメール送信・Script Properties書込は行わない。`readyToDeliver` は送信候補数であり、実送信数ではない。`pendingReview` が1件でもあれば自動再送しない。`invalidOrders` は商品・金額・注文状態などが一致しない注文の件数。購入者メールアドレスやトークンはログに出さない。
 6. `runStarterFulfillment()` を**送信無効のまま**実行。実Squareデータの読取可否と対象商品の識別をログで確認する。
 7. **2026-10-31変更：旧教材3ファイルはリンクを知る全員が閲覧可能で、過去の公開Git履歴にもリンクが残るため使用しない。** 新しく作成した限定共有版3ファイルをScript Propertiesの `STARTER_GUIDE_URL`・`STARTER_PROMPT_URL`・`STARTER_SHEET_URL` に設定する（URL・IDは公開GitHubへ記載しない）。`auditStarterMaterialAccess()` は3ファイルが **PRIVATE（制限付き）** であることを確認する。自動送信直前にはSquareで照合済みの購入者メールに対する各ファイルの **VIEW（閲覧者）個別権限** も必須とする。共有設定の自動変更はしない。旧ファイルと旧フォルダの anyone:reader は別途解除が必要であり、コピー作成だけでは旧リンクの公開を止められない。
-8. 本番接続・受取先・決済の整合性を検証後、`SEND_ENABLED=true` とし、`runStarterFulfillment` の時間主導型トリガー（15分毎など）を登録する。**この手順は未実行**。
+8. **購入者別共有の省力化（任意・初期OFF）**：限定共有教材3件が `PRIVATE` で、実行アカウントに共有権限がある場合だけ `AUTO_GRANT_BUYER_ACCESS=true` を検討する。最新Square決済・注文再検証→二重 `PENDING` 保存→購入者1人だけに `VIEW` 付与→権限再検証→Gmail送信の順。途中失敗は `PENDING` を維持し、自動再送しない。フラグ未設定なら従来どおり購入者の事前個別共有が必要。
+9. 本番接続・受取先・決済の整合性を検証後、`SEND_ENABLED=true` とし、`runStarterFulfillment` の時間主導型トリガー（15分毎など）を登録する。**この手順は未実行**。
 
 ## 安全停止と例外処理
 - 送信を止めるときは `SEND_ENABLED=false`。トリガーを消さなくても送信しない。
@@ -161,3 +163,11 @@
 - `UNRESOLVED_DELIVERY_GUARDS`、`UNRECOGNIZED_DELIVERY_GUARDS`、`DELIVERY_GUARD_AUDIT_FAILED` のいずれかがあれば `ready=false`。件数は注文数ではなくガードキー数（同一注文の決済・注文キーを重複計上する可能性あり）。
 - `SENT` と判定するにはタイムスタンプと `MSG:<Gmail送信ID>` が必要。形式不明の履歴は自動で削除・書換・再送しない。購入者への実送信有無をGmailと照合してから個別に扱う。
 - モック検証では、正常・残存PENDING・形式不明・送信ID付きSENT・プロパティ読み取り障害の5状態を確認。**本番GAS配備・Square本番接続・実購入者への送信は未完了**。
+
+
+## 2026-10-31 23時台：購入者限定VIEW付与のオプション実装
+- `BuyerAccess.gs` を追加。Squareで照合した購入者アドレスにのみ限定共有版3教材の `VIEW` を付与する。
+- `SEND_ENABLED=true` と `AUTO_GRANT_BUYER_ACCESS=true` の**両方**が必要。フラグ変更・課金処理は追加していない。
+- 3ファイルの種類・非公開状態・既存権限を事前検証。付与は注文・決済の二重 `PENDING` 保存後のみ。失敗・中断時はGmail送信を止めガードを残す。
+- `test-buyer-access.cjs` でアカウント違い、未有効、公開教材、編集権限混在、部分失敗、一時停止、再実行、PENDING→権限付与→Gmailの順序を検証する。
+- **本番GAS配備・Square本番API接続・実購入者への権限付与/送信は未実施。** 本番有効化済みとは扱わない。
