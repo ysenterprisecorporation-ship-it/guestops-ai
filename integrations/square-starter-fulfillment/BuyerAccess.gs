@@ -7,7 +7,7 @@
  * Only invoke after a fresh COMPLETED payment AND COMPLETED order have been
  * verified and BOTH delivery guards have been reserved as PENDING.
  */
-function goGrantStarterBuyerAccess_(buyerEmail) {
+function goGrantStarterBuyerAccess_(buyerEmail, orderGuardKey, paymentGuardKey) {
   const props = PropertiesService.getScriptProperties();
   if (Session.getEffectiveUser().getEmail().toLowerCase() !== GO_SENDER ||
       props.getProperty('SEND_ENABLED') !== 'true' ||
@@ -17,6 +17,20 @@ function goGrantStarterBuyerAccess_(buyerEmail) {
   if (!goBuyerEmailValid_(buyerEmail) ||
       buyerEmail.toLowerCase() === GO_SENDER) {
     throw new Error('Invalid buyer mailbox; no access granted.');
+  }
+
+  // Never expose this helper as a standalone "share to any address" action.
+  // Both delivery guards must already be PENDING for the freshly verified
+  // Square order and payment. A SENT/absent/unknown guard blocks sharing.
+  const guardPattern = /^GO_SENT_[A-Za-z0-9_-]{32,}$/;
+  if (typeof orderGuardKey !== 'string' ||
+      typeof paymentGuardKey !== 'string' ||
+      !guardPattern.test(orderGuardKey) ||
+      !guardPattern.test(paymentGuardKey) ||
+      orderGuardKey === paymentGuardKey ||
+      !/^PENDING\\s/.test(props.getProperty(orderGuardKey) || '') ||
+      !/^PENDING\\s/.test(props.getProperty(paymentGuardKey) || '')) {
+    throw new Error('Two valid PENDING delivery guards required before sharing.');
   }
 
   // Validate ALL three files before changing ANY permission. These must be
