@@ -166,6 +166,8 @@ materialState.set('guide', {mime: 'application/vnd.google-apps.document',
   access: 'PRIVATE', permission: 'VIEW', grantedTo: buyer});
 props.set('STARTER_GUIDE_URL', 'https://invalid.example/guide');
 assert.equal(auditMaterials(buyer).checks[0].status, 'INVALID_URL');
+props.set('STARTER_GUIDE_URL', 'https://docs.google.com/document/d/1MjTNyh8hjvJW5Eg2wsaRPgfMQ1nWazbs_qazdkSNNjQ/edit');
+assert.equal(auditMaterials(buyer).checks[0].status, 'RETIRED_PUBLIC_MATERIAL', 'old exposed guide must never be sent');
 props.set('STARTER_GUIDE_URL', originalGuide);
 assert.equal(auditMaterials(buyer).ready, true);
 // Enabling auto-grant without installing BuyerAccess.gs must fail preflight.
