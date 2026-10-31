@@ -100,16 +100,28 @@ function goBuyerEmailValid_(email) {
     /^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?$/.test(label));
 }
 
+/**
+ * Square Money.amount is an integer in the smallest currency unit. Accept a
+ * safe integer or its canonical decimal string (some API clients serialize
+ * int64 as strings). Never coerce arrays, null, booleans or exponent strings:
+ * Number(...) would silently turn these malformed responses into 9,800/0.
+ */
+function goMoneyEquals_(money, expected) {
+  if (!money || money.currency !== 'JPY') return false;
+  const amount = money.amount;
+  return (typeof amount === 'number' &&
+      Number.isSafeInteger(amount) && amount === expected) ||
+    (typeof amount === 'string' &&
+      /^(0|[1-9][0-9]*)$/.test(amount) && amount === String(expected));
+}
+
 function goPaymentEligible_(p, config) {
   return !!(p && p.id && p.status === 'COMPLETED' &&
     p.location_id === config.location && p.order_id &&
-    p.amount_money && p.amount_money.currency === 'JPY' &&
-    Number(p.amount_money.amount) === GO_PRICE_JPY &&
+    goMoneyEquals_(p.amount_money, GO_PRICE_JPY) &&
     (p.refund_ids === undefined || (Array.isArray(p.refund_ids) && p.refund_ids.length === 0)) &&
     (p.refunded_money === undefined ||
-      (p.refunded_money && p.refunded_money.currency === 'JPY' &&
-       Number.isFinite(Number(p.refunded_money.amount)) &&
-       Number(p.refunded_money.amount) === 0)) &&
+      goMoneyEquals_(p.refunded_money, 0)) &&
     p.created_at && Date.parse(p.created_at) >= Date.parse(config.since) &&
     goBuyerEmailValid_(p.buyer_email_address) &&
     p.buyer_email_address.toLowerCase() !== GO_SENDER);
@@ -129,8 +141,7 @@ function goOrderEligible_(order, payment, config) {
       // the terminal COMPLETED state before issuing buyer-only materials.
       order.state !== 'COMPLETED' ||
       order.location_id !== config.location ||
-      !order.total_money || order.total_money.currency !== 'JPY' ||
-      Number(order.total_money.amount) !== GO_PRICE_JPY ||
+      !goMoneyEquals_(order.total_money, GO_PRICE_JPY) ||
       // A completed payment alone is insufficient if the order has been
       // refunded or returned through another tender or a later operation.
       // Missing arrays are normal; malformed/nonempty arrays fail closed.
