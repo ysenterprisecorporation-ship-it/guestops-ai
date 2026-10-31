@@ -109,6 +109,14 @@ function auditStarterMaterialAccess(buyerEmail) {
       spec.type + '/d/([A-Za-z0-9_-]+)(?:/|$)');
     const match = typeof url === 'string' ? url.match(pattern) : null;
     if (!match) return {material: spec.key, status: 'INVALID_URL'};
+    // Historical public Git commits exposed these OLD material identifiers.
+    // Never reuse them for paid fulfillment, even after changing their permissions.
+    const retiredIds = [
+      '1MjTNyh8hjvJW5Eg2wsaRPgfMQ1nWazbs_qazdkSNNjQ',
+      '1SHotxS2tvQuxHSGRS4SJMqUNhKSe-W_tukvEbuZ7xuQ',
+      '1X5qCRw7wOjsusOUVopX2_735z0r-WMwUDC2-Hp7Zb8c'
+    ];
+    if (retiredIds.includes(match[1])) return {material: spec.key, status: 'RETIRED_PUBLIC_MATERIAL'};
     try {
       const file = DriveApp.getFileById(match[1]);
       if (file.getMimeType() !== spec.mime) {
