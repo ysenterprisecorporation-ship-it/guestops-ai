@@ -10,6 +10,8 @@ export interface Payment {
   location_id: string;
   amount_money: Money;
   tip_money?: Money;
+  // Square reports partial/full refunds separately from COMPLETED payment status.
+  refunded_money?: Money;
   buyer_email_address?: string;
 }
 export interface Order {
