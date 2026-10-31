@@ -5,6 +5,7 @@ on:
     paths:
       - 'docs/index.html'
       - 'docs/starter/order/index.html'
+      - 'docs/starter/after-purchase-7q4m9x2k/index.html'
       - 'docs/partners/index.html'
       - '.github/workflows/verify-starter-production.yml'
   workflow_dispatch:
@@ -16,6 +17,20 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
+      - name: Prevent paid Starter material from appearing on public post-purchase page
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          page = Path("docs/starter/after-purchase-7q4m9x2k/index.html").read_text(encoding="utf-8")
+          assert "このページは公開Webページです" in page, "Public access disclosure missing"
+          assert "決済確認後に" in page, "Buyer delivery explanation missing"
+          assert "minpaku.ai.kit@gmail.com" in page, "Buyer support contact missing"
+          assert "あなたは宿泊施設のゲスト対応を支援する実務AIです。" not in page, "Paid master prompt exposed"
+          assert "購入者専用ページです" not in page, "Public page falsely claims authentication"
+          print("PASS: public post-purchase page contains instructions but no paid master prompt")
+          PY
       - name: Validate inline JavaScript syntax
         shell: bash
         run: |
@@ -88,7 +103,8 @@ jobs:
             code_main=$(curl -L --silent --show-error --max-time 20 --output /tmp/guestops-main.html --write-out '%{http_code}' -H 'Cache-Control: no-cache' "$BASE/?audit=${GITHUB_SHA}" || true)
             code_partner=$(curl -L --silent --show-error --max-time 20 --output /tmp/guestops-partner.html --write-out '%{http_code}' -H 'Cache-Control: no-cache' "$BASE/partners/?audit=${GITHUB_SHA}" || true)
             code_order=$(curl -L --silent --show-error --max-time 20 --output /tmp/guestops-order.html --write-out '%{http_code}' -H 'Cache-Control: no-cache' "$BASE/starter/order/?audit=${GITHUB_SHA}" || true)
-            if [ "$code_main" = "200" ] && [ "$code_order" = "200" ] && [ "$code_partner" = "200" ] \
+            code_after=$(curl -L --silent --show-error --max-time 20 --output /tmp/guestops-after.html --write-out '%{http_code}' -H 'Cache-Control: no-cache' "$BASE/starter/after-purchase-7q4m9x2k/?audit=${GITHUB_SHA}" || true)
+            if [ "$code_main" = "200" ] && [ "$code_order" = "200" ] && [ "$code_partner" = "200" ] && [ "$code_after" = "200" ] \
               && grep -Fq '「誰に確認する？」を減らす施設運営へ。' /tmp/guestops-main.html \
               && grep -Fq '9,800円/月' /tmp/guestops-main.html \
               && grep -Fq 'Starter購入後、教材はどのように受け取りますか？' /tmp/guestops-main.html \
@@ -104,11 +120,13 @@ jobs:
               && grep -Fq '決済から利用開始まで' /tmp/guestops-order.html \
               && grep -Fq '購入前のチェックリスト' /tmp/guestops-order.html \
               && grep -Fq '../../#apply-guestops' /tmp/guestops-order.html \
-              && grep -Fq 'その迷いを、施設のルールに変える' /tmp/guestops-order.html; then
+              && grep -Fq 'その迷いを、施設のルールに変える' /tmp/guestops-order.html \
+              && grep -Fq 'このページは公開Webページです' /tmp/guestops-after.html \
+              && ! grep -Fq 'あなたは宿泊施設のゲスト対応を支援する実務AIです。' /tmp/guestops-after.html; then
               echo "PASS: live pages contain latest conversion copy and pricing"
               exit 0
             fi
-            echo "Attempt $i: main HTTP $code_main, order HTTP $code_order, partner HTTP $code_partner; latest content not yet verified"
+            echo "Attempt $i: main HTTP $code_main, order HTTP $code_order, partner HTTP $code_partner, after HTTP $code_after; latest content not yet verified"
             sleep 15
           done
           echo "::error::Live GitHub Pages content differs from expected main/order HTML"
