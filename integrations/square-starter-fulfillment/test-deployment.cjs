@@ -164,6 +164,12 @@ props.set('STARTER_GUIDE_URL', 'https://invalid.example/guide');
 assert.equal(auditMaterials(buyer).checks[0].status, 'INVALID_URL');
 props.set('STARTER_GUIDE_URL', originalGuide);
 assert.equal(auditMaterials(buyer).ready, true);
+// Enabling auto-grant without installing BuyerAccess.gs must fail preflight.
+props.set('AUTO_GRANT_BUYER_ACCESS', 'true');
+const missingHelper = run('auditStarterGoLiveReadiness()');
+assert.equal(missingHelper.ready, false);
+assert.ok(Array.from(missingHelper.blockers).includes('BUYER_ACCESS_PROVISIONER_MISSING'));
+props.delete('AUTO_GRANT_BUYER_ACCESS');
 assert.ok(driveReads > 0);
 assert.equal(propertyWrites, 2, 'material audit must not change script properties');
 assert.equal(emails, 0, 'material audit must not send Gmail');
