@@ -68,3 +68,13 @@ test("cutover fails closed when mail notification evidence is omitted",()=>{
  assert.equal(r.ready,false);
  assert.ok(r.blockers.includes("BOOKING_NOTIFICATION_HISTORY_NOT_VERIFIED"));
 });
+
+test("arrival conflict in booking notice ledger blocks cutover even with other sources verified",()=>{
+ const conflict={
+  id:"1234567890",arrival:"2026-11-29",lastNotification:"cancel" as const,
+  lastReceivedAt:"2026-10-13T09:00:00Z",liveStatus:"unverified" as const,arrivalConflict:true
+ };
+ const result=evaluateProductionCutover({...input,notificationEvidenceRows:[conflict]});
+ assert.equal(result.ready,false);
+ assert.ok(result.blockers.includes("BOOKING_NOTIFICATION_ARRIVAL_CONFLICT_UNRESOLVED"));
+});
