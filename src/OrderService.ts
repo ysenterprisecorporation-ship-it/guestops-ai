@@ -21,6 +21,13 @@ export function validateOrder(
     throw new BusinessError("ORDER_LOCATION_MISMATCH");
   if (payment.status !== "COMPLETED")
     throw new BusinessError("PAYMENT_NOT_COMPLETED");
+  // A payment may remain COMPLETED after a partial refund. Never auto-deliver
+  // refunded purchases; null, malformed or foreign-currency refund data fails closed.
+  if (payment.refunded_money !== undefined) {
+    const refund = payment.refunded_money;
+    if (!refund || refund.currency !== "JPY" || refund.amount !== 0)
+      throw new BusinessError("PAYMENT_REFUNDED");
+  }
   if (order.state === "OPEN") throw new RetryError("ORDER_NOT_YET_COMPLETED");
   if (order.state !== "COMPLETED")
     throw new BusinessError("ORDER_NOT_COMPLETED");
