@@ -31,7 +31,7 @@
 4. `testStarterFulfillmentRules()` を実行し、23ケースの `PASS` を確認。GitHub Actionsでは `test-fulfillment.cjs` により、注文単位の二重納品防止・再実行・PENDING・dry runも自動検査する。
 5. **送信を有効化する前に** `auditStarterFulfillment()` を実行。これはSquareの決済・注文を読み取り、集計値だけをログに出す。`SEND_ENABLED=true` でもメール送信・Script Properties書込は行わない。`readyToDeliver` は送信候補数であり、実送信数ではない。`pendingReview` が1件でもあれば自動再送しない。`invalidOrders` は商品・金額・注文状態などが一致しない注文の件数。購入者メールアドレスやトークンはログに出さない。
 6. `runStarterFulfillment()` を**送信無効のまま**実行。実Squareデータの読取可否と対象商品の識別をログで確認する。
-7. **2026-10-31変更：旧教材3ファイルはリンクを知る全員が閲覧可能で、過去の公開Git履歴にもリンクが残るため使用しない。** 新しく作成した限定共有版3ファイルをScript Propertiesの `STARTER_GUIDE_URL`・`STARTER_PROMPT_URL`・`STARTER_SHEET_URL` に設定する（URL・IDは公開GitHubへ記載しない）。`auditStarterMaterialAccess()` は3ファイルが **PRIVATE（制限付き）** であることを確認する。自動送信直前にはSquareで照合済みの購入者メールに対する各ファイルの **VIEW（閲覧者）個別権限** も必須とする。共有設定の自動変更はしない。旧ファイルと旧フォルダの anyone:reader は別途解除が必要であり、コピー作成だけでは旧リンクの公開を止められない。
+7. **2026-10-31変更：旧教材3ファイルはリンクを知る全員が閲覧可能で、過去の公開Git履歴にもリンクが残るため使用しない。** 新しく作成した限定共有版3ファイルをScript Propertiesの `STARTER_GUIDE_URL`・`STARTER_PROMPT_URL`・`STARTER_SHEET_URL` に設定する（URL・IDは公開GitHubへ記載しない）。`auditStarterMaterialAccess()` は3ファイルが **PRIVATE（制限付き）** であることを確認する。自動送信直前にはSquareで照合済みの購入者メールに対する各ファイルの **VIEW（閲覧者）個別権限** も必須とする。デフォルトでは共有設定を自動変更しない。購入者ごとのVIEW自動付与は後述の明示的な二重フラグが必要。旧ファイルと旧フォルダの anyone:reader は別途解除が必要であり、コピー作成だけでは旧リンクの公開を止められない。
 8. **購入者別共有の省力化（任意・初期OFF）**：限定共有教材3件が `PRIVATE` で、実行アカウントに共有権限がある場合だけ `AUTO_GRANT_BUYER_ACCESS=true` を検討する。最新Square決済・注文再検証→二重 `PENDING` 保存→購入者1人だけに `VIEW` 付与→権限再検証→Gmail送信の順。途中失敗は `PENDING` を維持し、自動再送しない。フラグ未設定なら従来どおり購入者の事前個別共有が必要。
 9. 本番接続・受取先・決済の整合性を検証後、`SEND_ENABLED=true` とし、`runStarterFulfillment` の時間主導型トリガー（15分毎など）を登録する。**この手順は未実行**。
 
