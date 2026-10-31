@@ -247,9 +247,9 @@ function runStarterFulfillment() {
           throw new Error('Order changed during fulfillment; no delivery attempted.');
         }
         // Check buyer-material permissions at send time, not just at setup.
-        // A private, deleted or editable file must never be advertised as a
+        // A publicly link-shared, missing, or non-buyer-viewable file must never be advertised as a
         // working buyer-only delivery. The audit is read-only and fail-closed.
-        const materialAudit = auditStarterMaterialAccess();
+        const materialAudit = auditStarterMaterialAccess(refreshed.payment.buyer_email_address);
         if (!materialAudit || materialAudit.ready !== true) {
           throw new Error('Buyer material access failed; no delivery attempted.');
         }
