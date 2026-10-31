@@ -119,6 +119,23 @@ assert.equal(vm.runInContext('goPaymentEligible_(__moneyPayment, __moneyConfig)'
   true, 'canonical string zero refund must be accepted');
 delete ctx.__moneyPayment;
 delete ctx.__moneyOrder;
+// Square line-item quantity must not be coerced from arrays/objects into '1'.
+ctx.__quantityPayment = payment('P_QUANTITY');
+for (const quantity of ['1', 1]) {
+  ctx.__quantityOrder = {...order, line_items: [{catalog_object_id: 'VAR1', quantity}]};
+  assert.equal(vm.runInContext('goOrderEligible_(__quantityOrder, __quantityPayment, __moneyConfig)', ctx),
+    true, 'canonical single-unit quantity must be accepted');
+}
+for (const quantity of [[1], {toString: () => '1'}, true, null, '01', 0]) {
+  ctx.__quantityOrder = {...order, line_items: [{catalog_object_id: 'VAR1', quantity}]};
+  assert.equal(vm.runInContext('goOrderEligible_(__quantityOrder, __quantityPayment, __moneyConfig)', ctx),
+    false, 'malformed line-item quantity must not trigger fulfillment');
+}
+ctx.__quantityOrder = {...order, line_items: [null]};
+assert.equal(vm.runInContext('goOrderEligible_(__quantityOrder, __quantityPayment, __moneyConfig)', ctx),
+  false, 'null line item must fail closed');
+delete ctx.__quantityOrder;
+delete ctx.__quantityPayment;
 delete ctx.__moneyConfig;
 const beforeGlobalGuardTest = new Map(props);
 for (const guards of [
