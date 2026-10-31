@@ -96,6 +96,27 @@ test("不正な返金情報を納品許可に変換しない", () => {
     );
   }
 });
+test("ゼロ円・JPYのチップは正常な決済として扱う", () => {
+  const f = fixture();
+  f.payment.tip_money = { amount: 0, currency: "JPY" };
+  assert.equal(validateOrder(f.payment, f.order, "location").orderId, "order-1");
+});
+test("不正なチップ情報をゼロ円として扱わず納品を拒否", () => {
+  for (const tip of [
+    { amount: 0, currency: "USD" },
+    { amount: "0", currency: "JPY" },
+    { amount: -1, currency: "JPY" },
+    { amount: 1, currency: "JPY" },
+    null,
+  ]) {
+    const f = fixture();
+    f.payment.tip_money = tip as Payment["tip_money"];
+    assert.throws(
+      () => validateOrder(f.payment, f.order, "location"),
+      /PRICE_MISMATCH/,
+    );
+  }
+});
 test("商品なし", () => {
   const f = fixture();
   f.order.line_items = [];
