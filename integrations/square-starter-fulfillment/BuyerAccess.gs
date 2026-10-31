@@ -28,8 +28,8 @@ function goGrantStarterBuyerAccess_(buyerEmail, orderGuardKey, paymentGuardKey) 
       !guardPattern.test(orderGuardKey) ||
       !guardPattern.test(paymentGuardKey) ||
       orderGuardKey === paymentGuardKey ||
-      !/^PENDING\\s/.test(props.getProperty(orderGuardKey) || '') ||
-      !/^PENDING\\s/.test(props.getProperty(paymentGuardKey) || '')) {
+      !/^PENDING\s/.test(props.getProperty(orderGuardKey) || '') ||
+      !/^PENDING\s/.test(props.getProperty(paymentGuardKey) || '')) {
     throw new Error('Two valid PENDING delivery guards required before sharing.');
   }
 
