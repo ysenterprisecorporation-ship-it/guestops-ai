@@ -279,7 +279,7 @@ function runStarterFulfillment() {
           if (props.getProperty('AUTO_GRANT_BUYER_ACCESS') !== 'true') {
             throw new Error('Buyer access provisioning disabled; PENDING retained.');
           }
-          goGrantStarterBuyerAccess_(refreshed.payment.buyer_email_address);
+          goGrantStarterBuyerAccess_(refreshed.payment.buyer_email_address, orderKey, key);
           const buyerAccess = auditStarterMaterialAccess(
             refreshed.payment.buyer_email_address);
           if (!buyerAccess || buyerAccess.ready !== true) {
