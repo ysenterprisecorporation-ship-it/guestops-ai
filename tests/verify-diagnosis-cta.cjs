@@ -44,7 +44,8 @@ const fields = {
   goFacilities: {value: '4'},
   goPms: {value: 'Beds24'},
   goTiming: {value: '1か月以内'},
-  goConsultationLink: {href: ''}
+  goConsultationLink: {href: ''},
+  goConsultationGmail: {href: ''}
 };
 const filled = diagnose(['価格運用'], fields);
 const filledHref = filled.next.innerHTML.match(/href="(mailto:[^"]+)"/)?.[1];
@@ -58,6 +59,34 @@ assert.match(filled.next.innerHTML, /メールアプリが起動しない場合/
 assert.match(filled.next.innerHTML, /id="goFacilities"/);
 assert.match(filled.next.innerHTML, /id="goPms"/);
 assert.match(filled.next.innerHTML, /id="goTiming"/);
+const gmailHref = filled.next.innerHTML.match(/id="goConsultationGmail"[^>]*href="([^"]+)"/)?.[1];
+assert.ok(gmailHref, 'browser Gmail CTA missing');
+assert.ok(gmailHref.startsWith('https://mail.google.com/mail/?view=cm&fs=1&to='));
+assert.equal(fields.goConsultationGmail.href, gmailHref, 'input change must update Gmail compose href');
+assert.equal(decodeURIComponent(gmailHref.split('&body=')[1]), filledBody,
+  'browser Gmail and default mail app must receive identical consultation body');
+assert.doesNotMatch(gmailHref, /square\\.site|square\\.link/i);
+assert.match(filled.next.innerHTML, /相談文をコピー/);
+
+let copiedText = '';
+const copyResult = {style: {}, innerHTML: '', scrollIntoView() {}};
+const copyNext = {style: {}, innerHTML: ''};
+const copyFields = {
+  goFacilities: {value: '2'}, goPms: {value: 'Beds24'}, goTiming: {value: 'すぐに'}
+};
+const copyDocument = {
+  querySelectorAll: () => [{value: '価格運用'}],
+  getElementById: id => ({result: copyResult, nextStep: copyNext, ...copyFields})[id] || null
+};
+vm.runInNewContext(script + '\\ndiagnose(); goConsultationCopy_();', {
+  document: copyDocument,
+  prompt: (message, value) => { copiedText = value; }
+});
+assert.match(copiedText, /宛先: minpaku\\.ai\\.kit@gmail\\.com\\n件名:/,
+  'copied consultation must contain real line breaks and recipient');
+assert.match(copiedText, /導入予定施設数：2/);
+assert.match(copiedText, /現在利用している予約管理システム：Beds24/);
+
 
 const all = diagnose(checkboxValues);
 const fullHref = all.next.innerHTML.match(/href="(mailto:[^"]+)"/)?.[1];
@@ -65,4 +94,4 @@ assert.ok(fullHref && fullHref.length < 2000, 'mailto exceeds conservative mobil
 const fullBody = decodeURIComponent(fullHref.split('&body=')[1]);
 assert.equal((fullBody.match(/^\d\. /gm) || []).length, 3, 'include at most three priorities');
 assert.doesNotMatch(html, /fetch\s*\(|XMLHttpRequest|navigator\.sendBeacon/, 'diagnosis must not transmit data');
-console.log('PASS: GuestOps diagnosis email CTA, empty state, priority summary, optional consultation inputs, mobile URL size, no auto-transmission');
+console.log('PASS: GuestOps diagnosis mailto, browser Gmail, copy fallback, field updates, privacy and URL budget');
