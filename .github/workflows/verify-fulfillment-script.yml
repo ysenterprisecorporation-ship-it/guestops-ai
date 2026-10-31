@@ -27,9 +27,9 @@ jobs:
             'LEGACY_STARTER_FULFILLMENT_DISABLED'
           ];
           for(const marker of must)if(!s.includes(marker))throw Error('Missing invariant: '+marker);
-          if(/GmailApp\\.(?:sendEmail|createDraft)\\s*\\(/.test(s))
+          if(s.includes('GmailApp.sendEmail(') || s.includes('GmailApp.createDraft('))
             throw Error('Legacy helper must not create or send mail');
-          if(/https:\\/\\/docs\\.google\\.com\\/.*\\/d\\//.test(s))
+          if(s.includes('https://docs.google.com/'))
             throw Error('Legacy helper must not expose paid material links');
           console.log('PASS: legacy fulfillment disabled; no paid-material URLs or Gmail sends');
           NODE
