@@ -38,11 +38,13 @@ export function validateOrder(
     (p) => p.variation === items[0].catalog_object_id,
   );
   if (!product) throw new BusinessError("PRODUCT_UNKNOWN");
+  const tip = payment.tip_money;
   if (
     [payment.amount_money, order.total_money, items[0].base_price_money].some(
       (m) => !m || m.currency !== "JPY" || m.amount !== product.price,
     ) ||
-    (payment.tip_money?.amount ?? 0) !== 0
+    (tip !== undefined &&
+      (!tip || tip.currency !== "JPY" || tip.amount !== 0))
   )
     throw new BusinessError("PRICE_MISMATCH");
   const email = payment.buyer_email_address?.trim();
