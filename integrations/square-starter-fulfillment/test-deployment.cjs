@@ -112,17 +112,18 @@ assert.equal(emails, 0);
 assert.equal(squareMutations, 0);
 
 
-// Read-only buyer-material access audit: checks real file type and link-view
-// permissions without changing Drive sharing, sending email or touching Square.
+// Paid-material audit: PRIVATE files only; buyer-specific VIEW is required
+// before sending. Historical links were public, so link-only access is unsafe.
+const buyer = 'buyer@example.com';
 const materialState = new Map([
-  ['guide', {mime: 'application/vnd.google-apps.document', access: 'ANYONE_WITH_LINK', permission: 'VIEW'}],
-  ['prompt', {mime: 'application/vnd.google-apps.document', access: 'ANYONE_WITH_LINK', permission: 'VIEW'}],
-  ['sheet', {mime: 'application/vnd.google-apps.spreadsheet', access: 'ANYONE_WITH_LINK', permission: 'VIEW'}]
+  ['guide', {mime: 'application/vnd.google-apps.document', access: 'PRIVATE', permission: 'VIEW'}],
+  ['prompt', {mime: 'application/vnd.google-apps.document', access: 'PRIVATE', permission: 'VIEW'}],
+  ['sheet', {mime: 'application/vnd.google-apps.spreadsheet', access: 'PRIVATE', permission: 'VIEW'}]
 ]);
 let driveReads = 0;
 ctx.DriveApp = {
-  Access: {ANYONE_WITH_LINK: 'ANYONE_WITH_LINK', ANYONE: 'ANYONE'},
-  Permission: {VIEW: 'VIEW'},
+  Access: {PRIVATE: 'PRIVATE', ANYONE_WITH_LINK: 'ANYONE_WITH_LINK', ANYONE: 'ANYONE'},
+  Permission: {VIEW: 'VIEW', EDIT: 'EDIT', NONE: 'NONE'},
   getFileById: id => {
     driveReads++;
     const file = materialState.get(id);
@@ -130,37 +131,42 @@ ctx.DriveApp = {
     return {
       getMimeType: () => file.mime,
       getSharingAccess: () => file.access,
-      getSharingPermission: () => file.permission
+      getAccess: email => email === file.grantedTo ? file.permission : 'NONE'
     };
   }
 };
-const auditMaterials = () => run('auditStarterMaterialAccess()');
-assert.equal(auditMaterials().ready, true, 'all three buyer materials are link-view accessible');
+const auditMaterials = email => email === undefined
+  ? run('auditStarterMaterialAccess()')
+  : run('auditStarterMaterialAccess(' + JSON.stringify(email) + ')');
+assert.equal(auditMaterials().ready, true, 'all three source materials are private');
+assert.equal(auditMaterials(buyer).ready, false, 'unshared buyer must be blocked');
+assert.equal(auditMaterials(buyer).checks[0].status, 'BUYER_ACCESS_NOT_VIEW_ONLY');
+for (const file of materialState.values()) file.grantedTo = buyer;
+assert.equal(auditMaterials(buyer).ready, true, 'exact buyer VIEW permits delivery');
+assert.equal(auditMaterials('other@example.com').ready, false, 'wrong buyer blocked');
+assert.equal(auditMaterials('bad,mail@example.com').ready, false, 'invalid buyer blocked');
 materialState.get('guide').mime = 'application/vnd.google-apps.spreadsheet';
-assert.equal(auditMaterials().checks[0].status, 'WRONG_FILE_TYPE');
+assert.equal(auditMaterials(buyer).checks[0].status, 'WRONG_FILE_TYPE');
 materialState.get('guide').mime = 'application/vnd.google-apps.document';
-materialState.get('prompt').access = 'PRIVATE';
-assert.equal(auditMaterials().checks[1].status, 'BUYER_CANNOT_OPEN_LINK');
 materialState.get('prompt').access = 'ANYONE_WITH_LINK';
-// Public-to-everyone access must fail even when the file is view-only.
-materialState.get('guide').access = 'ANYONE';
-assert.equal(auditMaterials().ready, false);
-assert.equal(auditMaterials().checks[0].status, 'PUBLICLY_DISCOVERABLE');
-materialState.get('guide').access = 'ANYONE_WITH_LINK';
-assert.equal(auditMaterials().ready, true, 'link-only viewing remains valid');
+assert.equal(auditMaterials(buyer).checks[1].status, 'PUBLIC_LINK_ACCESS');
+materialState.get('prompt').access = 'ANYONE';
+assert.equal(auditMaterials().checks[1].status, 'PUBLIC_LINK_ACCESS');
+materialState.get('prompt').access = 'PRIVATE';
 materialState.get('sheet').permission = 'EDIT';
-assert.equal(auditMaterials().checks[2].status, 'NOT_VIEW_ONLY');
+assert.equal(auditMaterials(buyer).checks[2].status, 'BUYER_ACCESS_NOT_VIEW_ONLY');
 materialState.get('sheet').permission = 'VIEW';
 materialState.delete('guide');
-assert.equal(auditMaterials().checks[0].status, 'FILE_UNAVAILABLE');
-materialState.set('guide', {mime: 'application/vnd.google-apps.document', access: 'ANYONE_WITH_LINK', permission: 'VIEW'});
+assert.equal(auditMaterials(buyer).checks[0].status, 'FILE_UNAVAILABLE');
+materialState.set('guide', {mime: 'application/vnd.google-apps.document',
+  access: 'PRIVATE', permission: 'VIEW', grantedTo: buyer});
 props.set('STARTER_GUIDE_URL', 'https://invalid.example/guide');
-assert.equal(auditMaterials().checks[0].status, 'INVALID_URL');
+assert.equal(auditMaterials(buyer).checks[0].status, 'INVALID_URL');
 props.set('STARTER_GUIDE_URL', originalGuide);
-assert.equal(auditMaterials().ready, true);
+assert.equal(auditMaterials(buyer).ready, true);
 assert.ok(driveReads > 0);
-assert.equal(propertyWrites, 2, 'buyer-material audit must not change script properties');
-assert.equal(emails, 0, 'buyer-material audit must not send Gmail');
-assert.equal(squareMutations, 0, 'buyer-material audit must not mutate Square');
+assert.equal(propertyWrites, 2, 'material audit must not change script properties');
+assert.equal(emails, 0, 'material audit must not send Gmail');
+assert.equal(squareMutations, 0, 'material audit must not mutate Square');
 
 console.log('PASS: dry-run deployment status, idempotent trigger install, send gate, pause, duplicates, wrong account, audit failure; no Gmail or Square mutation');
