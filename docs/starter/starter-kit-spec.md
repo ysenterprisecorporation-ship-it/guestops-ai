@@ -1,4 +1,4 @@
-# GuestOps Starter Kit 9,800円版 — 納品仕様 v1.0
+# GuestOps Starter Kit 9,800円版 — 納品仕様 v1.1
 
 ## 商品の役割
 無料体験で作った「施設専用AI」を、実務で繰り返し使える状態へ整理する買い切り商品。
@@ -24,5 +24,5 @@
 - 緊急停止：火災、漏水、負傷、警察・救急、鍵/防犯上の重大事故
 
 ## GuestOps AIへの移行
-購入30日以内にGuestOps AIへ申し込む場合、Starter Kit 9,800円分を初月利用料へ充当する。
+Starter Kit購入後30日以内にGuestOps AIの有償契約が成立した場合、Starter Kit代9,800円を初月利用料に充当する（初月利用料を上限とし、現金返金・翌月繰越は行わない）。申し込み・相談のみでは充当・契約・課金は発生しない。
 最新料金は https://ysenterprisecorporation-ship-it.github.io/guestops-ai/#pricing の表示を基準とする。
