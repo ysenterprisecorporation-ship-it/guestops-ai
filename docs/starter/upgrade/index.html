@@ -139,7 +139,7 @@ function goConsultationGmail_(priority, count) {
 function goConsultationCopy_() {
  if (!goConsultationContext) return;
  const mailto = goConsultationMailto_(goConsultationContext.priority, goConsultationContext.count);
- const text = '宛先: minpaku.ai.kit@gmail.com\\n件名: GuestOps AI 月額導入相談（無料診断）\\n\\n' +
+ const text = '宛先: minpaku.ai.kit@gmail.com\n件名: GuestOps AI 月額導入相談（無料診断）\n\n' +
    decodeURIComponent(mailto.split('&body=')[1]);
  if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
    navigator.clipboard.writeText(text).then(() => {
