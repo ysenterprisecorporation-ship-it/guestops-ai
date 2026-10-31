@@ -148,7 +148,7 @@
 `Deployment.gs` の `auditStarterMaterialAccess()` をGASに配備後、送信有効化前に実行する。これは**読取専用**であり、Gmail送信・Square決済・Drive共有権限の変更を行わない。DriveAppへのGoogle認可が必要になる場合がある。
 
 - `STARTER_GUIDE_URL` と `STARTER_PROMPT_URL` が実在するGoogleドキュメント、`STARTER_SHEET_URL` が実在するGoogleスプレッドシートであることをDrive上で照合する。
-- 各ファイルが「リンクを知っている全員が閲覧可能」または「全員が閲覧可能」で、**編集ではなく閲覧権限**であることを検査する。
+- 各ファイルが **PRIVATE（制限付き）** であることを検査する。`ANYONE_WITH_LINK`・`ANYONE` は、閲覧者権限でも不適格として送信を停止する。購入者メールを指定した実送信前検査では、その購入者に **VIEW（個別閲覧権限）** があることも必須。
 - `ready: true` かつ3件すべて `READY` の場合だけ、検査時点のリンク閲覧条件を満たす。異常時は `INVALID_URL`、`WRONG_FILE_TYPE`、`BUYER_CANNOT_OPEN_LINK`、`NOT_VIEW_ONLY`、`FILE_UNAVAILABLE` のいずれかを返す。
 - 監査ログにはファイルID・URL・アクセストークン・購入者情報を出力しない。共有設定は変更しない。
 - **重要：この監査は本番GASに自動配備されていない。送信処理を自動的に有効化・停止するゲートでもない。** 実際の購入者視点の閲覧試験、決済API接続、GAS配備、送信ID付きの納品確認は別工程。リンク閲覧設定は購入者限定配布を保証しない。
