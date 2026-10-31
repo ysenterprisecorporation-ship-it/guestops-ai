@@ -128,10 +128,34 @@ function goConsultationMailto_(priority, count) {
  if (href.length > 1900) href = makeHref(1);
  return href;
 }
+// Gmail browser compose uses the exact same encoded subject/body as mailto.
+function goConsultationGmail_(priority, count) {
+ const mailto = goConsultationMailto_(priority, count);
+ const subject = mailto.split('?subject=')[1].split('&body=')[0];
+ const body = mailto.split('&body=')[1];
+ return 'https://mail.google.com/mail/?view=cm&fs=1&to=minpaku.ai.kit%40gmail.com&su=' +
+   subject + '&body=' + body;
+}
+function goConsultationCopy_() {
+ if (!goConsultationContext) return;
+ const mailto = goConsultationMailto_(goConsultationContext.priority, goConsultationContext.count);
+ const text = '宛先: minpaku.ai.kit@gmail.com\\n件名: GuestOps AI 月額導入相談（無料診断）\\n\\n' +
+   decodeURIComponent(mailto.split('&body=')[1]);
+ if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+   navigator.clipboard.writeText(text).then(() => {
+     const notice = document.getElementById('goCopyNotice');
+     if (notice) notice.textContent = '相談内容をコピーしました。メールに貼り付けて送信してください。';
+   }).catch(() => { if (typeof prompt === 'function') prompt('以下をコピーしてください', text); });
+ } else if (typeof prompt === 'function') {
+   prompt('以下をコピーしてください', text);
+ }
+}
 function goRefreshConsultationLink() {
  if (!goConsultationContext) return;
  const link = document.getElementById('goConsultationLink');
+ const gmail = document.getElementById('goConsultationGmail');
  if (link) link.href = goConsultationMailto_(goConsultationContext.priority, goConsultationContext.count);
+ if (gmail) gmail.href = goConsultationGmail_(goConsultationContext.priority, goConsultationContext.count);
 }
 function diagnose(){
  const xs=[...document.querySelectorAll('input:checked')].map(x=>x.value);
@@ -169,14 +193,15 @@ function diagnose(){
  // Compose a mail draft; no data is sent by this page.
  goConsultationContext = {priority, count:xs.length};
  const consultationMailto = goConsultationMailto_(priority,xs.length);
+ const consultationGmail = goConsultationGmail_(priority,xs.length);
 
  n.style.display='block';
  n.innerHTML=
    '<h3>2｜おすすめの進め方</h3>'+
    '<p><strong>GuestOps AIで自動化を検討する</strong></p>'+
    '<p>診断で見つかった確認・判断・レビュー返信・料金調整などについて、現行の仕組みと接続条件を確認したうえで提供範囲を決定します。全機能の自動化は保証していません。</p>'+
-   '<div class="consultation-fields"><p><strong>任意：相談内容を先に入力（メール本文に反映）</strong></p>'+   '<label>導入予定施設数 <input id="goFacilities" type="number" min="1" max="999" inputmode="numeric" placeholder="例：3" oninput="goRefreshConsultationLink()"></label>'+   '<label>現在の予約管理システム <input id="goPms" type="text" maxlength="40" placeholder="例：Beds24／未導入" oninput="goRefreshConsultationLink()"></label>'+   '<label>導入希望時期 <select id="goTiming" onchange="goRefreshConsultationLink()"><option value="">未選択</option><option>すぐに</option><option>1か月以内</option><option>3か月以内</option><option>未定</option></select></label></div>'+   '<p><a id="goConsultationLink" class="button" href="'+consultationMailto+'">診断結果を添えて月額導入を相談</a> <a class="button secondary" href="../../#pricing">料金・提供条件を見る</a></p>'+
-   '<p class="small">メール作成画面が開きます。入力内容はメール本文に反映されますが、このページでは保存・送信されません。メールアプリが起動しない場合は minpaku.ai.kit@gmail.com 宛てに直接ご相談ください。</p>'+
+   '<div class="consultation-fields"><p><strong>任意：相談内容を先に入力（メール本文に反映）</strong></p>'+   '<label>導入予定施設数 <input id="goFacilities" type="number" min="1" max="999" inputmode="numeric" placeholder="例：3" oninput="goRefreshConsultationLink()"></label>'+   '<label>現在の予約管理システム <input id="goPms" type="text" maxlength="40" placeholder="例：Beds24／未導入" oninput="goRefreshConsultationLink()"></label>'+   '<label>導入希望時期 <select id="goTiming" onchange="goRefreshConsultationLink()"><option value="">未選択</option><option>すぐに</option><option>1か月以内</option><option>3か月以内</option><option>未定</option></select></label></div>'+   '<p><a id="goConsultationLink" class="button" href="'+consultationMailto+'">既定メールアプリで月額導入を相談</a> <a id="goConsultationGmail" class="button secondary" href="'+consultationGmail+'" target="_blank" rel="noopener noreferrer">Gmail（ブラウザ）で相談文を作成</a> <button type="button" class="button secondary" onclick="goConsultationCopy_()">相談文をコピー</button> <a class="button secondary" href="../../#pricing">料金・提供条件を見る</a></p>'+
+   '<p id="goCopyNotice" class="small">入力した施設数・予約管理システム・優先課題はメール作成画面に反映されます。このページから自動送信・保存はしません。メールアプリが起動しない場合はGmail（ブラウザ）または相談文のコピーをお使いください。送信操作はご本人が行います。</p>'+
    '<hr style="border:0;border-top:1px solid #e3d6b7;margin:20px 0">'+
    '<p><strong>まず小さく試すならStarter</strong></p>'+
    '<p>9,800円Starterは、施設情報・返信基準・判断ルールを整理して、GuestOps AIへ進む前段として使えます。</p>'+
