@@ -65,7 +65,7 @@ assert.ok(gmailHref.startsWith('https://mail.google.com/mail/?view=cm&fs=1&to=')
 assert.equal(fields.goConsultationGmail.href, gmailHref, 'input change must update Gmail compose href');
 assert.equal(decodeURIComponent(gmailHref.split('&body=')[1]), filledBody,
   'browser Gmail and default mail app must receive identical consultation body');
-assert.doesNotMatch(gmailHref, /square\\.site|square\\.link/i);
+assert.doesNotMatch(gmailHref, /square\.site|square\.link/i);
 assert.match(filled.next.innerHTML, /相談文をコピー/);
 
 let copiedText = '';
@@ -78,11 +78,11 @@ const copyDocument = {
   querySelectorAll: () => [{value: '価格運用'}],
   getElementById: id => ({result: copyResult, nextStep: copyNext, ...copyFields})[id] || null
 };
-vm.runInNewContext(script + '\\ndiagnose(); goConsultationCopy_();', {
+vm.runInNewContext(script + '\ndiagnose(); goConsultationCopy_();', {
   document: copyDocument,
   prompt: (message, value) => { copiedText = value; }
 });
-assert.match(copiedText, /宛先: minpaku\\.ai\\.kit@gmail\\.com\\n件名:/,
+assert.match(copiedText, /宛先: minpaku\.ai\.kit@gmail\.com\n件名:/,
   'copied consultation must contain real line breaks and recipient');
 assert.match(copiedText, /導入予定施設数：2/);
 assert.match(copiedText, /現在利用している予約管理システム：Beds24/);
