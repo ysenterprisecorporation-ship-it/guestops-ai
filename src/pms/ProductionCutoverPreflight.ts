@@ -2,6 +2,7 @@ import { BookingSnapshot, compareBookingSnapshots } from "./BookingIdentityRecon
 import { Interval, reconcileIntervals, seasonProtected } from "./BookingInventoryReconciler";
 import { CutoverEvidence, CutoverGate, evaluateBeds24ProductionCutover } from "./ProductionCutoverGate";
 import { ReservationNotice, reviewReservationNotices } from "./ReservationNoticeAudit";
+import { BookingEvidenceRow } from "./BookingEvidenceLedger";
 
 /** Read-only preflight: successful code tests alone never authorize live OTA writes. */
 export interface ProductionCutoverInput {
@@ -24,6 +25,7 @@ export interface ProductionCutoverInput {
   reservationNotices?: ReservationNotice[];
   /** Explicit proof that notification collection was completed; missing list is never treated as empty. */
   notificationHistoryVerified?: boolean;
+  notificationEvidenceRows?: BookingEvidenceRow[];
   /** Booking.com IDs independently confirmed in the provider's live data. */
   liveBookingComReservationIds?: string[];
 }
@@ -55,6 +57,7 @@ export function evaluateProductionCutover(input: ProductionCutoverInput): Produc
   if(!input.snapshotsComplete) blockers.push("SOURCE_SNAPSHOTS_INCOMPLETE");
   if(!input.expectedPropertyId.trim()) blockers.push("PROPERTY_ID_MISSING");
   if(input.notificationHistoryVerified!==true || !input.reservationNotices) blockers.push("BOOKING_NOTIFICATION_HISTORY_NOT_VERIFIED");
+  if(input.notificationEvidenceRows?.some(row=>row.arrivalConflict)) blockers.push("BOOKING_NOTIFICATION_ARRIVAL_CONFLICT_UNRESOLVED");
   if(input.reservationNotices && input.reservationNotices.length){
     const audit=reviewReservationNotices(input.reservationNotices);
     const verified=new Set(input.liveBookingComReservationIds??[]);
