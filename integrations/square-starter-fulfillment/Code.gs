@@ -151,8 +151,11 @@ function goOrderEligible_(order, payment, config) {
         (!Array.isArray(order.returns) || order.returns.length > 0)) ||
       !Array.isArray(order.line_items) || order.line_items.length !== 1) return false;
   const item = order.line_items[0];
-  return item.catalog_object_id === config.catalogId &&
-    String(item.quantity) === '1';
+  // Square's quantity is a canonical decimal string. Reject arrays/objects:
+  // String([1]) and custom toString() values could otherwise masquerade as '1'.
+  return !!item && typeof item === 'object' && !Array.isArray(item) &&
+    item.catalog_object_id === config.catalogId &&
+    (item.quantity === '1' || item.quantity === 1);
 }
 
 function goDeliveryBody_(payment, config) {
