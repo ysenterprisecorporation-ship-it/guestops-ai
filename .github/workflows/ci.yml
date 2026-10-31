@@ -22,5 +22,6 @@ jobs:
           node integrations/square-starter-fulfillment/test-fulfillment.cjs
           node integrations/square-starter-fulfillment/test-deployment.cjs
           node integrations/square-starter-fulfillment/test-legacy-privacy.cjs
+          node integrations/square-starter-fulfillment/test-buyer-access.cjs
       - run: npm run build
       - run: git diff --exit-code -- dist
