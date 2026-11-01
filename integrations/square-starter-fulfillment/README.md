@@ -4,6 +4,16 @@
 
 > **2026-10-31 セキュリティ重要変更：** 以前の「リンクを知っている全員／閲覧者」を許可する仕様を廃止しました。公開Git履歴に教材URLが残っているため、旧教材は販売納品に使用しません。購入者ごとに制限付きファイルの閲覧権限を個別付与するまで `SEND_ENABLED=false` を維持します。旧共有権限の解除は未完了です。
 
+## 2026-11-01｜旧公開教材4件の権限解除：8個のID手入力を不要にする実行経路
+
+旧利用ガイド、旧マスタープロンプト、旧シート、旧保管フォルダの**4件は公開閲覧権限が残存**（11/1のDrive権限監査）。新しい限定共有教材3件と保管フォルダは公開権限なし。旧リンクは有料納品に再利用しない。
+
+`LegacyPrivacyRepair.gs` に `auditLegacyStarterPrivacyAuto()` と `repairLegacyStarterPrivacyAuto()` を追加。**運営Gmailではなく旧教材所有者 `ai.kenshosho@gmail.com` で実行する**。旧フォルダと限定共有移行フォルダを正確な名前で探索し、各フォルダの中の教材3件をタイトル・所有者・形式・ID重複・バックアップの非公開状態まで照合する。異常が1件でもあれば共有設定を変更しない。旧共有の解除のみ行い、ファイル削除・課金・メール送信は行わない。
+
+所有者のApps Scriptにこの1ファイルを追加した後、まず `auditLegacyStarterPrivacyAuto()` を実行し `legacyPublicCount: 4` を確認。次に **`repairLegacyStarterPrivacyAuto()` を所有者として1回実行**し、`changedCount` と `allLegacyPrivate: true` を確認する。IDをScript Propertiesに8件手入力する必要はない。二度目は `changedCount: 0` となる。GAS配備と所有者のGoogle認可が必要であり、GitHubへの実装だけでは共有権限は変わらない。
+
+この手順の対象は旧教材の公開共有解除に限定する。Square本番認証・GAS本番納品配備・購入者メール送信は別途未完了。
+
 ## 動作
 - Square **Payments API（読み取り専用）**で決済一覧を取得し、**COMPLETED／JPY 9,800円／指定店舗／返金なし／設定開始日時以降**を検査。
 - Square **Orders API（読み取り専用）**で注文の**単一商品・数量1・指定catalog_object_id・合計9,800円・注文状態 `COMPLETED` 必須（`OPEN`・`CANCELED`・`DRAFT`・状態欠落は除外）**を再検査。商品名の曖昧一致やメール通知の文字列だけで納品しない。
