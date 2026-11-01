@@ -268,10 +268,14 @@ function auditStarterGoLiveReadiness() {
   if (status.missingPropertyNames.length) blockers.push('MISSING_PROPERTIES');
   if (status.sendEnabled) blockers.push('SEND_ALREADY_ENABLED');
   if (status.triggerCount !== 1) blockers.push('EXPECTED_EXACTLY_ONE_TRIGGER');
-  // An enabled auto-grant option requires the companion script to be deployed.
-  // Otherwise the first real purchase would become a stuck PENDING delivery.
-  if (PropertiesService.getScriptProperties().getProperty('AUTO_GRANT_BUYER_ACCESS') === 'true' &&
-      typeof goGrantStarterBuyerAccess_ !== 'function') {
+  // A read-only materials audit proves only that files are private, not
+  // that a future buyer can open them. Unattended fulfillment requires
+  // buyer-specific VIEW provisioning; otherwise a real order stalls at send.
+  const autoGrant = PropertiesService.getScriptProperties()
+    .getProperty('AUTO_GRANT_BUYER_ACCESS') === 'true';
+  if (!autoGrant) {
+    blockers.push('UNATTENDED_BUYER_ACCESS_NOT_ENABLED');
+  } else if (typeof goGrantStarterBuyerAccess_ !== 'function') {
     blockers.push('BUYER_ACCESS_PROVISIONER_MISSING');
   }
 
