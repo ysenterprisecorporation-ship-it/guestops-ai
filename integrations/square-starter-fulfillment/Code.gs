@@ -302,8 +302,8 @@ function runStarterFulfillment() {
           // GmailDraft.send() returns a GmailMessage. Capture its message ID
           // so a recorded SENT status has a concrete Gmail audit reference.
           // The PENDING guards are already stored before draft creation.
-          const sentMessage = GmailApp.createDraft(payment.buyer_email_address, subject,
-            goDeliveryBody_(payment, config), {
+          const sentMessage = GmailApp.createDraft(refreshed.payment.buyer_email_address, subject,
+            goDeliveryBody_(refreshed.payment, config), {
               name: 'GuestOps AI', replyTo: GO_SENDER
             }).send();
           const gmailId = sentMessage && sentMessage.getId();
