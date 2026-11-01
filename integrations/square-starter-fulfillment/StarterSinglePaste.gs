@@ -461,7 +461,7 @@ function testStarterFulfillmentRules() {
   check(!goPaymentEligible_(Object.assign({},p,{tip_money:{amount:0,currency:'USD'}}),c), 'tip currency mismatch blocked');
   check(!goPaymentEligible_(Object.assign({},p,{tip_money:{amount:[0],currency:'JPY'}}),c), 'malformed tip blocked');
   check(!goPaymentEligible_(Object.assign({},p,{buyer_email_address:''}),c), 'missing email');
-  check(goBuyerEmailValid_('buyer+tag@example.com'), 'single valid tagged mailbox');
+  check(goBuyerEmailValid_('buyer+tag@valid-domain.jp'), 'single valid tagged mailbox');
   check(!goBuyerEmailValid_('test@example.invalid'), 'reserved invalid TLD blocked');
   check(!goBuyerEmailValid_('test@example.com'), 'reserved example.com blocked');
   check(!goBuyerEmailValid_('test@shop.test'), 'reserved test TLD blocked');
