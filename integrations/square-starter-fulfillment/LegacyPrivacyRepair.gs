@@ -63,8 +63,10 @@ function auditLegacyStarterPrivacy() {
   const targets = legacyStarterTargets_();
   const publicCount = targets.filter(t =>
     t.oldItem.getSharingAccess() !== DriveApp.Access.PRIVATE).length;
-  return {backupsVerified: targets.length, legacyPublicCount: publicCount,
+  const result = {backupsVerified: targets.length, legacyPublicCount: publicCount,
     allLegacyPrivate: publicCount === 0};
+  console.log('LEGACY_STARTER_PRIVACY_AUDIT ' + JSON.stringify(result));
+  return result;
 }
 
 function repairLegacyStarterPrivacy() {
