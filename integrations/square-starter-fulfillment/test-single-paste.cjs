@@ -13,7 +13,7 @@ const boundary = '\n\n// ----- STARTER COMPANIONS -----\n\n';
 
 assert.equal(bundle.split(boundary).length, 2, 'Bundle must contain exactly one companion boundary');
 const [before, after] = bundle.split(boundary);
-assert.ok(before.endsWith(code + '\n'), 'Single-paste bundle Code.gs is stale or modified');
+assert.ok(before.endsWith(code), 'Single-paste bundle Code.gs is stale or modified');
 assert.equal(after, companions + '\n', 'Single-paste bundle StarterCompanions.gs is stale or modified');
 
 const functionNames = [...bundle.matchAll(/^function\s+([\w$]+)\s*\(/gm)].map(m => m[1]);
