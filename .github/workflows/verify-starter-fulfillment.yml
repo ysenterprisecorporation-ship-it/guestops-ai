@@ -27,6 +27,8 @@ jobs:
         run: node integrations/square-starter-fulfillment/test-square-id-discovery.cjs
       - name: Test dry-run deployment safeguards
         run: node integrations/square-starter-fulfillment/test-deployment.cjs
+      - name: Test unattended buyer-access go-live gate
+        run: node integrations/square-starter-fulfillment/test-golive-buyer-access.cjs
       - name: Test full fulfillment flow, refund races and idempotency
         run: node integrations/square-starter-fulfillment/test-fulfillment.cjs
       - name: Test buyer-only Drive access grants
