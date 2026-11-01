@@ -28,6 +28,8 @@
 | `SEND_ENABLED` | **最初は `false`**。Square照合結果・受取権限・実決済テストを確認できた後だけ `true` |
 | `AUTO_GRANT_BUYER_ACCESS` | **最初は `false`**。`true` の場合だけSquare決済・注文を再検証し、二重 `PENDING` ガード記録後に購入者へ限定共有教材の閲覧権限を自動付与。失敗時は送信禁止 |
 
+**限定共有教材3件のURL設定を自動化（送信OFF時のみ）**：上記の `STARTER_GUIDE_URL` / `STARTER_PROMPT_URL` / `STARTER_SHEET_URL` は、2026-10-31作成の移行版3ファイルが運営窓口アカウントに編集者共有されている場合、GASに3ファイルを配備した後 `configureStarterPrivateMaterials()` を1回実行すると、Drive上の完全一致ファイル名・種類・制限付き共有・編集権限・旧公開ID除外・重複なしを検査してScript Propertiesへ一括設定できます。3件すべての検査に合格するまでURLは書き換えません。**Squareトークン・店舗ID・商品IDは設定しません。SEND_ENABLEDも変更せず、決済・メール送信・購入者権限付与は行いません。** 同名ファイルが複数ある場合は停止します。
+
 4. `testStarterFulfillmentRules()` を実行し、23ケースの `PASS` を確認。GitHub Actionsでは `test-fulfillment.cjs` により、注文単位の二重納品防止・再実行・PENDING・dry runも自動検査する。
 5. **送信を有効化する前に** `auditStarterFulfillment()` を実行。これはSquareの決済・注文を読み取り、集計値だけをログに出す。`SEND_ENABLED=true` でもメール送信・Script Properties書込は行わない。`readyToDeliver` は送信候補数であり、実送信数ではない。`pendingReview` が1件でもあれば自動再送しない。`invalidOrders` は商品・金額・注文状態などが一致しない注文の件数。購入者メールアドレスやトークンはログに出さない。
 6. `runStarterFulfillment()` を**送信無効のまま**実行。実Squareデータの読取可否と対象商品の識別をログで確認する。
