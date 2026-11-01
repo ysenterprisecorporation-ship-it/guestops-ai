@@ -428,8 +428,9 @@ function testStarterFulfillmentRules() {
   function check(x, label) {if (!x) throw new Error('FAILED: ' + label);}
   check(goPaymentEligible_(p,c), 'paid valid payment');
   // Account-gate regression: a wrong identity must fail before payment retrieval.
-  const actualSender = Session.getEffectiveUser().getEmail().toLowerCase();
-  check(actualSender === GO_SENDER, 'test executed by authorized sender');
+  const actualSender = Session.getEffectiveUser().getEmail();
+  check(typeof actualSender === 'string' &&
+    actualSender.toLowerCase() === GO_SENDER, 'test executed by authorized sender');
   check(goOrderEligible_(o,p,c), 'correct product');
   check(!goPaymentEligible_(Object.assign({},p,{status:'APPROVED'}),c), 'unsettled');
   check(!goPaymentEligible_(Object.assign({},p,{amount_money:{amount:980,currency:'JPY'}}),c), 'amount');
