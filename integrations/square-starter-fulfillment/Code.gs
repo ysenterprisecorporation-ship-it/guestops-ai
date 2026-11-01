@@ -261,6 +261,12 @@ function runStarterFulfillment() {
         if (!materialAudit || materialAudit.ready !== true) {
           throw new Error('Buyer material access failed; no delivery attempted.');
         }
+        // A missing companion script must fail BEFORE reserving PENDING guards.
+        // Otherwise a paid order is permanently stuck in manual reconciliation
+        // even though no permission was granted and no Gmail send was attempted.
+        if (autoGrant && typeof goGrantStarterBuyerAccess_ !== 'function') {
+          throw new Error('Buyer access provisioner not deployed; no delivery reserved.');
+        }
         // A pause may be requested while Square API reads are in progress.
         // Re-read the live flag rather than trusting config.enabled from run start.
         if (props.getProperty('SEND_ENABLED') !== 'true') {
