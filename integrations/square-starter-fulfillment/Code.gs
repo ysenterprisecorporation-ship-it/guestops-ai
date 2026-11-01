@@ -94,6 +94,12 @@ function goBuyerEmailValid_(email) {
   if (parts.length !== 2 || parts[0].length > 64) return false;
   const local = parts[0];
   const domain = parts[1];
+  // Never deliver paid materials to reserved documentation/test domains.
+  // Such addresses can appear in an internal sales ledger as dummy orders.
+  const lowerDomain = domain.toLowerCase();
+  if (lowerDomain === 'localhost' ||
+      /(?:^|\.)(?:invalid|test|example|localhost)$/.test(lowerDomain) ||
+      /^(?:example\.com|example\.net|example\.org)$/.test(lowerDomain)) return false;
   const atom = /^[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+$/;
   if (!local.split('.').every(part => part && atom.test(part))) return false;
   if (domain.length > 253 || !domain.includes('.')) return false;
@@ -426,7 +432,7 @@ function auditStarterFulfillment() {
 function testStarterFulfillmentRules() {
   const c = {location:'L1',catalogId:'VAR1',since:'2026-10-29T00:00:00Z'};
   const p = {id:'P1',status:'COMPLETED',location_id:'L1',order_id:'O1',
-    amount_money:{amount:9800,currency:'JPY'},buyer_email_address:'buyer@example.com',
+    amount_money:{amount:9800,currency:'JPY'},buyer_email_address:'buyer@valid-domain.jp',
     created_at:'2026-10-30T00:00:00Z'};
   const o = {id:'O1',state:'COMPLETED',location_id:'L1',total_money:{amount:9800,currency:'JPY'},
     line_items:[{catalog_object_id:'VAR1',quantity:'1'}]};
@@ -449,12 +455,15 @@ function testStarterFulfillmentRules() {
   check(!goPaymentEligible_(Object.assign({},p,{tip_money:{amount:[0],currency:'JPY'}}),c), 'malformed tip blocked');
   check(!goPaymentEligible_(Object.assign({},p,{buyer_email_address:''}),c), 'missing email');
   check(goBuyerEmailValid_('buyer+tag@example.com'), 'single valid tagged mailbox');
-  check(!goBuyerEmailValid_('buyer@example.com,other@example.com'), 'recipient list blocked');
-  check(!goBuyerEmailValid_('Buyer <buyer@example.com>'), 'display-name syntax blocked');
-  check(!goBuyerEmailValid_('buyer@example.com;other'), 'semicolon delimiter blocked');
+  check(!goBuyerEmailValid_('test@example.invalid'), 'reserved invalid TLD blocked');
+  check(!goBuyerEmailValid_('test@example.com'), 'reserved example.com blocked');
+  check(!goBuyerEmailValid_('test@shop.test'), 'reserved test TLD blocked');
+  check(!goBuyerEmailValid_('buyer@valid-domain.jp,other@example.com'), 'recipient list blocked');
+  check(!goBuyerEmailValid_('Buyer <buyer@valid-domain.jp>'), 'display-name syntax blocked');
+  check(!goBuyerEmailValid_('buyer@valid-domain.jp;other'), 'semicolon delimiter blocked');
   check(!goBuyerEmailValid_('buyer..double@example.com'), 'invalid dot atom blocked');
   check(!goBuyerEmailValid_('buyer@example..com'), 'invalid domain blocked');
-  check(!goPaymentEligible_(Object.assign({},p,{buyer_email_address:'buyer@example.com,other'}),c), 'malformed recipient rejected');
+  check(!goPaymentEligible_(Object.assign({},p,{buyer_email_address:'buyer@valid-domain.jp,other'}),c), 'malformed recipient rejected');
 
   check(!goOrderEligible_(Object.assign({},o,{line_items:[{catalog_object_id:'OTHER',quantity:'1'}]}),p,c), 'wrong item');
   check(!goOrderEligible_(Object.assign({},o,{line_items:[{catalog_object_id:'VAR1',quantity:'2'}]}),p,c), 'quantity');
