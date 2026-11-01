@@ -14,6 +14,16 @@
 
 この手順の対象は旧教材の公開共有解除に限定する。Square本番認証・GAS本番納品配備・購入者メール送信は別途未完了。
 
+## 2026-11-01 更新｜新規GAS向け1回実行セットアップ
+
+新規作成済みの送信専用GASには、最新版 [StarterSinglePaste.gs](./StarterSinglePaste.gs) を既存の `コード.gs` に**全置換で1回だけ**貼り付ける（旧 `Deployment.gs` / `BuyerAccess.gs` を重複追加しない）。保存後、`minpaku.ai.kit@gmail.com` で **`prepareStarterDryRun()` を1回実行**する。
+
+この関数は送信OFFを確認し、模擬決済判定テスト→限定共有教材3件のDrive実体照合とURL自動設定→不足するプロパティ名の報告まで実施する。**Square API呼び出し、課金、Gmail送信、購入者権限付与、トリガー作成、送信ONは行わない。** 初回Google認可は実行者による承認が必要。
+
+次にGASのScript Propertiesへ `SQUARE_ACCESS_TOKEN`、`SQUARE_LOCATION_ID`、`STARTER_CATALOG_OBJECT_ID`、`FULFILL_SINCE_ISO` を登録する（値は公開GitHubやチャットへ記載しない）。`SEND_ENABLED=false` を維持して `auditStarterFulfillment()` によるSquare本番読み取り監査を実行する。実決済・受取権限・重複送信ガードの検証が済むまで送信は有効化しない。
+
+旧公開教材4件の `anyone` 権限は2026-11-01に所有者GASで解除され、Google Driveの権限を個別再取得して確認済み。下記の2026-10-31当時の未完了記録は履歴として残す。旧教材URLは有料納品に再使用しない。
+
 ## 動作
 - Square **Payments API（読み取り専用）**で決済一覧を取得し、**COMPLETED／JPY 9,800円／指定店舗／返金なし／設定開始日時以降**を検査。
 - Square **Orders API（読み取り専用）**で注文の**単一商品・数量1・指定catalog_object_id・合計9,800円・注文状態 `COMPLETED` 必須（`OPEN`・`CANCELED`・`DRAFT`・状態欠落は除外）**を再検査。商品名の曖昧一致やメール通知の文字列だけで納品しない。
