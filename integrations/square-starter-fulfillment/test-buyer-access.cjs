@@ -109,6 +109,19 @@ assert.throws(provision, /duplicate buyer material/);
 assert.equal(grants, 0);
 props.set(keys[1], 'https://docs.google.com/document/d/' + ids[1] + '/edit');
 
+// Retired public URLs must never be re-provisioned, even when later made private.
+reset();
+const retiredGuide = '1MjTNyh8hjvJW5Eg2wsaRPgfMQ1nWazbs_qazdkSNNjQ';
+const normalGuideUrl = props.get(keys[0]);
+props.set(keys[0], 'https://docs.google.com/document/d/' + retiredGuide + '/edit');
+files.set(retiredGuide, {mime: 'application/vnd.google-apps.document',
+  sharing: 'PRIVATE', buyerAccess: 'NONE'});
+assert.throws(provision, /Retired public buyer material ID/);
+assert.equal(grants, 0, 'no buyer grants for retired public files');
+assert.equal(files.get(retiredGuide).buyerAccess, 'NONE');
+props.set(keys[0], normalGuideUrl);
+files.delete(retiredGuide);
+
 reset();
 failAt = 1;
 assert.throws(provision, /Injected Drive permission failure/);
