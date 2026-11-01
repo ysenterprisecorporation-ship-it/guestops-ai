@@ -36,8 +36,10 @@ function goRequiredConfig_(props) {
     if (materialIds[match[1]]) throw new Error('Duplicate buyer material file ID; no delivery.');
     materialIds[match[1]] = true;
   });
-  if (Session.getEffectiveUser().getEmail().toLowerCase() !== GO_SENDER) {
-    throw new Error('Wrong Google account: run only as ' + GO_SENDER);
+  const effectiveEmail = Session.getEffectiveUser().getEmail();
+  if (typeof effectiveEmail !== 'string' ||
+      effectiveEmail.toLowerCase() !== GO_SENDER) {
+    throw new Error('Wrong or unavailable Google account: run only as ' + GO_SENDER);
   }
   return {
     token: props.getProperty('SQUARE_ACCESS_TOKEN'),
