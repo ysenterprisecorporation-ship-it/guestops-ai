@@ -21,6 +21,8 @@ jobs:
           cp integrations/square-starter-fulfillment/BuyerAccess.gs /tmp/guestops-starter-buyer-access.js
           node --check /tmp/guestops-starter-deployment.js
           node --check /tmp/guestops-starter-buyer-access.js
+      - name: Verify single-paste GAS is current and safe
+        run: node integrations/square-starter-fulfillment/test-single-paste.cjs
       - name: Test dry-run deployment safeguards
         run: node integrations/square-starter-fulfillment/test-deployment.cjs
       - name: Test full fulfillment flow, refund races and idempotency
