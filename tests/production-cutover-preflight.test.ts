@@ -9,7 +9,7 @@ const evidence:CutoverEvidence={
 };
 const input:ProductionCutoverInput={evidence,expectedPropertyId:"364051",otaBookings:[],beds24Bookings:[],
  otaInventory:[],beds24Inventory:[],beds24SeasonalBlocks:[{start:"2027-01-01",end:"2027-04-01",kind:"blocked",source:"verified"}],
- snapshotsComplete:true,notificationHistoryVerified:true,reservationNotices:[],notificationEvidenceRows:[],otaSourcesVerified:{bookingCom:true,airbnbStay:true,airbnbMonthly:true,beds24:true},sourceEvidenceTimestamp:"2026-10-29T19:00:00+09:00",evaluatedAt:"2026-10-29T19:10:00+09:00"};
+ snapshotsComplete:true,notificationHistoryVerified:true,reservationNotices:[],notificationEvidenceRows:[],verifiedBookingComStays:[],beds24OccupiedNights:[],otaSourcesVerified:{bookingCom:true,airbnbStay:true,airbnbMonthly:true,beds24:true},sourceEvidenceTimestamp:"2026-10-29T19:00:00+09:00",evaluatedAt:"2026-10-29T19:10:00+09:00"};
 test("preflight blocks incomplete real-source snapshots despite approval",()=>{
  const result=evaluateProductionCutover({...input,snapshotsComplete:false});
  assert.equal(result.ready,false);
@@ -88,4 +88,14 @@ test("notification history cannot omit known booking IDs from ledger",()=>{
  const result=evaluateProductionCutover({...input,reservationNotices:[{identifier:"1234567890",source:"booking-com",state:"new"}],notificationEvidenceRows:[]});
  assert.equal(result.ready,false);
  assert.ok(result.blockers.includes("BOOKING_NOTIFICATION_LEDGER_INCOMPLETE"));
+});
+
+test("Booking.com screen-verified occupied night missing from Beds24 forbids cutover",()=>{
+ const result=evaluateProductionCutover({...input,verifiedBookingComStays:[{externalId:"5152984780",arrival:"2026-11-01",departure:"2026-11-02",status:"confirmed"}],beds24OccupiedNights:[]});
+ assert.equal(result.ready,false);
+ assert.ok(result.blockers.includes("BOOKING_COM_OCCUPIED_NIGHTS_MISSING_IN_BEDS24"));
+});
+test("absence of independent Beds24 occupied-night snapshot forbids cutover",()=>{
+ const result=evaluateProductionCutover({...input,beds24OccupiedNights:undefined});
+ assert.ok(result.blockers.includes("BOOKING_COM_NIGHT_PROTECTION_NOT_VERIFIED"));
 });
