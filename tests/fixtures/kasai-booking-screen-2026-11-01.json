@@ -1,0 +1,67 @@
+{
+  "source": "Booking.com reservation-list screenshots provided 2026-11-01",
+  "propertyId": "364051",
+  "snapshotType": "historical-screen-evidence-not-live-ota",
+  "stays": [
+    {
+      "externalId": "5152984780",
+      "arrival": "2026-11-01",
+      "departure": "2026-11-02",
+      "status": "confirmed"
+    },
+    {
+      "externalId": "6100278367",
+      "arrival": "2026-11-02",
+      "departure": "2026-11-03",
+      "status": "confirmed"
+    },
+    {
+      "externalId": "5688177917",
+      "arrival": "2026-11-06",
+      "departure": "2026-11-08",
+      "status": "confirmed"
+    },
+    {
+      "externalId": "6930002918",
+      "arrival": "2026-11-11",
+      "departure": "2026-11-13",
+      "status": "confirmed"
+    },
+    {
+      "externalId": "6853671589",
+      "arrival": "2026-11-20",
+      "departure": "2026-11-23",
+      "status": "confirmed"
+    },
+    {
+      "externalId": "5200771530",
+      "arrival": "2026-11-25",
+      "departure": "2026-11-28",
+      "status": "confirmed"
+    },
+    {
+      "externalId": "5930197631",
+      "arrival": "2026-11-28",
+      "departure": "2026-11-29",
+      "status": "confirmed"
+    },
+    {
+      "externalId": "5679272693",
+      "arrival": "2026-12-26",
+      "departure": "2026-12-28",
+      "status": "confirmed"
+    },
+    {
+      "externalId": "5532020414",
+      "arrival": "2026-12-29",
+      "departure": "2026-12-30",
+      "status": "confirmed"
+    },
+    {
+      "externalId": "5698776470",
+      "arrival": "2026-12-31",
+      "departure": "2027-01-05",
+      "status": "confirmed"
+    }
+  ]
+}
