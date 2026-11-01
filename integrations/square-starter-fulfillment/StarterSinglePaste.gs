@@ -700,6 +700,15 @@ function auditStarterMaterialAccess(buyerEmail) {
       if (file.getSharingAccess() !== DriveApp.Access.PRIVATE) {
         return {material: spec.key, status: 'PUBLIC_LINK_ACCESS'};
       }
+      // The Starter sender is an editor, not the owner. If the owner has
+      // disabled editor sharing, unattended grants will fail AFTER PENDING.
+      // Reject BEFORE any delivery guard is reserved, without changing ACLs.
+      if (buyerEmail === undefined &&
+          props.getProperty('AUTO_GRANT_BUYER_ACCESS') === 'true' &&
+          (typeof file.isShareableByEditors !== 'function' ||
+           file.isShareableByEditors() !== true)) {
+        return {material: spec.key, status: 'EDITOR_SHARING_DISABLED'};
+      }
       if (buyerEmail !== undefined &&
           file.getAccess(buyerEmail) !== DriveApp.Permission.VIEW) {
         return {material: spec.key, status: 'BUYER_ACCESS_NOT_VIEW_ONLY'};
@@ -916,6 +925,13 @@ function goGrantStarterBuyerAccess_(buyerEmail, orderGuardKey, paymentGuardKey) 
     if (file.getMimeType() !== spec.mime ||
         file.getSharingAccess() !== DriveApp.Access.PRIVATE) {
       throw new Error('Buyer material is not a private expected file; no access granted.');
+    }
+    // Verify sharing capability for ALL materials before changing ANY ACL.
+    // A file owner may disable editor sharing even while the file remains
+    // private and the Starter sender has EDIT permission.
+    if (typeof file.isShareableByEditors !== 'function' ||
+        file.isShareableByEditors() !== true) {
+      throw new Error('Editor sharing disabled; no access granted.');
     }
     const access = file.getAccess(buyerEmail);
     // Never silently downgrade an editor, commenter, or owner.
