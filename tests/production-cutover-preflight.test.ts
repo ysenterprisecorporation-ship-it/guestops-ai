@@ -45,7 +45,7 @@ test("Booking.com reservation notification blocks cutover until its live OTA ID 
  const missing=evaluateProductionCutover({...input,notificationHistoryVerified:true,reservationNotices:[notice],notificationEvidenceRows:[{id:"1234567890",arrival:"2026-11-30",lastNotification:"new",lastReceivedAt:"2026-10-29T18:00:00+09:00",liveStatus:"unverified",arrivalConflict:false}]});
  assert.equal(missing.ready,false);
  assert.ok(missing.blockers.includes("BOOKING_COM_NOTICES_UNVERIFIED_IN_LIVE_OTA"));
- const verified=evaluateProductionCutover({...input,reservationNotices:[notice],liveBookingComReservationIds:["1234567890"]});
+ const verified=evaluateProductionCutover({...input,reservationNotices:[notice],notificationEvidenceRows:[{id:"1234567890",arrival:"2026-11-30",lastNotification:"new",lastReceivedAt:"2026-10-29T18:00:00+09:00",liveStatus:"unverified",arrivalConflict:false}],liveBookingComReservationIds:["1234567890"]});
  assert.equal(verified.ready,true);
 });
 test("one unverified notification among several must block cutover",()=>{
