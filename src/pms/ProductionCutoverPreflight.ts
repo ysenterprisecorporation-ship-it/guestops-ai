@@ -3,6 +3,7 @@ import { Interval, reconcileIntervals, seasonProtected } from "./BookingInventor
 import { CutoverEvidence, CutoverGate, evaluateBeds24ProductionCutover } from "./ProductionCutoverGate";
 import { ReservationNotice, reviewReservationNotices } from "./ReservationNoticeAudit";
 import { BookingEvidenceRow } from "./BookingEvidenceLedger";
+import { VerifiedStay, bookedNightProtection } from "./VerifiedBookingNightProtection";
 
 /** Read-only preflight: successful code tests alone never authorize live OTA writes. */
 export interface ProductionCutoverInput {
@@ -28,6 +29,9 @@ export interface ProductionCutoverInput {
   notificationEvidenceRows?: BookingEvidenceRow[];
   /** Booking.com IDs independently confirmed in the provider's live data. */
   liveBookingComReservationIds?: string[];
+  /** Screen-verified Booking.com stays and independently exported PMS occupied nights. */
+  verifiedBookingComStays?: VerifiedStay[];
+  beds24OccupiedNights?: string[];
 }
 export interface ProductionCutoverResult extends CutoverGate {
   bookingDifferences: string[];
@@ -62,6 +66,14 @@ export function evaluateProductionCutover(input: ProductionCutoverInput): Produc
   if(input.reservationNotices && input.notificationEvidenceRows){
     const ledgerIds=new Set(input.notificationEvidenceRows.map(row=>row.id));
     if(input.reservationNotices.some(n=>!ledgerIds.has(n.identifier))) blockers.push("BOOKING_NOTIFICATION_LEDGER_INCOMPLETE");
+  }
+  if(!input.verifiedBookingComStays || !input.beds24OccupiedNights){
+    blockers.push("BOOKING_COM_NIGHT_PROTECTION_NOT_VERIFIED");
+  }else{
+    const nights=bookedNightProtection(input.verifiedBookingComStays);
+    const pmsDays=new Set(input.beds24OccupiedNights);
+    if(nights.some(n=>n.overlap)) blockers.push("BOOKING_COM_OVERLAPPING_RESERVATIONS");
+    if(nights.some(n=>!pmsDays.has(n.date))) blockers.push("BOOKING_COM_OCCUPIED_NIGHTS_MISSING_IN_BEDS24");
   }
   if(input.reservationNotices && input.reservationNotices.length){
     const audit=reviewReservationNotices(input.reservationNotices);
