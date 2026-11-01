@@ -86,3 +86,102 @@ function repairLegacyStarterPrivacy() {
   return {changedCount, backupsVerified: result.backupsVerified,
     allLegacyPrivate: true};
 }
+
+/**
+ * Zero-Script-Properties, owner-only remediation of the four legacy links.
+ * Finds the exact legacy and private backup FOLDERS first, then requires
+ * exactly one expected file of each title INSIDE the correct folder.
+ * All 8 objects are checked before revoking any broad sharing.
+ *
+ * Run auditLegacyStarterPrivacyAuto() to inspect, then
+ * repairLegacyStarterPrivacyAuto() from the owner account.
+ * No email, Square calls, new permissions, or file deletions.
+ */
+function legacyStarterAutoUnique_(iterator, label) {
+  if (!iterator.hasNext()) throw new Error('Missing Starter item: ' + label);
+  const item = iterator.next();
+  if (iterator.hasNext()) throw new Error('Ambiguous Starter item: ' + label);
+  if (!item.getOwner ||
+      item.getOwner().getEmail().toLowerCase() !== LEGACY_STARTER_OWNER) {
+    throw new Error('Unexpected Starter owner: ' + label);
+  }
+  return item;
+}
+
+function legacyStarterAutoTargets_() {
+  const user = Session.getEffectiveUser().getEmail();
+  if (typeof user !== 'string' ||
+      user.toLowerCase() !== LEGACY_STARTER_OWNER) {
+    throw new Error('Run only as the owner of the legacy Starter materials.');
+  }
+  const legacy = legacyStarterAutoUnique_(
+    DriveApp.getFoldersByName('GuestOps Starter Kit 購入者用'), 'legacy folder');
+  const backup = legacyStarterAutoUnique_(
+    DriveApp.getFoldersByName('GuestOps Starter Kit｜限定共有・移行保管 20261031'),
+    'private backup folder');
+  const specs = [
+    {old: 'GuestOps Starter Kit 利用ガイド',
+      copy: 'GuestOps Starter Kit｜利用ガイド（限定共有・移行版 20261031）',
+      mime: 'application/vnd.google-apps.document'},
+    {old: 'GuestOps Starter Kit 施設専用マスタープロンプト',
+      copy: 'GuestOps Starter Kit｜マスタープロンプト（限定共有・移行版 20261031）',
+      mime: 'application/vnd.google-apps.document'},
+    {old: 'GuestOps Starter Kit v1.1（購入者用）',
+      copy: 'GuestOps Starter Kit｜施設情報・判断シート（限定共有・移行版 20261031）',
+      mime: 'application/vnd.google-apps.spreadsheet'}
+  ];
+  const seen = {};
+  const validateId = (item, label) => {
+    const id = item.getId();
+    if (typeof id !== 'string' || !/^[A-Za-z0-9_-]{10,}$/.test(id) || seen[id]) {
+      throw new Error('Duplicate/invalid Starter ID: ' + label);
+    }
+    seen[id] = true;
+  };
+  validateId(legacy, 'legacy folder');
+  validateId(backup, 'private backup folder');
+  if (backup.getSharingAccess() !== DriveApp.Access.PRIVATE) {
+    throw new Error('Private backup folder is broadly shared.');
+  }
+  const targets = [{oldItem: legacy, backup: backup}];
+  specs.forEach(spec => {
+    const oldItem = legacyStarterAutoUnique_(
+      legacy.getFilesByName(spec.old), 'legacy ' + spec.old);
+    const copy = legacyStarterAutoUnique_(
+      backup.getFilesByName(spec.copy), 'private ' + spec.copy);
+    validateId(oldItem, spec.old);
+    validateId(copy, spec.copy);
+    if (oldItem.getMimeType() !== spec.mime || copy.getMimeType() !== spec.mime ||
+        copy.getSharingAccess() !== DriveApp.Access.PRIVATE) {
+      throw new Error('Wrong file type or nonprivate backup: ' + spec.old);
+    }
+    targets.push({oldItem: oldItem, backup: copy});
+  });
+  return targets;
+}
+
+function auditLegacyStarterPrivacyAuto() {
+  const targets = legacyStarterAutoTargets_();
+  const publicCount = targets.filter(t =>
+    t.oldItem.getSharingAccess() !== DriveApp.Access.PRIVATE).length;
+  return {backupsVerified: targets.length, legacyPublicCount: publicCount,
+    allLegacyPrivate: publicCount === 0};
+}
+
+function repairLegacyStarterPrivacyAuto() {
+  // Preflight every private backup and expected old item before any write.
+  const targets = legacyStarterAutoTargets_();
+  let changedCount = 0;
+  for (const target of targets) {
+    if (target.oldItem.getSharingAccess() === DriveApp.Access.PRIVATE) continue;
+    target.oldItem.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE);
+    if (target.oldItem.getSharingAccess() !== DriveApp.Access.PRIVATE) {
+      throw new Error('Legacy Starter permission revocation not verified.');
+    }
+    changedCount++;
+  }
+  const result = auditLegacyStarterPrivacyAuto();
+  if (!result.allLegacyPrivate) throw new Error('Legacy privacy remains unresolved.');
+  return {changedCount: changedCount, backupsVerified: result.backupsVerified,
+    allLegacyPrivate: true};
+}
