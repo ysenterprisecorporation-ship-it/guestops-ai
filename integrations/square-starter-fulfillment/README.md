@@ -31,6 +31,17 @@
 - 送信前にScript Propertiesへ**注文IDを先に** `PENDING` として記録し、次に決済IDを記録する。注文ID側の記録が失敗した場合はメールを送らない。決済ID側の記録だけが失敗した場合も注文ID側の `PENDING` が残り、次回の二重納品を阻止する。Gmail下書きの送信後に返された**GmailメッセージID**を取得できた場合だけ、注文ID→決済IDの順で `SENT <UTC日時> MSG:<GmailメッセージID>` に更新する。IDが取得できない場合は `PENDING` のまま自動再送を禁止する。同一注文に複数の決済IDが存在しても二重納品しない。
 - 初期値は `SEND_ENABLED` 未設定＝**送信禁止（dry run）**。課金・注文変更・Square設定変更をするAPIは一切呼ばない。
 
+## 2026-11-01｜Square店舗ID・商品バリエーションIDの読み取り専用自動取得（任意）
+
+新規作成済みの送信用GASへ最新の `StarterSinglePaste.gs` を一度貼り付け、`minpaku.ai.kit@gmail.com` で実行する。**GASプロジェクトの再作成は不要**。
+
+1. スクリプトプロパティに本番 `SQUARE_ACCESS_TOKEN` を直接登録する。チャット・GitHubには絶対に貼らない。`SEND_ENABLED=false` を維持する。
+2. `prepareStarterDryRun()` を実行して、限定共有教材3件の検証・URL設定を完了する。
+3. **任意**：`configureStarterSquareIdsReadOnly()` を1回実行する。Squareの `GET /v2/locations` と `GET /v2/catalog/list?types=ITEM` を読み取り、JPYの有効店舗が1件、名前にStarterを含む9,800円固定価格の販売対象バリエーションが1件に特定できた場合のみ、`SQUARE_LOCATION_ID` と `STARTER_CATALOG_OBJECT_ID` を自動保存する。複数店舗・複数候補・既存設定と矛盾・API権限不足・ページネーション異常時は**一切書き込まず停止**する。Squareの `MERCHANT_PROFILE_READ` と `ITEMS_READ` が必要で、これらが使えない場合は従来どおり2つのIDを手動設定する。
+4. `FULFILL_SINCE_ISO` を意図する決済照合開始UTC日時に設定し、`auditStarterFulfillment()` を実行する。**この関数は監査のみで送信しない**。本番売上・購入者・納品対象の確定は実APIの結果による。
+
+自動取得は**商品名と価格による候補抽出であり、実決済の証明ではない**。Square店舗・商品・価格を変更せず、決済もメールも作成しない。テスト `test-square-id-discovery.cjs` は成功・アカウント不一致・送信有効・候補重複・既存ID矛盾などを検証する。
+
 ## 既存環境への最短導入
 1. 民泊AI実務キット運営窓口（`minpaku.ai.kit@gmail.com`）で**新規作成済みのApps Scriptプロジェクト** `GuestOps_Starter_Fulfillment` を開く（ユーザーが新規作成完了と申告）。旧教材の公開解除用 `GuestOps_Starter_Privacy_Repair` とは別プロジェクト。別のGoogleアカウントでの実行はコード側で拒否。
 2. `Code.gs` と `StarterCompanions.gs` を**別ファイル**として同じGASプロジェクトに追加する。`StarterCompanions.gs` は `Deployment.gs` と `BuyerAccess.gs` をそのまま結合した単一貼り付け版で、後者2ファイルを重ねて追加しない（同名関数重複防止）。`BuyerAccess` はデフォルトでは権限変更しない。旧 `Code.gs` だけでは本番用の監査・納品ガード・購入者権限付与関数が不足する。
