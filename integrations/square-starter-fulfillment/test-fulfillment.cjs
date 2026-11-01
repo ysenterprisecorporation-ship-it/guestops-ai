@@ -24,7 +24,7 @@ let pauseOnPaymentGuardOnce = false;
 const payment = (id) => ({
   id, status: 'COMPLETED', location_id: 'L1', order_id: 'O1',
   amount_money: {amount: 9800, currency: 'JPY'},
-  buyer_email_address: 'buyer@example.com',
+  buyer_email_address: 'buyer@valid-domain.jp',
   created_at: '2026-10-30T00:00:00Z'
 });
 const order = {
@@ -202,11 +202,17 @@ ctx.__order = order;
 // These previously passed the permissive @/dot regex, despite including
 // delimiters or malformed mailbox syntax.
 for (const [index, buyerEmail] of [
-  'buyer@example.com,attacker',
-  'buyer@example.com;attacker',
-  'buyer@example.com>',
+  'buyer@valid-domain.jp,attacker',
+  'buyer@valid-domain.jp;attacker',
+  'buyer@valid-domain.jp>',
   'buyer..double@example.com',
-  'buyer@example..com'
+  'buyer@example..com',
+  'test@example.invalid',
+  'test@example.com',
+  'test@shop.test',
+  'test@shop.example',
+  'test@example.net',
+  'test@example.org'
 ].entries()) {
   const id = 'P_BAD_' + index;
   const orderId = 'O_BAD_' + index;
@@ -222,7 +228,7 @@ ctx.__payments = [payment('P1'), payment('P2')];
 ctx.__order = order;
 run();
 assert.equal(sent.length, 1, 'same Square order must be delivered only once');
-assert.equal(sent[0].to, 'buyer@example.com');
+assert.equal(sent[0].to, 'buyer@valid-domain.jp');
 // The real buyer email must explain how to copy view-only materials, include
 // the latest cleaning checklist, and never suggest Starter automates PMS.
 assert.match(sent[0].body, /コピーを作成/);
