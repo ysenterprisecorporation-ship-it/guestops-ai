@@ -1,3 +1,13 @@
+## 2026-11-01 22時台｜無人納品の事前判定と購入者閲覧権限
+
+**修正理由:** 限定共有教材3件が PRIVATE でも、初めて購入する人に閲覧権限がないまま `auditStarterGoLiveReadiness()` が `ready:true` を返す余地があった。Square決済確認後に購入者へ納品できない状態を「無人納品準備完了」と誤認しないため、`AUTO_GRANT_BUYER_ACCESS !== 'true'` の場合は `UNATTENDED_BUYER_ACCESS_NOT_ENABLED` を返すよう修正した。
+
+- このゲートは **無人自動納品の稼働前判定**。手動で購入者ごとに事前共有する運用は別途可能だが、無人稼働の `ready:true` とは判定しない。
+- `AUTO_GRANT_BUYER_ACCESS=true` にしても **`SEND_ENABLED=false` のままなら、購入者権限付与・Gmail送信は行わない**。送信有効化はSquare本番監査、限定教材検証、二重送信ガード、運用承認後に限定する。
+- `goGrantStarterBuyerAccess_` が未配備なら `BUYER_ACCESS_PROVISIONER_MISSING` で停止する。
+- `test-golive-buyer-access.cjs` をGitHub Actionsへ登録。Deployment.gsと一括貼り付け用StarterCompanions.gsの両方を回帰検証する。
+- **本番Square API・GAS実配備・実購入者への送信はこのコード変更では行っていない。**
+
 # Starter Kit 9,800円｜Square決済照合→Gmail教材納品（Google Apps Script）
 
 **状態（2026-10-30 JST）:** ソース実装・単体検査済み。Square本番接続・GAS配備・トリガー登録・実メール納品は**未実施**。無断で課金・料金変更・送信しません。
