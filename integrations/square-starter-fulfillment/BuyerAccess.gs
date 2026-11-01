@@ -63,6 +63,13 @@ function goGrantStarterBuyerAccess_(buyerEmail, orderGuardKey, paymentGuardKey) 
         file.getSharingAccess() !== DriveApp.Access.PRIVATE) {
       throw new Error('Buyer material is not a private expected file; no access granted.');
     }
+    // Verify sharing capability for ALL materials before changing ANY ACL.
+    // A file owner may disable editor sharing even while the file remains
+    // private and the Starter sender has EDIT permission.
+    if (typeof file.isShareableByEditors !== 'function' ||
+        file.isShareableByEditors() !== true) {
+      throw new Error('Editor sharing disabled; no access granted.');
+    }
     const access = file.getAccess(buyerEmail);
     // Never silently downgrade an editor, commenter, or owner.
     if (access !== DriveApp.Permission.NONE &&
