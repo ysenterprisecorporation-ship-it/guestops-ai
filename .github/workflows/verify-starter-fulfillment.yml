@@ -27,6 +27,8 @@ jobs:
         run: node integrations/square-starter-fulfillment/test-fulfillment.cjs
       - name: Test buyer-only Drive access grants
         run: node integrations/square-starter-fulfillment/test-buyer-access.cjs
+      - name: Test owner-only legacy link revocation
+        run: node integrations/square-starter-fulfillment/test-legacy-privacy.cjs
       - name: Test payment and order fail-closed checks
         run: |
           node <<'NODE'
