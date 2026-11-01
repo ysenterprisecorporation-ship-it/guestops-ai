@@ -90,6 +90,15 @@ function pauseStarterFulfillment() {
  *
  * Do not log file IDs, URLs, or buyer email addresses.
  */
+/** Immutable denylist: identifiers exposed in historical public Git commits. */
+function goStarterRetiredMaterialIds_() {
+  return [
+    '1MjTNyh8hjvJW5Eg2wsaRPgfMQ1nWazbs_qazdkSNNjQ',
+    '1SHotxS2tvQuxHSGRS4SJMqUNhKSe-W_tukvEbuZ7xuQ',
+    '1X5qCRw7wOjsusOUVopX2_735z0r-WMwUDC2-Hp7Zb8c'
+  ];
+}
+
 function auditStarterMaterialAccess(buyerEmail) {
   const props = PropertiesService.getScriptProperties();
   const specs = [
@@ -112,12 +121,9 @@ function auditStarterMaterialAccess(buyerEmail) {
     if (!match) return {material: spec.key, status: 'INVALID_URL'};
     // Historical public Git commits exposed these OLD material identifiers.
     // Never reuse them for paid fulfillment, even after changing their permissions.
-    const retiredIds = [
-      '1MjTNyh8hjvJW5Eg2wsaRPgfMQ1nWazbs_qazdkSNNjQ',
-      '1SHotxS2tvQuxHSGRS4SJMqUNhKSe-W_tukvEbuZ7xuQ',
-      '1X5qCRw7wOjsusOUVopX2_735z0r-WMwUDC2-Hp7Zb8c'
-    ];
-    if (retiredIds.includes(match[1])) return {material: spec.key, status: 'RETIRED_PUBLIC_MATERIAL'};
+    if (goStarterRetiredMaterialIds_().includes(match[1])) {
+      return {material: spec.key, status: 'RETIRED_PUBLIC_MATERIAL'};
+    }
     if (seenMaterialIds.has(match[1])) return {material: spec.key, status: 'DUPLICATE_MATERIAL'};
     seenMaterialIds.add(match[1]);
     try {
