@@ -22,7 +22,8 @@ for (const name of [
   'runStarterFulfillment', 'auditStarterFulfillment',
   'testStarterFulfillmentRules', 'configureStarterPrivateMaterials',
   'auditStarterMaterialAccess', 'auditStarterGoLiveReadiness',
-  'pauseStarterFulfillment', 'getStarterDeploymentStatus'
+  'pauseStarterFulfillment', 'getStarterDeploymentStatus',
+  'prepareStarterDryRun'
 ]) {
   assert.ok(functionNames.includes(name), 'Required GAS entrypoint missing: ' + name);
 }
