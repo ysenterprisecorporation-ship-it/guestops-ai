@@ -446,6 +446,25 @@ run();
 assert.equal(sent.length, beforeRace + 1, 'unchanged rechecked payment is delivered once');
 run();
 assert.equal(sent.length, beforeRace + 1, 'rechecked payment is not resent');
+// The verified fresh Square payment is authoritative for the exact Gmail
+// recipient spelling, even when the earlier listing differs only by case.
+ctx.__payments = [{...payment('PCASE'), order_id:'OCASE'}];
+ctx.__order = {...order, id:'OCASE'};
+ctx.__refreshedPaymentOverride = {...payment('PCASE'), order_id:'OCASE',
+  buyer_email_address:'Buyer@Example.com'};
+const beforeFreshRecipient = sent.length;
+run();
+assert.equal(sent.length, beforeFreshRecipient + 1,
+  'case-equivalent verified recipient should be delivered once');
+assert.equal(sent[sent.length - 1].to, 'Buyer@Example.com',
+  'Gmail must use latest verified Square buyer, not stale listing');
+assert.match(props.get('TEST_ORDER:OCASE'), /^SENT .* MSG:mock-gmail-message-/);
+run();
+assert.equal(sent.length, beforeFreshRecipient + 1,
+  'latest verified buyer delivery must remain idempotent');
+ctx.__refreshedPaymentOverride = null;
+console.log('PASS: Gmail recipient comes from latest verified Square payment');
+
 console.log('PASS: payment re-read prevents refund race, changed buyer and missing payment detail');
 
 // Order re-read race regression: a payment can remain COMPLETED even when
