@@ -947,3 +947,44 @@ function goGrantStarterBuyerAccess_(buyerEmail, orderGuardKey, paymentGuardKey) 
 
 // === END BuyerAccess.gs ===
 
+/**
+ * One-action, non-sending onboarding for a newly created Starter GAS project.
+ * Requires the authorized sender; never reads Square or sends mail.
+ * Runs offline eligibility checks, configures only the three verified private
+ * migration materials, then reports the remaining property names.
+ * Does not create triggers, change prices, grant buyer access, or enable sending.
+ */
+function prepareStarterDryRun() {
+  const props = PropertiesService.getScriptProperties();
+  const email = Session.getEffectiveUser().getEmail();
+  if (typeof email !== 'string' || email.toLowerCase() !== GO_SENDER) {
+    throw new Error('Starter setup must run as the authorized sender.');
+  }
+  if (props.getProperty('SEND_ENABLED') === 'true') {
+    throw new Error('Disable SEND_ENABLED before onboarding; no setup performed.');
+  }
+  testStarterFulfillmentRules();
+  const configured = configureStarterPrivateMaterials();
+  const access = auditStarterMaterialAccess();
+  if (!configured || configured.verified !== true ||
+      !access || access.ready !== true) {
+    throw new Error('Private materials not verified; sending remains disabled.');
+  }
+  const status = getStarterDeploymentStatus();
+  if (status.sendEnabled || !status.authorizedAccount) {
+    throw new Error('Unexpected Starter setup status; no sending allowed.');
+  }
+  const result = {
+    privateMaterialsReady: true,
+    senderAuthorized: true,
+    sendEnabled: false,
+    remainingPropertyNames: status.missingPropertyNames,
+    triggerCount: status.triggerCount,
+    squareAudited: false,
+    buyerMailSent: false
+  };
+  console.log('STARTER_DRY_RUN_PREPARED ' + JSON.stringify(result));
+  return result;
+}
+
+
