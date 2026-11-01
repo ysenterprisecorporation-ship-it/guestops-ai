@@ -52,6 +52,11 @@ function goGrantStarterBuyerAccess_(buyerEmail, orderGuardKey, paymentGuardKey) 
     if (!match || seen[match[1]]) {
       throw new Error('Invalid or duplicate buyer material URL; no access granted.');
     }
+    // Even a now-private historical file is permanently retired: its URL
+    // appeared in public Git history and cannot serve as paid buyer material.
+    if (goStarterRetiredMaterialIds_().includes(match[1])) {
+      throw new Error('Retired public buyer material ID; no access granted.');
+    }
     seen[match[1]] = true;
     const file = DriveApp.getFileById(match[1]);
     if (file.getMimeType() !== spec.mime ||
