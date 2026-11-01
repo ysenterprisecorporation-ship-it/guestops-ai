@@ -23,7 +23,7 @@
 
 ## 既存環境への最短導入
 1. 民泊AI実務キット運営窓口（`minpaku.ai.kit@gmail.com`）で**既存のApps Scriptプロジェクト**を開く。別のGoogleアカウントでの実行はコード側で拒否。
-2. `Code.gs`、`Deployment.gs`、`BuyerAccess.gs` を**既存コードを消さない別ファイル**として同じGASプロジェクトに追加する。同名関数がある場合は統合時に確認。`BuyerAccess.gs` はデフォルトでは権限変更しない。
+2. `Code.gs` と `StarterCompanions.gs` を**別ファイル**として同じGASプロジェクトに追加する。`StarterCompanions.gs` は `Deployment.gs` と `BuyerAccess.gs` をそのまま結合した単一貼り付け版で、後者2ファイルを重ねて追加しない（同名関数重複防止）。`BuyerAccess` はデフォルトでは権限変更しない。旧 `Code.gs` だけでは本番用の監査・納品ガード・購入者権限付与関数が不足する。
 3. プロジェクト設定 → スクリプト プロパティへ次のキーを登録（**トークンや購入者用URLをGitHubにコミットしない**）。
 
 | キー | 設定内容 |
