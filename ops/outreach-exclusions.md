@@ -10,3 +10,9 @@ Check this file before any cold outreach, in addition to the Excel gray exclusio
 
 ## Rule
 If an official page states sales solicitation is not accepted, or the channel is guest-only/reservation-only/support-only, exclude the lead even if the company is otherwise a strong product fit.
+
+## 2026-11-01 Gmail DSN・配信停止の最新照合
+- ①②の運営Gmailで配信停止を明示した **株式会社Peony** と **楽々プランニング株式会社** は会社単位で営業禁止。別アドレス・問い合わせフォームへの迂回送信も禁止。
+- 直近Gmail DSNから判明した不達・ブロック・一時保留の宛先は、運営者限定の Google Drive「①② GuestOps AI｜営業停止・不達・保留マスター 20261101（内部限定）」で管理。公開Gitリポジトリへ個人宛先・停止返信全文を転記しない。
+- 送信前にこの内部台帳を読み、**HARD_BOUNCE** は宛先再送禁止、**HOLD** は解消が確認できるまで再送禁止、**STOP** は法人単位の連絡禁止。さらに Gmail 全期間の会社単位の送信済み判定を行う。DSNだけを確認して送信可能と判定してはならない。
+- 今回のDSN検索は直近30日と停止返信の照合であり、Gmail全期間の重複排除完了を意味しない。
