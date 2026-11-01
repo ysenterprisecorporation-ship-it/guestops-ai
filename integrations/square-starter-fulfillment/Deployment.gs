@@ -27,6 +27,64 @@ function getStarterDeploymentStatus() {
 }
 
 /**
+ * One-action setup for the three already-created PRIVATE migration materials.
+ * Resolve by exact Drive title, never by a public GitHub URL or retired ID.
+ * Must run as the Starter sender while sending is OFF. Validates all three
+ * before writing any property. Does NOT enable mail, sharing or payments.
+ */
+function configureStarterPrivateMaterials() {
+  const props = PropertiesService.getScriptProperties();
+  if (Session.getEffectiveUser().getEmail().toLowerCase() !== GO_SENDER) {
+    throw new Error('Run only from the authorized Starter sender account.');
+  }
+  if (props.getProperty('SEND_ENABLED') === 'true') {
+    throw new Error('Pause fulfillment before configuring private materials.');
+  }
+  const specs = [
+    {key: 'STARTER_GUIDE_URL',
+      title: 'GuestOps Starter Kit｜利用ガイド（限定共有・移行版 20261031）',
+      type: 'document', mime: 'application/vnd.google-apps.document'},
+    {key: 'STARTER_PROMPT_URL',
+      title: 'GuestOps Starter Kit｜マスタープロンプト（限定共有・移行版 20261031）',
+      type: 'document', mime: 'application/vnd.google-apps.document'},
+    {key: 'STARTER_SHEET_URL',
+      title: 'GuestOps Starter Kit｜施設情報・判断シート（限定共有・移行版 20261031）',
+      type: 'spreadsheets', mime: 'application/vnd.google-apps.spreadsheet'}
+  ];
+  const updates = {};
+  const seen = new Set();
+  const retired = goStarterRetiredMaterialIds_();
+  specs.forEach(spec => {
+    const matches = DriveApp.getFilesByName(spec.title);
+    if (!matches.hasNext()) throw new Error('Private material not found: ' + spec.key);
+    const file = matches.next();
+    if (matches.hasNext()) throw new Error('Ambiguous private material title: ' + spec.key);
+    const id = file.getId();
+    if (typeof id !== 'string' || !/^[A-Za-z0-9_-]{20,}$/.test(id) ||
+        seen.has(id) || retired.includes(id) ||
+        file.getMimeType() !== spec.mime ||
+        file.getSharingAccess() !== DriveApp.Access.PRIVATE ||
+        file.getAccess(GO_SENDER) !== DriveApp.Permission.EDIT) {
+      throw new Error('Private material validation failed: ' + spec.key);
+    }
+    seen.add(id);
+    updates[spec.key] = 'https://docs.google.com/' + spec.type + '/d/' + id + '/edit';
+  });
+  // Recheck the pause immediately before committing the three URLs.
+  if (props.getProperty('SEND_ENABLED') === 'true') {
+    throw new Error('Fulfillment resumed during setup; no URLs written.');
+  }
+  props.setProperties(updates);
+  const verified = auditStarterMaterialAccess();
+  if (!verified || verified.ready !== true) {
+    // Remain fail-closed. Sending was never enabled by this helper.
+    throw new Error('Private material post-write audit failed; sending remains disabled.');
+  }
+  return {configuredPrivateMaterials: specs.length, sendEnabled: false,
+    verified: true};
+}
+
+/**
  * One-time dry-run trigger installer.
  * Audits live Square READ-ONLY first. Never enables sending or creates a charge.
  * Requires all Script Properties to be configured and SEND_ENABLED=false.
