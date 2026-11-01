@@ -19,13 +19,13 @@ const props = new Map([
 const files = new Map(ids.map((id, i) => [id, {
   mime: i === 2 ? 'application/vnd.google-apps.spreadsheet' :
     'application/vnd.google-apps.document',
-  sharing: 'PRIVATE', buyerAccess: 'NONE'
+  sharing: 'PRIVATE', buyerAccess: 'NONE', shareable: true
 }]));
 let account = 'minpaku.ai.kit@gmail.com';
 let grants = 0;
 let failAt = -1;
 let pauseAt = -1;
-const buyer = 'buyer@example.com';
+const buyer = 'buyer@valid-domain.jp';
 const orderGuardKey = 'GO_SENT_' + 'a'.repeat(43);
 const paymentGuardKey = 'GO_SENT_' + 'b'.repeat(43);
 props.set(orderGuardKey, 'PENDING 2026-10-31T00:00:00.000Z');
@@ -36,6 +36,7 @@ const getFileById = id => {
   return {
     getMimeType: () => f.mime,
     getSharingAccess: () => f.sharing,
+    isShareableByEditors: () => f.shareable,
     getAccess: email => email === buyer ? f.buyerAccess : 'NONE',
     addViewer: email => {
       assert.equal(email, buyer);
@@ -60,9 +61,9 @@ const ctx = vm.createContext({
 });
 vm.runInContext(code + '\n' + deployment + '\n' + buyerAccess, ctx);
 const run = expression => vm.runInContext(expression, ctx);
-const provision = () => run('goGrantStarterBuyerAccess_("buyer@example.com", ' + JSON.stringify(orderGuardKey) + ', ' + JSON.stringify(paymentGuardKey) + ')');
+const provision = () => run('goGrantStarterBuyerAccess_("buyer@valid-domain.jp", ' + JSON.stringify(orderGuardKey) + ', ' + JSON.stringify(paymentGuardKey) + ')');
 const reset = () => {
-  for (const f of files.values()) { f.sharing = 'PRIVATE'; f.buyerAccess = 'NONE'; }
+  for (const f of files.values()) { f.sharing = 'PRIVATE'; f.buyerAccess = 'NONE'; f.shareable = true; }
   props.set('SEND_ENABLED', 'true');
   props.set('AUTO_GRANT_BUYER_ACCESS', 'true');
   grants = 0; failAt = -1; pauseAt = -1;
@@ -80,7 +81,7 @@ props.set('AUTO_GRANT_BUYER_ACCESS', 'false');
 assert.throws(provision, /not enabled/);
 assert.equal(grants, 0);
 props.set('AUTO_GRANT_BUYER_ACCESS', 'true');
-assert.throws(() => run('goGrantStarterBuyerAccess_("buyer@example.com,other@example.com", ' + JSON.stringify(orderGuardKey) + ', ' + JSON.stringify(paymentGuardKey) + ')'), /Invalid buyer/);
+assert.throws(() => run('goGrantStarterBuyerAccess_("buyer@valid-domain.jp,other@example.com", ' + JSON.stringify(orderGuardKey) + ', ' + JSON.stringify(paymentGuardKey) + ')'), /Invalid buyer/);
 assert.equal(grants, 0);
 
 // A caller must not grant to an arbitrary address without BOTH PENDING guards.
@@ -115,7 +116,7 @@ const retiredGuide = '1MjTNyh8hjvJW5Eg2wsaRPgfMQ1nWazbs_qazdkSNNjQ';
 const normalGuideUrl = props.get(keys[0]);
 props.set(keys[0], 'https://docs.google.com/document/d/' + retiredGuide + '/edit');
 files.set(retiredGuide, {mime: 'application/vnd.google-apps.document',
-  sharing: 'PRIVATE', buyerAccess: 'NONE'});
+  sharing: 'PRIVATE', buyerAccess: 'NONE', shareable: true});
 assert.throws(provision, /Retired public buyer material ID/);
 assert.equal(grants, 0, 'no buyer grants for retired public files');
 assert.equal(files.get(retiredGuide).buyerAccess, 'NONE');
@@ -123,6 +124,15 @@ props.set(keys[0], normalGuideUrl);
 files.delete(retiredGuide);
 
 reset();
+// A private file can still be unshareable by its editor. Block the live
+// pre-PENDING material audit and any direct provision attempt.
+files.get(ids[1]).shareable = false;
+assert.equal(run('auditStarterMaterialAccess().ready'), false,
+  'owner-disabled editor sharing must block unattended preflight');
+assert.throws(provision, /Editor sharing disabled/);
+assert.equal(grants, 0, 'do not partially share if a later file is locked');
+reset();
+
 failAt = 1;
 assert.throws(provision, /Injected Drive permission failure/);
 assert.equal(grants, 1, 'partial Drive failure must not pretend success');
@@ -140,7 +150,7 @@ const result = provision();
 assert.equal(result.ready, true);
 assert.equal(result.grantedCount, 3);
 assert.equal(grants, 3);
-assert.equal(run('auditStarterMaterialAccess("buyer@example.com").ready'), true);
+assert.equal(run('auditStarterMaterialAccess("buyer@valid-domain.jp").ready'), true);
 assert.equal(provision().grantedCount, 0, 'repeated grant is idempotent');
 assert.equal(grants, 3);
 
