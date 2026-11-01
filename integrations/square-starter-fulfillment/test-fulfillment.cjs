@@ -185,6 +185,17 @@ assert.throws(run, /Drive unavailable/);
 assert.equal(sent.length, 0, 'Drive outage must block Gmail');
 assert.equal(props.has('TEST_ORDER:O_MATERIAL'), false, 'Drive outage must not reserve order');
 ctx.auditStarterMaterialAccess = () => ({ready: true});
+// A misdeployed buyer-access module must not leave a paid order PENDING.
+// The dry-run readiness check may have been skipped, so the live runner
+// must enforce this before writing either delivery guard.
+ctx.__payments = [{...payment('P_NOHELP'), order_id: 'O_NOHELP'}];
+ctx.__order = {...order, id: 'O_NOHELP'};
+props.set('AUTO_GRANT_BUYER_ACCESS', 'true');
+assert.throws(run, /Buyer access provisioner not deployed/);
+assert.equal(sent.length, 0, 'missing buyer-access module must not send');
+assert.equal(props.has('TEST_P_NOHELP'), false, 'missing module must not reserve payment');
+assert.equal(props.has('TEST_ORDER:O_NOHELP'), false, 'missing module must not reserve order');
+props.delete('AUTO_GRANT_BUYER_ACCESS');
 ctx.__payments = [payment('P1'), payment('P2')];
 ctx.__order = order;
 // Malformed Square buyer emails must never reach Gmail's recipient parser.
