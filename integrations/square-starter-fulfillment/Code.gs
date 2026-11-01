@@ -196,6 +196,12 @@ function runStarterFulfillment() {
   try {
     const props = PropertiesService.getScriptProperties();
     const config = goRequiredConfig_(props);
+    // Never send from an unintended Google identity, even if the trigger was
+    // copied or installed in a different account with valid Square credentials.
+    if (config.enabled &&
+        Session.getEffectiveUser().getEmail().toLowerCase() !== GO_SENDER) {
+      throw new Error('Starter fulfillment sender account mismatch; sending blocked.');
+    }
     // The go-live audit is not enough: each enabled trigger run must reject
     // unresolved guards left by ANY prior order, including refunded orders
     // that no longer appear in the Square payment listing. Do this before
