@@ -490,3 +490,108 @@ function prepareStarterDryRun() {
   return result;
 }
 
+/**
+ * Optional one-click Square ID discovery, after storing ONLY the production
+ * access token in Script Properties. Uses GET /locations and GET /catalog/list;
+ * never changes Square data, creates a charge, grants Drive access or emails.
+ * Requires MERCHANT_PROFILE_READ and ITEMS_READ in addition to fulfillment's
+ * PAYMENTS_READ / ORDERS_READ. Ambiguity always blocks configuration.
+ * Existing nonmatching IDs are never overwritten.
+ */
+function configureStarterSquareIdsReadOnly() {
+  const props = PropertiesService.getScriptProperties();
+  const sender = Session.getEffectiveUser().getEmail();
+  if (typeof sender !== 'string' || sender.toLowerCase() !== GO_SENDER ||
+      props.getProperty('SEND_ENABLED') === 'true') {
+    throw new Error('Square ID discovery requires the authorized sender and SEND_ENABLED=false.');
+  }
+  const token = props.getProperty('SQUARE_ACCESS_TOKEN');
+  if (typeof token !== 'string' || !token.trim()) {
+    throw new Error('Set SQUARE_ACCESS_TOKEN privately before Square ID discovery.');
+  }
+  const config = {token};
+  const locationResponse = goSquareGet_('locations', config);
+  if (!locationResponse || Array.isArray(locationResponse) ||
+      !Array.isArray(locationResponse.locations) ||
+      (locationResponse.errors !== undefined &&
+       (!Array.isArray(locationResponse.errors) || locationResponse.errors.length))) {
+    throw new Error('Invalid Square locations response; no IDs configured.');
+  }
+  const activeJPY = locationResponse.locations.filter(loc =>
+    loc && typeof loc.id === 'string' && loc.id.length > 0 &&
+    loc.status === 'ACTIVE' && loc.currency === 'JPY');
+  if (activeJPY.length !== 1) {
+    throw new Error('Square requires exactly one active JPY location for automatic setup; configure IDs manually.');
+  }
+  const locationId = activeJPY[0].id;
+  const presentAtLocation = obj =>
+    obj && (obj.present_at_all_locations === true ||
+      (Array.isArray(obj.present_at_location_ids) &&
+       obj.present_at_location_ids.includes(locationId)));
+  const candidates = new Set();
+  let cursor = '';
+  const cursors = new Set();
+  let complete = false;
+  for (let page = 0; page < 10; page++) {
+    if (cursor) {
+      if (cursors.has(cursor)) throw new Error('Repeated catalog cursor; no IDs configured.');
+      cursors.add(cursor);
+    }
+    const endpoint = 'catalog/list?types=ITEM' +
+      (cursor ? '&cursor=' + encodeURIComponent(cursor) : '');
+    const result = goSquareGet_(endpoint, config);
+    if (!result || typeof result !== 'object' || Array.isArray(result) ||
+        (result.objects !== undefined && !Array.isArray(result.objects)) ||
+        (result.cursor !== undefined && typeof result.cursor !== 'string') ||
+        (result.errors !== undefined &&
+         (!Array.isArray(result.errors) || result.errors.length))) {
+      throw new Error('Invalid Square catalog response; no IDs configured.');
+    }
+    for (const item of (result.objects || [])) {
+      if (!item || item.type !== 'ITEM' || item.is_deleted === true ||
+          !item.item_data || typeof item.item_data.name !== 'string' ||
+          !/starter/i.test(item.item_data.name) || !presentAtLocation(item) ||
+          !Array.isArray(item.item_data.variations)) continue;
+      for (const variation of item.item_data.variations) {
+        if (!variation || variation.type !== 'ITEM_VARIATION' ||
+            variation.is_deleted === true || !presentAtLocation(variation) ||
+            typeof variation.id !== 'string' || !variation.id ||
+            !variation.item_variation_data ||
+            (variation.item_variation_data.pricing_type !== undefined &&
+             variation.item_variation_data.pricing_type !== 'FIXED_PRICING') ||
+            !goMoneyEquals_(variation.item_variation_data.price_money, GO_PRICE_JPY)) continue;
+        candidates.add(variation.id);
+      }
+    }
+    cursor = result.cursor || '';
+    if (!cursor) {complete = true; break;}
+  }
+  if (!complete) throw new Error('Catalog pagination exceeded 10 pages; no IDs configured.');
+  if (candidates.size !== 1) {
+    throw new Error('Starter 9800 JPY catalog variation is absent or ambiguous; configure IDs manually.');
+  }
+  const catalogId = [...candidates][0];
+  const currentLocation = props.getProperty('SQUARE_LOCATION_ID');
+  const currentCatalog = props.getProperty('STARTER_CATALOG_OBJECT_ID');
+  if ((currentLocation && currentLocation !== locationId) ||
+      (currentCatalog && currentCatalog !== catalogId)) {
+    throw new Error('Existing Square IDs conflict with read-only discovery; no overwrite.');
+  }
+  if (props.getProperty('SEND_ENABLED') === 'true') {
+    throw new Error('Fulfillment enabled during discovery; no IDs configured.');
+  }
+  props.setProperties({
+    SQUARE_LOCATION_ID: locationId,
+    STARTER_CATALOG_OBJECT_ID: catalogId
+  });
+  const result = {
+    squareLocationConfigured: true,
+    starterCatalogVariationConfigured: true,
+    candidateVariations: candidates.size,
+    sendEnabled: false,
+    squarePaymentsAudited: false,
+    buyerMailSent: false
+  };
+  console.log('STARTER_SQUARE_IDS_CONFIGURED ' + JSON.stringify(result));
+  return result;
+}
