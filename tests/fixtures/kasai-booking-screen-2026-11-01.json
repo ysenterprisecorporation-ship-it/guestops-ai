@@ -1,64 +1,64 @@
 {
-  "source": "Booking.com reservation-list screenshots provided 2026-11-01",
+  "source": "Synthetic booking IDs with date patterns abstracted from privately supplied Booking.com management screenshots; no real reservation IDs or guest data",
   "propertyId": "364051",
-  "snapshotType": "historical-screen-evidence-not-live-ota",
+  "snapshotType": "privacy-sanitized-historical-pattern-not-live-ota",
   "stays": [
     {
-      "externalId": "5152984780",
+      "externalId": "9000000001",
       "arrival": "2026-11-01",
       "departure": "2026-11-02",
       "status": "confirmed"
     },
     {
-      "externalId": "6100278367",
+      "externalId": "9000000002",
       "arrival": "2026-11-02",
       "departure": "2026-11-03",
       "status": "confirmed"
     },
     {
-      "externalId": "5688177917",
+      "externalId": "9000000003",
       "arrival": "2026-11-06",
       "departure": "2026-11-08",
       "status": "confirmed"
     },
     {
-      "externalId": "6930002918",
+      "externalId": "9000000004",
       "arrival": "2026-11-11",
       "departure": "2026-11-13",
       "status": "confirmed"
     },
     {
-      "externalId": "6853671589",
+      "externalId": "9000000005",
       "arrival": "2026-11-20",
       "departure": "2026-11-23",
       "status": "confirmed"
     },
     {
-      "externalId": "5200771530",
+      "externalId": "9000000006",
       "arrival": "2026-11-25",
       "departure": "2026-11-28",
       "status": "confirmed"
     },
     {
-      "externalId": "5930197631",
+      "externalId": "9000000007",
       "arrival": "2026-11-28",
       "departure": "2026-11-29",
       "status": "confirmed"
     },
     {
-      "externalId": "5679272693",
+      "externalId": "9000000008",
       "arrival": "2026-12-26",
       "departure": "2026-12-28",
       "status": "confirmed"
     },
     {
-      "externalId": "5532020414",
+      "externalId": "9000000009",
       "arrival": "2026-12-29",
       "departure": "2026-12-30",
       "status": "confirmed"
     },
     {
-      "externalId": "5698776470",
+      "externalId": "9000000010",
       "arrival": "2026-12-31",
       "departure": "2027-01-05",
       "status": "confirmed"
