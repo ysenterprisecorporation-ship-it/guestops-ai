@@ -1,7 +1,7 @@
 {
   "source": "Sanitized test cases modeled after operator-screen date patterns; booking IDs are fictional",
   "propertyId": "364051",
-  "snapshotType": "sanitized-historical-pattern-not-live-ota",
+  "snapshotType": "privacy-sanitized-historical-pattern-not-live-ota",
   "stays": [
     {
       "externalId": "9100000001",
