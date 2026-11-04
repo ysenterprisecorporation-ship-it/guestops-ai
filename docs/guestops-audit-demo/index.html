@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GuestOps Audit | 予約・清掃リスク診断デモ</title>
+<style>
+:root{color-scheme:light;font:16px/1.65 system-ui,-apple-system,sans-serif;color:#17283b;background:#f4f7fa}
+*{box-sizing:border-box}body{margin:0}header{background:#122b46;color:white;padding:32px max(16px,calc((100vw - 1080px)/2))}header h1{margin:0;font-size:32px}header p{margin:8px 0;color:#d7e8fb}
+main{max-width:1080px;margin:28px auto;padding:0 16px}section{background:white;border:1px solid #dce4ed;border-radius:14px;padding:24px;margin:16px 0}h2{margin:0 0 12px;font-size:21px}h3{margin:10px 0}p{margin:6px 0 14px}small,.muted{color:#526577}
+button,.button{border:0;background:#0d5b9f;color:white;padding:10px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600}button.secondary{background:white;color:#164b77;border:1px solid #bacbdc}button:focus-visible,input:focus-visible{outline:3px solid #f5ae3b;outline-offset:2px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.metric{border:1px solid #dce4ed;border-radius:12px;padding:14px;background:#f8fbfe}.metric strong{display:block;font-size:28px}.warning{background:#fff5dc;border-left:5px solid #e59a17;padding:14px}.ok{background:#eaf8ef;border-left:5px solid #19834c;padding:14px}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{padding:10px;border-bottom:1px solid #dce4ed;text-align:left}th{background:#eef3f8}.scroll{overflow:auto}code{background:#edf2f6;padding:2px 4px}input{max-width:100%}
+footer{text-align:center;padding:25px;color:#526577}@media(max-width:640px){.grid{grid-template-columns:1fr}header h1{font-size:26px}section{padding:16px}}
+</style></head><body><header><h1>GuestOps Audit</h1><p>予約の見落とし・同期不一致・清掃漏れを検知する、読み取り専用の実演デモ</p></header>
+<main>
+<section><h2>このデモの位置づけ</h2><p>宿泊運営者向けの予約・清掃リスク診断の<b>試作版</b>です。Beds24・Booking.com・Airbnbとは接続せず、ページ内の架空予約データまたは手元の匿名CSVを使用します。</p>
+<p class="warning"><b>販売在庫を変更しません。</b> 検出結果は最新のOTA/PMS在庫を証明しません。予約の修正・販売再開は必ず元の管理画面で確認してください。</p>
+<div class="actions"><button id="sample">架空データで診断</button><button id="empty" class="secondary">結果を消去</button></div>
+<label for="upload"><b>匿名CSVで診断（ローカル処理）</b></label><p class="muted">必要列：<code>source,id,arrival,departure,status</code>（英語見出し）。日付はYYYY-MM-DD、statusはconfirmed/cancelled。sourceはOTAまたはPMSを識別する任意の名称です。</p><input id="upload" type="file" accept=".csv,text/csv"><p><small>氏名・メール・電話・身分証・決済情報が入ったCSVは読み込みません。データは外部送信しません（外部スクリプト不使用）。</small></p><div id="error" role="alert"></div></section>
+<section><h2>診断概要</h2><div class="grid">
+<div class="metric"><span>有効予約</span><strong id="n-res">—</strong></div>
+<div class="metric"><span>宿泊日（延べ）</span><strong id="n-nights">—</strong></div>
+<div class="metric"><span>要確認リスク</span><strong id="n-risk">—</strong></div>
+</div><p class="muted">宿泊日にはチェックアウト日を含みません。異なるソースに同じ予約が存在する場合は重複排除して集計します。</p></section>
+<section><h2>優先対応リスト</h2><div id="risks"><p class="muted">「架空データで診断」を押すと結果を表示します。</p></div></section>
+<section><h2>予約明細</h2><div class="scroll"><table><thead><tr><th>予約ID</th><th>データ元</th><th>宿泊日</th><th>状態</th></tr></thead><tbody id="records"></tbody></table></div>
+<div class="actions"><button id="export" class="secondary" disabled>診断結果をCSV出力</button></div></section>
+<section><h2>次の判断（デモ）</h2><p>①警告がある日は空室扱いしない　②OTAとPMSの予約状態・日付を照合する　③同日入替は清掃の実施・完了を確認する　④確認者・判断根拠を運営記録に残す。</p><p class="muted">自動返信・料金変更・清掃依頼の実送信は、別途検証と権限付与が必要です。</p></section>
+</main><footer>GuestOps AI — demo only / No PMS connection / No data transmission</footer>
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const demo=[
+{source:"Booking.com",id:"DEMO-A01",arrival:"2026-12-11",departure:"2026-12-13",status:"confirmed"},
+{source:"Beds24",id:"DEMO-A01",arrival:"2026-12-11",departure:"2026-12-13",status:"confirmed"},
+{source:"Booking.com",id:"DEMO-A02",arrival:"2026-12-13",departure:"2026-12-15",status:"confirmed"},
+{source:"Beds24",id:"DEMO-A03",arrival:"2026-12-14",departure:"2026-12-16",status:"confirmed"},
+{source:"Airbnb",id:"DEMO-A04",arrival:"2026-12-21",departure:"2026-12-23",status:"cancelled"},
+{source:"Booking.com",id:"DEMO-A05",arrival:"2026-12-24",departure:"2026-12-26",status:"confirmed"}
+];
+let alerts=[];
+const day=s=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(s))throw Error("日付形式エラー");let n=Date.parse(s+"T00:00:00Z");if(!Number.isFinite(n)||new Date(n).toISOString().slice(0,10)!==s)throw Error("存在しない日付");return n};
+const valid=r=>{if(!r.id||r.id.length>64||!r.source||r.source.length>48||!["confirmed","cancelled"].includes(r.status))throw Error("予約ID・ソース・状態の形式を確認してください");let s=day(r.arrival),e=day(r.departure);if(e<=s||e-s>366*864e5)throw Error("宿泊期間が不正です")};
+const row=(parent,values)=>{let tr=document.createElement("tr");values.forEach(v=>{let td=document.createElement("td");td.textContent=String(v);tr.append(td)});parent.append(tr)};
+function diagnose(data){
+ if(data.length>1000)throw Error("1,000行以下のCSVを指定してください");
+ data.forEach(valid);const unique=new Map(),byId=new Map(),groups=new Map();
+ for(const r of data){let k=r.source+"|"+r.id;if(unique.has(k))throw Error("同じソース内に予約IDの重複があります");unique.set(k,r);let a=byId.get(r.id)||[];a.push(r);byId.set(r.id,a)}
+ alerts=[];
+ const keys=[...byId.values()];
+ for(const matches of keys)if(matches.length>1){
+   let variants=new Set(matches.map(r=>r.arrival+"|"+r.departure+"|"+r.status));
+   if(variants.size>1)alerts.push({level:"高",type:"予約状態・日付不一致",date:matches[0].arrival,detail:matches[0].id+"について、データ元ごとに予約内容が異なります"});
+ }
+ const ota=data.filter(r=>r.source.toLowerCase()!=="beds24"&&r.status==="confirmed");
+ const pms=data.filter(r=>r.source.toLowerCase()==="beds24"&&r.status==="confirmed");
+ if(pms.length)for(const r of ota){
+  const same=pms.find(b=>b.id===r.id);
+  if(!same)alerts.push({level:"高",type:"PMSへの予約欠落候補",date:r.arrival,detail:r.id+" がBeds24入力データにありません（IDの対応付けが必要な場合は別途確認）"});
+ }
+ // PMS vs OTA duplicates of same booking are counted only once.
+ for(const group of keys){let record=group.find(r=>r.source.toLowerCase()!=="beds24")||group[0];if(record.status!=="confirmed")continue;
+  for(let ms=day(record.arrival);ms<day(record.departure);ms+=864e5){let d=new Date(ms).toISOString().slice(0,10);let a=groups.get(d)||[];a.push(record);groups.set(d,a)}
+ }
+ for(const [d,a] of groups)if(new Set(a.map(r=>r.id)).size>1)alerts.push({level:"緊急",type:"同一宿泊日の競合候補",date:d,detail:[...new Set(a.map(r=>r.id))].join(" / ")});
+ let active=keys.filter(g=>(g.find(r=>r.source.toLowerCase()!=="beds24")||g[0]).status==="confirmed");
+ let ordered=active.map(g=>g.find(r=>r.source.toLowerCase()!=="beds24")||g[0]).sort((a,b)=>a.arrival.localeCompare(b.arrival));
+ for(let i=0;i<ordered.length;i++)for(let j=0;j<ordered.length;j++)if(i!==j&&ordered[i].departure===ordered[j].arrival)alerts.push({level:"注意",type:"同日入替・清掃確認",date:ordered[j].arrival,detail:ordered[i].id+" の退去後、"+ordered[j].id+" がチェックイン"});
+ alerts.sort((a,b)=>({緊急:0,高:1,注意:2}[a.level]-{緊急:0,高:1,注意:2}[b.level])||a.date.localeCompare(b.date));
+ $("n-res").textContent=String(active.length);$("n-nights").textContent=String([...groups.values()].reduce((n,a)=>n+a.length,0));$("n-risk").textContent=String(alerts.length);
+ $("records").replaceChildren();data.forEach(r=>row($("records"),[r.id,r.source,r.arrival+" ～ "+r.departure,r.status]));
+ $("risks").replaceChildren();if(!alerts.length){let p=document.createElement("p");p.className="ok";p.textContent="入力したデータ内では警告がありません。ただし元システムの完全性は未検証です。";$("risks").append(p)}
+ else{let table=document.createElement("table");let head=document.createElement("thead");row(head,["優先度","検知内容","対象日","確認事項"]);table.append(head);let body=document.createElement("tbody");alerts.forEach(a=>row(body,[a.level,a.type,a.date,a.detail]));table.append(body);$("risks").append(table)}
+ $("export").disabled=false;$("error").textContent="";
+}
+function csvParse(s){let lines=s.replace(/^\uFEFF/,"").trim().split(/\r?\n/);if(lines.length<2)throw Error("CSVデータが空です");const cols=lines.shift().split(",").map(x=>x.trim());let required=["source","id","arrival","departure","status"];if(cols.length!==5||required.some(x=>!cols.includes(x)))throw Error("CSVは指定5列のみ（個人情報を含めない）にしてください");return lines.map(line=>{let values=line.split(",");if(values.length!==5)throw Error("カンマを含む項目は受け付けません");return Object.fromEntries(cols.map((name,i)=>[name,values[i].trim()]))})}
+$("sample").onclick=()=>{try{diagnose(demo)}catch(e){$("error").textContent=e.message}};
+$("empty").onclick=()=>{alerts=[];["n-res","n-nights","n-risk"].forEach(id=>$(id).textContent="—");$("records").replaceChildren();$("risks").textContent="データを消去しました";$("error").textContent="";$("upload").value="";$("export").disabled=true};
+$("upload").onchange=async e=>{try{const f=e.target.files[0];if(!f)return;if(f.size>200000)throw Error("CSVは200KB以下としてください");diagnose(csvParse(await f.text()))}catch(err){$("error").textContent=err.message;$("export").disabled=true}};
+$("export").onclick=()=>{const out=[["priority","type","date","details"],...alerts.map(r=>[r.level,r.type,r.date,r.detail])];let csv=out.map(r=>r.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(",")).join("\r\n");let blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"});let a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="guestops-risk-report.csv";a.click();URL.revokeObjectURL(a.href)};
+</script></body></html>
