@@ -5,7 +5,7 @@ import {bookedNightProtection,VerifiedStay} from "../src/pms/VerifiedBookingNigh
 import {evaluateProductionCutover} from "../src/pms/ProductionCutoverPreflight";
 const fixture=JSON.parse(readFileSync(new URL("./fixtures/kasai-booking-screen-2026-11-01.json",import.meta.url),"utf8")) as {snapshotType:string;stays:VerifiedStay[]};
 test("Kasai screen-evidence fixture protects 21 unique nights without collisions",()=>{
- assert.equal(fixture.snapshotType,"historical-screen-evidence-not-live-ota");
+ assert.equal(fixture.snapshotType,"privacy-sanitized-historical-pattern-not-live-ota");
  assert.equal(fixture.stays.length,10);
  const days=bookedNightProtection(fixture.stays);
  assert.equal(days.length,21);
