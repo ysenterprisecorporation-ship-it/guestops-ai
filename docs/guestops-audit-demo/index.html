@@ -52,6 +52,9 @@ function diagnose(data){
  }
  const ota=data.filter(r=>r.source.toLowerCase()!=="beds24"&&r.status==="confirmed");
  const pms=data.filter(r=>r.source.toLowerCase()==="beds24"&&r.status==="confirmed");
+ if(ota.length&&!pms.length)alerts.push({level:"高",type:"PMSデータ未入力",date:ota[0].arrival,detail:"Beds24データが無いため予約欠落・在庫同期の判定は不能。OTAの有効予約を空室扱いしないでください"});
+ if(pms.length&&!ota.length)alerts.push({level:"高",type:"OTAデータ未入力",date:pms[0].arrival,detail:"OTAデータが無いためPMSとの整合性は判定不能。最新のOTA予約を確認してください"});
+ if(!ota.length&&!pms.length)alerts.push({level:"高",type:"有効予約情報なし",date:"—",detail:"全ソースがキャンセルのみの場合、空室であることは証明できません"});
  if(pms.length)for(const r of ota){
   const same=pms.find(b=>b.id===r.id);
   if(!same)alerts.push({level:"高",type:"PMSへの予約欠落候補",date:r.arrival,detail:r.id+" がBeds24入力データにありません（IDの対応付けが必要な場合は別途確認）"});
