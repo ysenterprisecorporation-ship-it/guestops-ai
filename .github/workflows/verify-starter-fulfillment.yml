@@ -42,7 +42,7 @@ jobs:
           const vm = require('vm');
           const source = fs.readFileSync('integrations/square-starter-fulfillment/Code.gs', 'utf8');
           const log = [];
-          const context = {console: {log: (...a) => log.push(a.join(' ')), error: (...a) => log.push(a.join(' '))}};
+          const context = {console: {log: (...a) => log.push(a.join(' ')), error: (...a) => log.push(a.join(' '))}, Session: {getEffectiveUser: () => ({getEmail: () => 'minpaku.ai.kit@gmail.com'})}};
           vm.runInNewContext(source + '\ntestStarterFulfillmentRules();', context);
           if (!log.some(x => x.includes('PASS: refund and fulfillment eligibility checks'))) {
             throw new Error('Safety test did not complete');
