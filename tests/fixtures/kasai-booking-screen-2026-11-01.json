@@ -1,64 +1,64 @@
 {
-  "source": "Sanitized test cases modeled after operator-screen date patterns; booking IDs are fictional",
+  "source": "SYNTHETIC_TEST_DATA_ONLY",
   "propertyId": "364051",
-  "snapshotType": "privacy-sanitized-historical-pattern-not-live-ota",
+  "snapshotType": "synthetic-regression-example-not-live-ota",
   "stays": [
     {
-      "externalId": "9100000001",
+      "externalId": "9000000001",
       "arrival": "2026-11-01",
       "departure": "2026-11-02",
       "status": "confirmed"
     },
     {
-      "externalId": "9100000002",
+      "externalId": "9000000002",
       "arrival": "2026-11-02",
       "departure": "2026-11-03",
       "status": "confirmed"
     },
     {
-      "externalId": "9100000003",
+      "externalId": "9000000003",
       "arrival": "2026-11-06",
       "departure": "2026-11-08",
       "status": "confirmed"
     },
     {
-      "externalId": "9100000004",
+      "externalId": "9000000004",
       "arrival": "2026-11-11",
       "departure": "2026-11-13",
       "status": "confirmed"
     },
     {
-      "externalId": "9100000005",
+      "externalId": "9000000005",
       "arrival": "2026-11-20",
       "departure": "2026-11-23",
       "status": "confirmed"
     },
     {
-      "externalId": "9100000006",
+      "externalId": "9000000006",
       "arrival": "2026-11-25",
       "departure": "2026-11-28",
       "status": "confirmed"
     },
     {
-      "externalId": "9100000007",
+      "externalId": "9000000007",
       "arrival": "2026-11-28",
       "departure": "2026-11-29",
       "status": "confirmed"
     },
     {
-      "externalId": "9100000008",
+      "externalId": "9000000008",
       "arrival": "2026-12-26",
       "departure": "2026-12-28",
       "status": "confirmed"
     },
     {
-      "externalId": "9100000009",
+      "externalId": "9000000009",
       "arrival": "2026-12-29",
       "departure": "2026-12-30",
       "status": "confirmed"
     },
     {
-      "externalId": "9100000010",
+      "externalId": "9000000010",
       "arrival": "2026-12-31",
       "departure": "2027-01-05",
       "status": "confirmed"
