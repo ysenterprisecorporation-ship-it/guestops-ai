@@ -4,7 +4,7 @@ import {readFileSync} from "node:fs";
 import {bookedNightProtection,VerifiedStay} from "../src/pms/VerifiedBookingNightProtection";
 import {evaluateProductionCutover} from "../src/pms/ProductionCutoverPreflight";
 const fixture=JSON.parse(readFileSync(new URL("./fixtures/kasai-booking-screen-2026-11-01.json",import.meta.url),"utf8")) as {snapshotType:string;stays:VerifiedStay[]};
-test("Kasai screen-evidence fixture protects 21 unique nights without collisions",()=>{
+test("Synthetic reservation fixture protects 21 unique nights without collisions",()=>{
  assert.equal(fixture.snapshotType,"privacy-sanitized-historical-pattern-not-live-ota");
  assert.equal(fixture.stays.length,10);
  const days=bookedNightProtection(fixture.stays);
@@ -18,7 +18,7 @@ test("Beds24 empty reservation result cannot reconcile screen-verified occupied 
  assert.equal(missing.length,21);
 });
 
-test("actual historical 21 occupied nights cannot be treated as reconciled against empty Beds24",()=>{
+test("synthetic 21 occupied nights cannot be treated as reconciled against empty Beds24",()=>{
  const result=evaluateProductionCutover({
   expectedPropertyId:"364051",
   evidence:{
