@@ -25,6 +25,8 @@ jobs:
           node integrations/square-starter-fulfillment/test-buyer-access.cjs
           node integrations/square-starter-fulfillment/test-private-material-setup.cjs
       - name: Prototype scenario and CSV export smoke tests
-        run: node tests/prototypes-smoke.test.mjs
+        run: |
+          node tests/prototypes-smoke.test.mjs
+          node tests/beds24-readonly.test.mjs
       - run: npm run build
       - run: git diff --exit-code -- dist
