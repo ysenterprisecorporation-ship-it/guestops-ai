@@ -25,4 +25,10 @@ jobs:
           node integrations/square-starter-fulfillment/test-buyer-access.cjs
           node integrations/square-starter-fulfillment/test-private-material-setup.cjs
       - run: npm run build
+      - run: node build-gtos.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: beds24-test-gas
+          path: dist-gtos/
+          retention-days: 7
       - run: git diff --exit-code -- dist
