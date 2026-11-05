@@ -457,12 +457,12 @@ assert.equal(sent.length, beforeRace + 1, 'rechecked payment is not resent');
 ctx.__payments = [{...payment('PCASE'), order_id:'OCASE'}];
 ctx.__order = {...order, id:'OCASE'};
 ctx.__refreshedPaymentOverride = {...payment('PCASE'), order_id:'OCASE',
-  buyer_email_address:'Buyer@Example.com'};
+  buyer_email_address:'Buyer@Valid-domain.jp'};
 const beforeFreshRecipient = sent.length;
 run();
 assert.equal(sent.length, beforeFreshRecipient + 1,
   'case-equivalent verified recipient should be delivered once');
-assert.equal(sent[sent.length - 1].to, 'Buyer@Example.com',
+assert.equal(sent[sent.length - 1].to, 'Buyer@Valid-domain.jp',
   'Gmail must use latest verified Square buyer, not stale listing');
 assert.match(props.get('TEST_ORDER:OCASE'), /^SENT .* MSG:mock-gmail-message-/);
 run();
