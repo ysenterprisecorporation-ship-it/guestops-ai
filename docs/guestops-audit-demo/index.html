@@ -13,18 +13,18 @@ footer{text-align:center;padding:25px;color:#526577}@media(max-width:640px){.gri
 <main>
 <section><h2>このデモの位置づけ</h2><p>宿泊運営者向けの予約・清掃リスク診断の<b>試作版</b>です。Beds24・Booking.com・Airbnbとは接続せず、ページ内の架空予約データまたは手元の匿名CSVを使用します。</p>
 <p class="warning"><b>販売在庫を変更しません。</b> 検出結果は最新のOTA/PMS在庫を証明しません。予約の修正・販売再開は必ず元の管理画面で確認してください。</p>
-<div class="actions"><button id="sample">架空データで診断</button><button id="empty" class="secondary">結果を消去</button></div>
-<label for="upload"><b>匿名CSVで診断（ローカル処理）</b></label><p class="muted">必要列：<code>source,id,arrival,departure,status</code>（英語見出し）。日付はYYYY-MM-DD、statusはconfirmed/cancelled。sourceはOTAまたはPMSを識別する任意の名称です。</p><input id="upload" type="file" accept=".csv,text/csv"><p><small>氏名・メール・電話・身分証・決済情報が入ったCSVは読み込みません。データは外部送信しません（外部スクリプト不使用）。</small></p><div id="error" role="alert"></div></section>
+<div class="actions"><button id="sample">架空データで診断</button><button id="empty" class="secondary">結果を消去</button><button id="samplecsv" class="secondary">架空データCSVをダウンロード</button></div>
+<label for="upload"><b>匿名CSVで診断（ローカル処理）</b></label><p class="muted">必要列：<code>source,id,arrival,departure,status</code>（英語見出し）。日付はYYYY-MM-DD、statusはconfirmed/cancelled。sourceはOTAまたはPMSを識別する任意の名称です。</p><input id="upload" type="file" accept=".csv,text/csv"><p><small>氏名・メール・電話・身分証・決済情報を含むファイルは投入しないでください。ブラウザー内で処理し、外部送信機能はありません（外部スクリプト不使用）。</small></p><div id="error" role="alert"></div></section>
 <section><h2>診断概要</h2><div class="grid">
 <div class="metric"><span>有効予約</span><strong id="n-res">—</strong></div>
 <div class="metric"><span>宿泊日（延べ）</span><strong id="n-nights">—</strong></div>
 <div class="metric"><span>要確認リスク</span><strong id="n-risk">—</strong></div>
-</div><p class="muted">宿泊日にはチェックアウト日を含みません。異なるソースに同じ予約が存在する場合は重複排除して集計します。</p></section>
+</div><p class="muted">宿泊日にはチェックアウト日を含みません。異なるソースで予約IDが一致する場合だけ同一予約とみなします。Beds24とOTAで予約IDが異なる場合、別途ID対応表が必要であり、このデモでは自動照合できません。</p></section>
 <section><h2>優先対応リスト</h2><div id="risks"><p class="muted">「架空データで診断」を押すと結果を表示します。</p></div></section>
 <section><h2>予約明細</h2><div class="scroll"><table><thead><tr><th>予約ID</th><th>データ元</th><th>宿泊日</th><th>状態</th></tr></thead><tbody id="records"></tbody></table></div>
 <div class="actions"><button id="export" class="secondary" disabled>診断結果をCSV出力</button></div></section>
 <section><h2>次の判断（デモ）</h2><p>①警告がある日は空室扱いしない　②OTAとPMSの予約状態・日付を照合する　③同日入替は清掃の実施・完了を確認する　④確認者・判断根拠を運営記録に残す。</p><p class="muted">自動返信・料金変更・清掃依頼の実送信は、別途検証と権限付与が必要です。</p></section>
-</main><footer>GuestOps AI — demo only / No PMS connection / No data transmission</footer>
+<section><h2>有料の詳細診断について</h2><p>この無料ツールは架空データまたは匿名化済みCSVの一次チェックです。提供データの新旧・欠落やPMSとOTA間の予約番号対応付けまでは証明しません。</p><p>追加の運営診断では、例外リストの確認、清掃・予約引継ぎの改善手順、判断記録テンプレートを納品します。費用・納期・対象範囲は申込前に書面で確定します。</p><p><a href="../guestops-audit/">診断サービスの詳細・申込方法を見る</a></p></section></main><footer>GuestOps AI — demo only / No PMS connection / No data transmission</footer>
 <script>
 "use strict";
 const $=id=>document.getElementById(id);
@@ -75,6 +75,7 @@ function diagnose(data){
  $("export").disabled=false;$("error").textContent="";
 }
 function csvParse(s){let lines=s.replace(/^\uFEFF/,"").trim().split(/\r?\n/);if(lines.length<2)throw Error("CSVデータが空です");const cols=lines.shift().split(",").map(x=>x.trim());let required=["source","id","arrival","departure","status"];if(cols.length!==5||required.some(x=>!cols.includes(x)))throw Error("CSVは指定5列のみ（個人情報を含めない）にしてください");return lines.map(line=>{let values=line.split(",");if(values.length!==5)throw Error("カンマを含む項目は受け付けません");return Object.fromEntries(cols.map((name,i)=>[name,values[i].trim()]))})}
+$("samplecsv").onclick=()=>{const fields=["source","id","arrival","departure","status"];let csv=[fields.join(","),...demo.map(r=>fields.map(k=>r[k]).join(","))].join("\r\n");let link=document.createElement("a");let blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"});link.href=URL.createObjectURL(blob);link.download="guestops-demo-sample.csv";link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1500)};
 $("sample").onclick=()=>{try{diagnose(demo)}catch(e){$("error").textContent=e.message}};
 $("empty").onclick=()=>{alerts=[];["n-res","n-nights","n-risk"].forEach(id=>$(id).textContent="—");$("records").replaceChildren();$("risks").textContent="データを消去しました";$("error").textContent="";$("upload").value="";$("export").disabled=true};
 $("upload").onchange=async e=>{try{const f=e.target.files[0];if(!f)return;if(f.size>200000)throw Error("CSVは200KB以下としてください");diagnose(csvParse(await f.text()))}catch(err){$("error").textContent=err.message;$("export").disabled=true}};
