@@ -44,6 +44,9 @@ jobs:
               ("field-guide/", ["3場面"]),
               ("starter/order/", ["20261029-direct-checkout-and-fulfillment", "その迷いを、施設のルールに変える"]),
               ("starter/upgrade/", ["diagnose()"]),
+              ("guestops-audit-demo/", ["GuestOps Audit", "samplecsv", "actionFor"]),
+              ("guestops-audit/", ["予約リスク診断", "guestops-audit-demo/"]),
+              ("partner-demo/", ["Partner Pre-screening", "Marketplace"]),
           ]
           for route, markers in checks:
               url = base + route + "?audit=" + os.environ["GITHUB_SHA"][:12]
