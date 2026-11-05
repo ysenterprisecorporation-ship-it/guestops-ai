@@ -114,7 +114,7 @@ assert.equal(squareMutations, 0);
 
 // Paid-material audit: PRIVATE files only; buyer-specific VIEW is required
 // before sending. Historical links were public, so link-only access is unsafe.
-const buyer = 'buyer@example.com';
+const buyer = 'buyer@valid-domain.jp';
 const materialState = new Map([
   ['guide', {mime: 'application/vnd.google-apps.document', access: 'PRIVATE', permission: 'VIEW'}],
   ['prompt', {mime: 'application/vnd.google-apps.document', access: 'PRIVATE', permission: 'VIEW'}],
@@ -147,7 +147,7 @@ assert.equal(auditMaterials(buyer).ready, true, 'exact buyer VIEW permits delive
 props.set('STARTER_PROMPT_URL', originalGuide);
 assert.equal(auditMaterials(buyer).checks[1].status, 'DUPLICATE_MATERIAL', 'reused buyer file ID must fail closed');
 props.set('STARTER_PROMPT_URL', originalPrompt);
-assert.equal(auditMaterials('other@example.com').ready, false, 'wrong buyer blocked');
+assert.equal(auditMaterials('other@valid-domain.jp').ready, false, 'wrong buyer blocked');
 assert.equal(auditMaterials('bad,mail@example.com').ready, false, 'invalid buyer blocked');
 materialState.get('guide').mime = 'application/vnd.google-apps.spreadsheet';
 assert.equal(auditMaterials(buyer).checks[0].status, 'WRONG_FILE_TYPE');
