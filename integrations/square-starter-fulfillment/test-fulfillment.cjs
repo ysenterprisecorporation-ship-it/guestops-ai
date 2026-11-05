@@ -566,7 +566,8 @@ console.log('PASS: emergency pause before reservation and after PENDING blocks G
     ['SQUARE_ACCESS_TOKEN', 'fake-token'], ['SQUARE_LOCATION_ID', 'fake-location'],
     ['STARTER_CATALOG_OBJECT_ID', 'fake-item'], ['FULFILL_SINCE_ISO', '2026-10-29T00:00:00Z'],
     ['STARTER_GUIDE_URL', 'fake-guide'], ['STARTER_PROMPT_URL', 'fake-prompt'],
-    ['STARTER_SHEET_URL', 'fake-sheet'], ['SEND_ENABLED', 'false']
+    ['STARTER_SHEET_URL', 'fake-sheet'], ['SEND_ENABLED', 'false'],
+    ['AUTO_GRANT_BUYER_ACCESS', 'true']
   ]);
   let triggerCount = 1, accountOk = true, configOk = true;
   let materialsOk = true, pendingCount = 0, squareThrows = false;
@@ -590,7 +591,8 @@ console.log('PASS: emergency pause before reservation and after PENDING blocks G
       setProperty: () => {writes++; throw Error('Unexpected property mutation');}
     })},
     GmailApp: {createDraft: () => {sends++; throw Error('Unexpected Gmail call');}},
-    goRequiredConfig_: () => {if (!configOk) throw Error('bad config');}
+    goRequiredConfig_: () => {if (!configOk) throw Error('bad config');},
+    goGrantStarterBuyerAccess_: () => {throw Error('Buyer-access provisioning must not run in read-only preflight');}
   });
   vm.runInContext(deploymentCode, gateCtx, {filename: 'Deployment.gs'});
   gateCtx.auditStarterMaterialAccess = () => ({ready: materialsOk});
