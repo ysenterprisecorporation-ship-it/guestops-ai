@@ -78,7 +78,7 @@ assert.throws(() => run('installStarterDryRunTrigger()'), /Multiple fulfillment 
 assert.equal(created, 1);
 triggers.pop();
 account = 'wrong@example.com';
-assert.throws(() => run('installStarterDryRunTrigger()'), /Wrong Google account/);
+assert.throws(() => run('installStarterDryRunTrigger()'), /Wrong (or unavailable )?Google account/);
 account = 'minpaku.ai.kit@gmail.com';
 // Reject wrong file types and accidental reuse of the same buyer material.
 const originalGuide = props.get('STARTER_GUIDE_URL');
